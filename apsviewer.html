@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>APS Viewer 工作台</title>
+    <style>
+      :root {
+        --bg: #eef3f9;
+        --surface: rgba(255, 255, 255, 0.92);
+        --surface-strong: rgba(255, 255, 255, 0.98);
+        --line: rgba(23, 48, 77, 0.12);
+        --text: #17304d;
+        --muted: #6e8099;
+        --blue: #237df0;
+        --blue-soft: rgba(35, 125, 240, 0.1);
+        --green-soft: rgba(34, 164, 93, 0.14);
+        --green-text: #177246;
+        --amber-soft: rgba(245, 179, 53, 0.16);
+        --amber-text: #9a6200;
+        --shadow: 0 22px 60px rgba(10, 24, 44, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(35, 125, 240, 0.08), transparent 24%),
+          linear-gradient(180deg, #eef3f9 0%, #f8fafc 100%);
+      }
+
+      body {
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 18px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: blur(16px);
+      }
+
+      .topbar-copy,
+      .topbar-actions {
+        min-width: 0;
+      }
+
+      .topbar-copy p,
+      .topbar-copy h1,
+      .topbar-copy span {
+        margin: 0;
+      }
+
+      .topbar-kicker {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .topbar-title {
+        margin-top: 6px;
+        font-size: 22px;
+        line-height: 1.25;
+      }
+
+      .topbar-meta {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .mode-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 4px;
+        border: 1px solid rgba(23, 48, 77, 0.08);
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 12px 32px rgba(10, 24, 44, 0.08);
+      }
+
+      .mode-button {
+        appearance: none;
+        min-height: 32px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+      }
+
+      .mode-button:hover {
+        color: var(--text);
+      }
+
+      .mode-button.active {
+        background: linear-gradient(135deg, var(--blue), #36a0ff);
+        color: #fff;
+        box-shadow: 0 10px 20px rgba(35, 125, 240, 0.22);
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 4px;
+        background: var(--blue-soft);
+        color: #135dc1;
+        border: 1px solid rgba(35, 125, 240, 0.16);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .button {
+        appearance: none;
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+        background: var(--surface-strong);
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+      }
+
+      .button.primary {
+        background: linear-gradient(135deg, var(--blue), #36a0ff);
+        color: #fff;
+        border-color: rgba(35, 125, 240, 0.24);
+        box-shadow: 0 14px 28px rgba(35, 125, 240, 0.2);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 26px rgba(17, 37, 70, 0.08);
+      }
+
+      .button.small {
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        box-shadow: none;
+      }
+
+      .row-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+      }
+
+      .workspace {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 14px;
+        padding: 14px;
+      }
+
+      .sidebar {
+        min-height: 0;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+        overflow: auto;
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid rgba(18, 33, 58, 0.08);
+        border-radius: 4px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 16px 18px 0;
+      }
+
+      .panel-head h2,
+      .panel-head p {
+        margin: 0;
+      }
+
+      .panel-head h2 {
+        font-size: 16px;
+      }
+
+      .panel-head p {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .panel-body {
+        padding: 14px 18px 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .muted-note,
+      .mono-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .mono-note {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        word-break: break-all;
+      }
+
+      .status-list,
+      .saved-view-list,
+      .viewable-group {
+        display: grid;
+        gap: 8px;
+      }
+
+      .status-row,
+      .saved-view-row,
+      .viewable-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 4px;
+        background: rgba(247, 249, 252, 0.92);
+        border: 1px solid rgba(18, 33, 58, 0.05);
+      }
+
+      .saved-view-row.active,
+      .viewable-row.active {
+        border-color: rgba(35, 125, 240, 0.18);
+        background: rgba(235, 244, 255, 0.92);
+      }
+
+      .status-row strong,
+      .saved-view-row strong,
+      .viewable-row strong,
+      .viewable-row span,
+      .saved-view-row span {
+        min-width: 0;
+      }
+
+      .row-copy {
+        min-width: 0;
+        flex: 1;
+        display: grid;
+        gap: 4px;
+      }
+
+      .row-copy strong,
+      .row-copy span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status-row span,
+      .saved-view-row span,
+      .viewable-row span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .empty-note {
+        margin: 0;
+        padding: 12px;
+        border-radius: 4px;
+        background: rgba(247, 249, 252, 0.96);
+        border: 1px dashed rgba(18, 33, 58, 0.08);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .status-pill.success {
+        background: var(--green-soft);
+        color: var(--green-text);
+      }
+
+      .status-pill.warn {
+        background: var(--amber-soft);
+        color: var(--amber-text);
+      }
+
+      .status-pill.neutral {
+        background: rgba(110, 128, 153, 0.12);
+        color: #5e718b;
+      }
+
+      .action-grid,
+      .color-grid,
+      .saved-view-actions {
+        display: grid;
+        gap: 8px;
+      }
+
+      .action-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .color-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .color-swatch {
+        min-height: 34px;
+        border-radius: 4px;
+        border: 1px solid rgba(18, 33, 58, 0.06);
+      }
+
+      .color-swatch.red { background: rgba(236, 76, 67, 0.16); color: #bf3d36; }
+      .color-swatch.amber { background: rgba(245, 179, 53, 0.18); color: #9a6200; }
+      .color-swatch.blue { background: rgba(35, 125, 240, 0.16); color: #135dc1; }
+      .color-swatch.green { background: rgba(34, 164, 93, 0.16); color: #177246; }
+
+      .text-input {
+        width: 100%;
+        min-height: 38px;
+        padding: 0 12px;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.98);
+        color: var(--text);
+      }
+
+      .main-stage {
+        min-width: 0;
+        min-height: 0;
+        display: grid;
+        gap: 14px;
+      }
+
+      .viewer-grid {
+        min-width: 0;
+        min-height: 0;
+        display: grid;
+        gap: 14px;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .viewer-grid.linked {
+        grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.85fr);
+      }
+
+      .viewer-card {
+        min-width: 0;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        overflow: hidden;
+      }
+
+      .viewer-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.94);
+      }
+
+      .viewer-card-head strong,
+      .viewer-card-head span {
+        margin: 0;
+      }
+
+      .viewer-card-head span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .viewer-mount {
+        position: relative;
+        min-height: 0;
+      }
+
+      .viewer-frame {
+        position: absolute;
+        inset: 0;
+      }
+
+      .viewer-placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      .issue-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 4;
+      }
+
+      .issue-marker {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        transform: translate(-50%, -100%);
+        border: 0;
+        border-radius: 50%;
+        background: #111827;
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 800;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+        pointer-events: auto;
+        cursor: pointer;
+      }
+
+      .issue-marker::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -5px;
+        width: 10px;
+        height: 10px;
+        transform: translateX(-50%) rotate(45deg);
+        background: inherit;
+      }
+
+      .issue-marker.active {
+        background: #d92d20;
+      }
+
+      .issue-marker-popover {
+        position: absolute;
+        left: 36px;
+        bottom: 0;
+        width: 220px;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background: rgba(255, 255, 255, 0.96);
+        color: var(--text);
+        text-align: left;
+        box-shadow: var(--shadow);
+      }
+
+      .issue-marker-popover strong {
+        display: block;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .issue-marker-popover span,
+      .issue-marker-popover p {
+        display: block;
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .markups-floating-toolbar {
+        position: absolute;
+        left: 16px;
+        top: 16px;
+        z-index: 9;
+        width: min(660px, calc(100% - 32px));
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, auto));
+        gap: 6px;
+        align-items: center;
+        justify-content: start;
+        padding: 8px;
+        border: 1px solid rgba(18, 33, 58, 0.14);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 12px 28px rgba(10, 24, 44, 0.14);
+        backdrop-filter: blur(12px);
+      }
+
+      .markups-floating-toolbar button {
+        appearance: none;
+        min-height: 32px;
+        padding: 0 10px;
+        border: 1px solid rgba(18, 33, 58, 0.12);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--text);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .markups-floating-toolbar button:hover:not(:disabled) {
+        border-color: rgba(29, 111, 232, 0.36);
+        color: var(--blue-deep);
+      }
+
+      .markups-floating-toolbar button.active {
+        border-color: rgba(29, 111, 232, 0.52);
+        background: var(--blue-soft);
+        color: var(--blue-deep);
+      }
+
+      .markups-floating-toolbar button[data-markup-action="save"] {
+        border-color: rgba(29, 111, 232, 0.42);
+        background: var(--blue-deep);
+        color: #fff;
+      }
+
+      .markups-floating-toolbar-separator {
+        width: 1px;
+        height: 24px;
+        margin: 0 2px;
+        background: rgba(18, 33, 58, 0.14);
+      }
+
+      .issue-compose {
+        display: grid;
+        gap: 10px;
+      }
+
+      .issue-list {
+        display: grid;
+        gap: 8px;
+        max-height: 260px;
+        overflow: auto;
+      }
+
+      .issue-row {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.96);
+        padding: 10px;
+        display: grid;
+        gap: 6px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .issue-row.active {
+        border-color: rgba(217, 45, 32, 0.5);
+        box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.09);
+      }
+
+      .issue-row strong {
+        font-size: 13px;
+      }
+
+      .issue-row p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .issue-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .viewer-grid.model-diff-split {
+        grid-template-columns: repeat(2, minmax(360px, 1fr));
+      }
+
+      .viewer-diff-legend {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 12;
+        width: min(360px, calc(100vw - 36px));
+        padding: 12px 14px;
+        border: 1px solid rgba(18, 33, 58, 0.12);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 16px 38px rgba(10, 24, 44, 0.14);
+        backdrop-filter: blur(12px);
+        display: grid;
+        gap: 8px;
+        font-size: 12px;
+      }
+
+      .viewer-diff-legend strong,
+      .viewer-diff-legend span {
+        display: block;
+      }
+
+      .viewer-diff-legend span {
+        color: var(--muted);
+      }
+
+      .viewer-diff-legend div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 10px;
+        align-items: center;
+        color: var(--muted);
+      }
+
+      .viewer-diff-legend i,
+      .model-diff-viewer-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        display: inline-block;
+      }
+
+      .viewer-diff-legend .added,
+      .model-diff-viewer-dot.added { background: #2da66f; }
+      .viewer-diff-legend .deleted,
+      .model-diff-viewer-dot.deleted { background: #d9473f; }
+      .viewer-diff-legend .modified,
+      .model-diff-viewer-dot.modified { background: #d6a617; }
+      .viewer-diff-legend .moved,
+      .model-diff-viewer-dot.moved { background: #ea7a24; }
+      .model-diff-viewer-dot.unmatched { background: #697386; }
+
+      .model-diff-viewer-body,
+      .model-diff-viewer-list,
+      .model-diff-viewer-detail {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .model-diff-viewer-list {
+        max-height: 220px;
+        overflow: auto;
+      }
+
+      .model-diff-viewer-row {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.96);
+        padding: 9px 10px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .model-diff-viewer-row.active {
+        border-color: rgba(35, 125, 240, 0.38);
+        box-shadow: 0 0 0 3px rgba(35, 125, 240, 0.08);
+      }
+
+      .model-diff-viewer-row strong,
+      .model-diff-viewer-row span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .model-diff-viewer-row span,
+      .model-diff-viewer-detail p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .model-diff-viewer-detail {
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid rgba(18, 33, 58, 0.08);
+        background: rgba(247, 249, 252, 0.92);
+      }
+
+      .model-diff-viewer-detail strong {
+        font-size: 13px;
+      }
+
+      .model-diff-viewer-detail .text-input {
+        min-height: 34px;
+      }
+
+      .construction-schedule-viewer-panel {
+        position: fixed;
+        right: 18px;
+        top: 96px;
+        z-index: 13;
+        width: min(420px, calc(100vw - 36px));
+        max-height: calc(100vh - 210px);
+        overflow: auto;
+        padding: 14px;
+        border: 1px solid rgba(18, 33, 58, 0.12);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 18px 42px rgba(10, 24, 44, 0.16);
+        backdrop-filter: blur(14px);
+        display: grid;
+        gap: 12px;
+      }
+
+      .construction-schedule-viewer-head,
+      .construction-schedule-player {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .construction-schedule-viewer-head div {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .construction-schedule-viewer-head span,
+      .construction-schedule-viewer-date,
+      .construction-schedule-player label span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .construction-schedule-viewer-head strong {
+        overflow: hidden;
+        color: var(--text);
+        font-size: 15px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .construction-schedule-viewer-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+      }
+
+      .construction-schedule-viewer-stats span,
+      .construction-schedule-viewer-layers label {
+        min-width: 0;
+        min-height: 32px;
+        padding: 0 9px;
+        border: 1px solid rgba(18, 33, 58, 0.08);
+        border-radius: 4px;
+        background: rgba(247, 249, 252, 0.94);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .construction-schedule-viewer-stats span strong {
+        margin-left: auto;
+        color: var(--text);
+      }
+
+      .construction-schedule-viewer-stats i,
+      .construction-schedule-viewer-layers i,
+      .construction-schedule-viewer-row i {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex: 0 0 auto;
+      }
+
+      .construction-schedule-viewer-layers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .construction-schedule-viewer-filters {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+      }
+
+      .construction-schedule-viewer-filters label {
+        min-width: 0;
+        display: grid;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .construction-schedule-viewer-filters select {
+        min-height: 32px;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--ink);
+        font-size: 12px;
+        padding: 6px;
+      }
+
+      .construction-schedule-viewer-layers input {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--blue);
+      }
+
+      .construction-schedule-viewer-list,
+      .construction-schedule-viewer-detail,
+      .construction-schedule-viewer-detail div,
+      .construction-schedule-viewer-bind {
+        display: grid;
+        gap: 8px;
+      }
+
+      .construction-schedule-viewer-bind {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        padding: 10px;
+        border: 1px solid rgba(18, 33, 58, 0.08);
+        border-radius: 4px;
+        background: rgba(247, 249, 252, 0.94);
+      }
+
+      .construction-schedule-viewer-bind label {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .construction-schedule-viewer-bind label span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .construction-schedule-viewer-bind select {
+        min-height: 32px;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--text);
+        padding: 0 9px;
+      }
+
+      .construction-schedule-viewer-list {
+        max-height: 236px;
+        overflow: auto;
+      }
+
+      .construction-schedule-viewer-row {
+        appearance: none;
+        width: 100%;
+        min-height: 52px;
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.96);
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+        align-items: center;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .construction-schedule-viewer-row.active {
+        border-color: rgba(35, 125, 240, 0.38);
+        box-shadow: 0 0 0 3px rgba(35, 125, 240, 0.08);
+      }
+
+      .construction-schedule-viewer-row span,
+      .construction-schedule-viewer-row strong,
+      .construction-schedule-viewer-row small {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .construction-schedule-viewer-row strong {
+        display: block;
+        color: var(--text);
+        font-size: 12.5px;
+      }
+
+      .construction-schedule-viewer-row small,
+      .construction-schedule-viewer-detail p,
+      .construction-schedule-viewer-detail span {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .construction-schedule-viewer-detail {
+        padding: 10px;
+        border: 1px solid rgba(18, 33, 58, 0.08);
+        border-radius: 4px;
+        background: rgba(247, 249, 252, 0.94);
+      }
+
+      .construction-schedule-viewer-detail strong {
+        color: var(--text);
+        font-size: 13px;
+      }
+
+      .construction-schedule-viewer-detail span {
+        padding: 7px 8px;
+        border-radius: 4px;
+        background: #fff;
+      }
+
+      .construction-schedule-viewer-detail b {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--text);
+      }
+
+      .construction-schedule-viewer-timeline {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        z-index: 14;
+        width: min(840px, calc(100vw - 36px));
+        padding: 12px 14px;
+        border: 1px solid rgba(18, 33, 58, 0.12);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 18px 42px rgba(10, 24, 44, 0.16);
+        backdrop-filter: blur(14px);
+        transform: translateX(-50%);
+        display: grid;
+        gap: 10px;
+      }
+
+      .construction-schedule-player {
+        justify-content: flex-start;
+      }
+
+      .construction-schedule-player label {
+        display: grid;
+        gap: 4px;
+      }
+
+      .construction-schedule-player input,
+      .construction-schedule-player select {
+        min-height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--text);
+        padding: 0 9px;
+      }
+
+      .construction-schedule-milestones {
+        display: flex;
+        gap: 6px;
+        overflow: auto;
+        padding-bottom: 2px;
+      }
+
+      .construction-schedule-milestones span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      /* APS drawing closeout: CDE production surfaces, no rounded-card chrome. */
+      .topbar,
+      .panel,
+      .viewer-card,
+      .viewer-card-head,
+      .state-card,
+      .status-row,
+      .saved-view-row,
+      .viewable-row,
+      .empty-note,
+      .text-input,
+      .button,
+      .button.small,
+      .mode-switch,
+      .mode-button,
+      .chip,
+      .status-pill,
+      .color-swatch,
+      .issue-row,
+      .issue-marker-popover,
+      .viewer-diff-legend,
+      .model-diff-viewer-row,
+      .model-diff-viewer-detail,
+      .construction-schedule-viewer-panel,
+      .construction-schedule-viewer-stats span,
+      .construction-schedule-viewer-layers label,
+      .construction-schedule-viewer-filters select,
+      .construction-schedule-viewer-bind,
+      .construction-schedule-viewer-bind select,
+      .construction-schedule-viewer-row,
+      .construction-schedule-viewer-detail,
+      .construction-schedule-viewer-detail span,
+      .construction-schedule-viewer-timeline,
+      .construction-schedule-player input,
+      .construction-schedule-player select,
+      .state-card pre {
+        border-radius: 4px;
+      }
+
+      .panel,
+      .viewer-card,
+      .state-card {
+        box-shadow: none;
+        background: rgba(255, 255, 255, 0.98);
+      }
+
+      .workspace {
+        background: #eef3f9;
+      }
+
+      .sidebar > .panel:first-child {
+        order: 1;
+      }
+
+      #markupsPanel {
+        order: 2;
+      }
+
+      #componentPanel {
+        order: 3;
+      }
+
+      #savedViewPanel {
+        order: 4;
+      }
+
+      #selectionPanel {
+        order: 5;
+      }
+
+      #issuePanel {
+        order: 6;
+      }
+
+      #modelDiffPanel {
+        order: 7;
+      }
+
+      @media (max-width: 1320px) {
+        .viewer-grid.model-diff-split {
+          grid-template-columns: 1fr;
+          grid-template-rows: minmax(0, 1fr) minmax(320px, 0.8fr);
+        }
+      }
+
+      .state-wrap {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgba(238, 243, 249, 0.78);
+        backdrop-filter: blur(8px);
+      }
+
+      .state-card {
+        width: min(720px, 100%);
+        padding: 24px;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+        background: var(--surface-strong);
+        box-shadow: var(--shadow);
+        display: grid;
+        gap: 12px;
+      }
+
+      .state-card h2,
+      .state-card p,
+      .state-card pre {
+        margin: 0;
+      }
+
+      .state-card pre {
+        overflow: auto;
+        padding: 14px;
+        border-radius: 4px;
+        background: rgba(247, 249, 252, 0.96);
+        color: #27405d;
+        font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 1320px) {
+        .workspace {
+          grid-template-columns: 292px minmax(0, 1fr);
+        }
+
+        .viewer-grid.linked {
+          grid-template-columns: 1fr;
+          grid-template-rows: minmax(0, 1fr) minmax(320px, 0.62fr);
+        }
+      }
+
+
+      /* UI audit third pass: external workspace visual unification */
+      :root {
+        --bg: #eef3f9;
+        --surface: rgba(255, 255, 255, 0.9);
+        --surface-strong: rgba(255, 255, 255, 0.98);
+        --line: rgba(18, 33, 58, 0.1);
+        --text: #19314f;
+        --muted: #60728a;
+        --blue: #1d6fe8;
+        --blue-deep: #1559bd;
+        --blue-soft: rgba(29, 111, 232, 0.1);
+        --focus-ring: 0 0 0 4px rgba(29, 111, 232, 0.14);
+        --shadow-soft: 0 14px 36px rgba(20, 43, 78, 0.1);
+      }
+
+      body {
+        font-family: ui-sans-serif, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+        background:
+          radial-gradient(circle at 16% -10%, rgba(29, 111, 232, 0.12), transparent 34%),
+          linear-gradient(180deg, #f9fbff 0%, var(--bg) 100%);
+        text-rendering: geometricPrecision;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible {
+        outline: none;
+        box-shadow: var(--focus-ring);
+      }
+
+      .floating-meta,
+      .floating-actions .chip,
+      .ghost-button,
+      .state-card,
+      .panel {
+        border-color: var(--line);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92));
+        box-shadow: var(--shadow-soft);
+      }
+
+      .floating-meta {
+        border-radius: 4px;
+      }
+
+      .meta-kicker {
+        color: var(--muted);
+      }
+
+      .meta-title,
+      .state-card h2,
+      .panel h2,
+      .viewer-card-head strong {
+        color: #0b1220;
+        letter-spacing: -0.02em;
+      }
+
+      .chip,
+      .status-pill {
+        border-color: rgba(29, 111, 232, 0.22);
+        background: var(--blue-soft);
+        color: var(--blue-deep);
+        font-weight: 800;
+      }
+
+      .status-pill.neutral {
+        border-color: rgba(96, 114, 138, 0.2);
+        background: rgba(96, 114, 138, 0.09);
+        color: var(--muted);
+      }
+
+      .ghost-button,
+      .button {
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+      }
+
+      .ghost-button:hover,
+      .button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: rgba(29, 111, 232, 0.24);
+        color: var(--blue-deep);
+        background: #fff;
+      }
+
+      .ghost-button:active,
+      .button:active:not(:disabled) {
+        transform: translateY(0) scale(0.985);
+      }
+
+      .state-card {
+        border-radius: 4px;
+      }
+
+      .state-card pre {
+        border: 1px solid rgba(18, 33, 58, 0.08);
+        background: #f4f7fb;
+        color: #27405d;
+      }
+
+      .frame,
+      .viewer-frame,
+      .viewer-mount {
+        background:
+          linear-gradient(45deg, rgba(203, 216, 232, 0.22) 25%, transparent 25%),
+          linear-gradient(-45deg, rgba(203, 216, 232, 0.22) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, rgba(203, 216, 232, 0.22) 75%),
+          linear-gradient(-45deg, transparent 75%, rgba(203, 216, 232, 0.22) 75%),
+          #eef3f8;
+        background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+        background-size: 20px 20px;
+      }
+
+      @media (max-width: 720px) {
+        .floating-shell {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .floating-meta {
+          max-width: none;
+        }
+
+        .floating-actions {
+          width: 100%;
+          flex-wrap: wrap;
+        }
+
+        .floating-actions > * {
+          flex: 1 1 auto;
+          justify-content: center;
+        }
+
+        .state-card-wrap,
+        .state-wrap {
+          padding: 16px;
+        }
+      }
+
+
+
+      /* UI audit third pass: APS workspace-specific refinements */
+      .topbar {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92));
+        box-shadow: 0 10px 30px rgba(20, 43, 78, 0.08);
+      }
+
+      .topbar-title {
+        color: #0b1220;
+        letter-spacing: -0.025em;
+      }
+
+      .mode-switch {
+        border-color: rgba(18, 33, 58, 0.09);
+        background: rgba(255, 255, 255, 0.74);
+      }
+
+      .mode-button:focus-visible {
+        outline: none;
+        box-shadow: var(--focus-ring);
+      }
+
+      .mode-button.active,
+      .button.primary {
+        background: linear-gradient(135deg, var(--blue-deep), var(--blue));
+        box-shadow: 0 12px 24px rgba(29, 111, 232, 0.22);
+      }
+
+      .sidebar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(96, 114, 138, 0.42) transparent;
+      }
+
+      .sidebar::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      .sidebar::-webkit-scrollbar-thumb {
+        border-radius: 4px;
+        background: rgba(96, 114, 138, 0.38);
+      }
+
+      .text-input,
+      select {
+        border-color: rgba(18, 33, 58, 0.12);
+        background: rgba(255, 255, 255, 0.94);
+      }
+
+      .text-input:focus,
+      select:focus {
+        border-color: rgba(29, 111, 232, 0.34);
+        outline: none;
+        box-shadow: var(--focus-ring);
+      }
+
+      .viewer-card {
+        overflow: hidden;
+      }
+
+      .viewer-card-head {
+        background: rgba(255, 255, 255, 0.72);
+        border-bottom-color: rgba(18, 33, 58, 0.08);
+      }
+
+      .viewer-placeholder {
+        color: var(--muted);
+      }
+
+      .saved-view-list,
+      .panel-body {
+        min-width: 0;
+      }
+
+      .state-wrap {
+        background: rgba(238, 243, 249, 0.72);
+      }
+
+      @media (max-width: 980px) {
+        body {
+          overflow: auto;
+        }
+
+        .workspace {
+          grid-template-columns: 1fr;
+          min-height: 100dvh;
+        }
+
+        .topbar {
+          flex-direction: column;
+        }
+
+        .topbar-actions,
+        .mode-switch {
+          width: 100%;
+        }
+
+        .mode-button,
+        .topbar-actions > .button {
+          flex: 1 1 auto;
+          justify-content: center;
+        }
+
+        .sidebar {
+          max-height: none;
+          overflow: visible;
+        }
+
+        .viewer-grid,
+        .viewer-grid.linked {
+          grid-template-columns: 1fr;
+          grid-template-rows: minmax(420px, 56vh) minmax(360px, 42vh);
+        }
+      }
+
+      @media (max-width: 720px) {
+        .topbar {
+          padding: 14px;
+        }
+
+        .topbar-actions {
+          justify-content: stretch;
+        }
+
+        .workspace {
+          padding: 12px;
+        }
+
+        .panel-head,
+        .viewer-card-head {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .action-grid,
+        .color-grid,
+        .saved-view-actions {
+          grid-template-columns: 1fr;
+        }
+      }
+
+
+
+      /* UI audit sixth pass: external page accessibility */
+      @media (hover: none), (pointer: coarse) {
+        button,
+        a.ghost-button,
+        .ghost-button,
+        .button,
+        .mode-button,
+        .text-input,
+        select {
+          min-height: 44px;
+        }
+      }
+
+      @media (prefers-contrast: more) {
+        :root {
+          --line: rgba(18, 33, 58, 0.34);
+          --muted: #3f526b;
+          --blue: #0f5fcb;
+          --blue-deep: #0b4fa8;
+          --focus-ring: 0 0 0 4px rgba(11, 79, 168, 0.28);
+        }
+
+        .floating-meta,
+        .ghost-button,
+        .button,
+        .state-card,
+        .panel,
+        .chip,
+        .status-pill,
+        .text-input,
+        select {
+          border-color: rgba(18, 33, 58, 0.34);
+        }
+      }
+
+      @media (forced-colors: active) {
+        * {
+          box-shadow: none !important;
+          text-shadow: none !important;
+        }
+
+        button,
+        a,
+        input,
+        select,
+        textarea,
+        .floating-meta,
+        .ghost-button,
+        .button,
+        .state-card,
+        .panel,
+        .chip,
+        .status-pill {
+          border: 1px solid CanvasText !important;
+        }
+
+        button:focus-visible,
+        a:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible {
+          outline: 2px solid Highlight !important;
+          outline-offset: 2px;
+        }
+
+        .button.primary,
+        .mode-button.active {
+          forced-color-adjust: none;
+          background: Highlight !important;
+          color: HighlightText !important;
+          border-color: Highlight !important;
+        }
+      }
+
+      /* Final APS CDE closeout: keep legacy audit layers from reintroducing rounded cards. */
+      .topbar,
+      .panel,
+      .viewer-card,
+      .viewer-card-head,
+      .state-card,
+      .status-row,
+      .saved-view-row,
+      .viewable-row,
+      .empty-note,
+      .text-input,
+      .button,
+      .button.small,
+      .ghost-button,
+      .mode-switch,
+      .mode-button,
+      .chip,
+      .status-pill,
+      .color-swatch,
+      .issue-row,
+      .issue-marker-popover,
+      .markups-floating-toolbar,
+      .markups-floating-toolbar button,
+      .viewer-diff-legend,
+      .model-diff-viewer-row,
+      .model-diff-viewer-detail,
+      .construction-schedule-viewer-panel,
+      .construction-schedule-viewer-stats span,
+      .construction-schedule-viewer-layers label,
+      .construction-schedule-viewer-filters select,
+      .construction-schedule-viewer-bind,
+      .construction-schedule-viewer-bind select,
+      .construction-schedule-viewer-row,
+      .construction-schedule-viewer-detail,
+      .construction-schedule-viewer-detail span,
+      .construction-schedule-viewer-timeline,
+      .construction-schedule-player input,
+      .construction-schedule-player select,
+      .state-card pre {
+        border-radius: 4px !important;
+      }
+
+      .panel,
+      .viewer-card,
+      .state-card {
+        background: rgba(255, 255, 255, 0.98) !important;
+        box-shadow: none !important;
+      }
+
+      .topbar {
+        box-shadow: none !important;
+      }
+
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-copy">
+        <p class="topbar-kicker">APS Viewer Workspace</p>
+        <h1 id="pageTitle" class="topbar-title">正在准备工作台...</h1>
+        <div id="pageMeta" class="topbar-meta">
+          <span>正在加载 APS 配置</span>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div id="layoutModeGroup" class="mode-switch">
+          <button id="layoutModeLinkedButton" class="mode-button active" type="button">联动查看</button>
+          <button id="layoutMode2dButton" class="mode-button" type="button">只看 2D</button>
+          <button id="layoutMode3dButton" class="mode-button" type="button">只看 3D</button>
+        </div>
+        <span id="linkStatusChip" class="chip">联动未就绪</span>
+        <button id="saveSceneButton" class="button" type="button">保存场景状态</button>
+        <button id="backButton" class="button primary" type="button">返回系统</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <p id="viewablePanelKicker">模型视图</p>
+              <h2 id="viewablePanelTitle">2D / 3D 联动</h2>
+            </div>
+            <span id="viewableSummary" class="status-pill neutral">0 视图</span>
+          </div>
+          <div class="panel-body">
+            <div id="viewable3dSection">
+              <p class="muted-note">3D 模型</p>
+              <div id="viewable3dList" class="viewable-group"></div>
+            </div>
+            <div id="viewable2dSection">
+              <p class="muted-note">2D 图纸</p>
+              <div id="viewable2dList" class="viewable-group"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="markupsPanel" class="panel">
+          <div class="panel-head">
+            <div>
+              <p>标注审阅</p>
+              <h2>2D Markups</h2>
+            </div>
+            <span id="markupsStatusBadge" class="status-pill neutral">未加载</span>
+          </div>
+          <div class="panel-body">
+            <div class="action-grid">
+              <button id="enterMarkupsButton" class="button" type="button">进入标注</button>
+              <button id="saveMarkupsButton" class="button" type="button">保存标注</button>
+              <button id="clearMarkupsButton" class="button" type="button">清空标注</button>
+            </div>
+            <p id="markupsMeta" class="muted-note">只有 2D 图纸视图启用 MarkupsCore + MarkupsGui。</p>
+          </div>
+        </section>
+
+        <section id="componentPanel" class="panel">
+          <div class="panel-head">
+            <div>
+              <p id="componentPanelKicker">组件状态</p>
+              <h2 id="componentPanelTitle">APS 扩展</h2>
+            </div>
+            <span id="componentStatusBadge" class="status-pill neutral">待加载</span>
+          </div>
+          <div id="componentStatusList" class="panel-body status-list"></div>
+        </section>
+
+        <section id="savedViewPanel" class="panel">
+          <div class="panel-head">
+            <div>
+              <p id="savedViewPanelKicker">视点管理</p>
+              <h2 id="savedViewPanelTitle">Saved Views</h2>
+            </div>
+            <span id="savedViewCountBadge" class="status-pill neutral">0 个</span>
+          </div>
+          <div class="panel-body">
+            <input id="savedViewNameInput" class="text-input" type="text" maxlength="80" placeholder="例如：机电夹层碰撞点 / 1F 总图审阅位" />
+            <div class="saved-view-actions">
+              <button id="saveViewButton" class="button" type="button">保存当前视点</button>
+            </div>
+            <div id="savedViewList" class="saved-view-list"></div>
+          </div>
+        </section>
+
+        <section id="selectionPanel" class="panel">
+          <div class="panel-head">
+            <div>
+              <p>构件操作</p>
+              <h2>隔离 / 着色</h2>
+            </div>
+            <span id="selectionStatusBadge" class="status-pill neutral">未选择</span>
+          </div>
+          <div class="panel-body">
+            <div class="action-grid">
+              <button id="isolateButton" class="button" type="button">隔离所选</button>
+              <button id="clearIsolationButton" class="button" type="button">取消隔离</button>
+              <button id="clearThemingButton" class="button" type="button">清空着色</button>
+            </div>
+            <div class="color-grid">
+              <button class="button color-swatch red" data-theme-color="red" type="button">红</button>
+              <button class="button color-swatch amber" data-theme-color="amber" type="button">黄</button>
+              <button class="button color-swatch blue" data-theme-color="blue" type="button">蓝</button>
+              <button class="button color-swatch green" data-theme-color="green" type="button">绿</button>
+            </div>
+            <p class="muted-note">支持 `isolate` / `setThemingColor`，当前按主视图的选中构件执行。</p>
+          </div>
+        </section>
+
+        <section id="issuePanel" class="panel">
+          <div class="panel-head">
+            <div>
+              <p>Issue 定位</p>
+              <h2>三维问题</h2>
+            </div>
+            <span id="issueCountBadge" class="status-pill neutral">0 项</span>
+          </div>
+          <div class="panel-body issue-compose">
+            <input id="issueTitleInput" class="text-input" type="text" maxlength="80" placeholder="Issue 标题" />
+            <input id="issueNoteInput" class="text-input" type="text" maxlength="160" placeholder="问题描述" />
+            <button id="createIssueButton" class="button" type="button">记录当前视角</button>
+            <button id="rebindIssueButton" class="button" type="button">重新绑定所选构件</button>
+            <p id="issueMeta" class="muted-note">可先选中构件，再记录当前镜头；未选构件时会保存区域视角。</p>
+            <div id="issueList" class="issue-list"></div>
+          </div>
+        </section>
+
+        <section id="modelDiffPanel" class="panel hidden">
+          <div class="panel-head">
+            <div>
+              <p>模型差异</p>
+              <h2>版本变更</h2>
+            </div>
+            <span id="modelDiffPanelBadge" class="status-pill neutral">0 项</span>
+          </div>
+          <div class="panel-body model-diff-viewer-body">
+            <div id="modelDiffRecordList" class="model-diff-viewer-list"></div>
+            <div id="modelDiffRecordDetail" class="model-diff-viewer-detail"></div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="main-stage">
+        <div id="viewerGrid" class="viewer-grid">
+          <article class="panel viewer-card">
+            <div class="viewer-card-head">
+              <div>
+                <strong id="primaryViewerTitle">主视图</strong>
+                <span id="primaryViewerMeta">等待加载</span>
+              </div>
+              <span id="primaryRoleBadge" class="status-pill neutral">--</span>
+            </div>
+            <div class="viewer-mount">
+              <div id="primaryViewer" class="viewer-frame"></div>
+              <div id="primaryIssueOverlay" class="issue-overlay"></div>
+              <div id="primaryViewerPlaceholder" class="viewer-placeholder">准备主视图中...</div>
+            </div>
+          </article>
+
+          <article id="secondaryViewerCard" class="panel viewer-card hidden">
+            <div class="viewer-card-head">
+              <div>
+                <strong id="secondaryViewerTitle">联动视图</strong>
+                <span id="secondaryViewerMeta">等待加载</span>
+              </div>
+              <span id="secondaryRoleBadge" class="status-pill neutral">--</span>
+            </div>
+            <div class="viewer-mount">
+              <div id="secondaryViewer" class="viewer-frame"></div>
+              <div id="secondaryIssueOverlay" class="issue-overlay"></div>
+              <div id="secondaryViewerPlaceholder" class="viewer-placeholder">当模型同时具备 2D 与 3D 视图时，这里会显示联动窗口。</div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <div id="stateWrap" class="state-wrap">
+      <article class="state-card">
+        <h2 id="stateTitle">正在连接 APS Viewer</h2>
+        <p id="stateMessage">稍等一下，我们会拉取 Viewer 配置、脚本和鉴权信息。</p>
+        <pre id="stateDetail" class="hidden"></pre>
+      </article>
+    </div>
+
+    <script type="module" src="/apsviewer.js"></script>
+  </body>
+</html>

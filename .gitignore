@@ -1,0 +1,24 @@
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local tooling/cache
+.playwright-cli/
+
+# Runtime/generated output
+data/*.json
+db/seed-from-json.sql
+output/
+rendered-pages/
+data/exports/
+data/uploads/

@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      CDE_DATA_DIR: /data
+      CDE_STORAGE_ADAPTER: s3
+      CDE_S3_BUCKET: cde-docs
+      CDE_S3_PREFIX: local
+      CDE_S3_ENDPOINT: http://minio:9000
+      CDE_S3_REGION: us-east-1
+      CDE_S3_FORCE_PATH_STYLE: "true"
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in your environment}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in your environment}
+      CDE_BOOTSTRAP_PASSWORD: ${CDE_BOOTSTRAP_PASSWORD:?Set CDE_BOOTSTRAP_PASSWORD in your environment}
+      APS_CLIENT_ID: ""
+      APS_CLIENT_SECRET: ""
+    volumes:
+      - cde-data:/data
+    depends_on:
+      minio:
+        condition: service_healthy
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in your environment}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in your environment}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  cde-data:
+  minio-data:

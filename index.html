@@ -1,0 +1,3388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CDE文件管理系统</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="authShell" class="auth-shell">
+      <div class="auth-shell-backdrop"></div>
+      <section class="auth-card">
+        <div class="auth-card-head">
+          <div class="brand auth-brand">
+            <div class="brand-mark" aria-hidden="true"></div>
+            <div class="brand-copy">
+              <p class="brand-kicker">CDE / File Management</p>
+              <h1>CDE文件管理系统</h1>
+            </div>
+          </div>
+          <p id="authStatusText" class="auth-status-text">正在检查登录状态…</p>
+        </div>
+
+        <form id="loginForm" class="auth-form" autocomplete="on">
+          <div class="auth-copy">
+            <p class="panel-kicker">账号登录</p>
+            <h2 id="authCardTitle" class="auth-card-title">登录系统</h2>
+          </div>
+
+          <div class="auth-tab-row">
+            <button id="passwordLoginTab" class="auth-tab active" data-auth-tab="password" type="button">账号密码登录</button>
+            <button id="larkLoginTab" class="auth-tab" data-auth-tab="lark" type="button">飞书登录</button>
+          </div>
+
+          <div id="loginPasswordPanel" class="auth-tab-panel">
+            <label class="detail-field">
+              <span class="field-label">邮箱账号</span>
+              <input id="loginEmailInput" class="text-input auth-input" type="email" autocomplete="username" placeholder="请输入邮箱" />
+            </label>
+
+            <label class="detail-field">
+              <span class="field-label">登录密码</span>
+              <input
+                id="loginPasswordInput"
+                class="text-input auth-input"
+                type="password"
+                autocomplete="current-password"
+                placeholder="请输入密码"
+              />
+            </label>
+
+            <p id="loginErrorText" class="auth-error-text hidden"></p>
+
+            <div class="workflow-actions auth-actions">
+              <button id="loginSubmitButton" class="primary-button auth-submit-button" type="submit" aria-label="提交账号密码登录">登录</button>
+            </div>
+          </div>
+
+          <div id="loginLarkPanel" class="auth-tab-panel hidden">
+            <div class="auth-lark-placeholder">
+              <p class="field-label">飞书登录</p>
+              <strong id="larkLoginHeadline">使用飞书账户登录</strong>
+              <p id="larkLoginDescription" class="auth-status-text">浏览器会跳转到飞书授权页，授权成功后自动回到系统并建立真实账户会话。</p>
+              <p id="larkLoginHint" class="access-policy-summary">首次使用若未绑定，请先通过账号密码登录，并在个人中心完成绑定。</p>
+            </div>
+            <button id="larkLoginButton" class="primary-button auth-submit-button" type="button">前往飞书授权</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div class="shell hidden">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div class="brand-copy">
+            <p class="brand-kicker">CDE / File Management</p>
+            <h1>CDE文件管理系统</h1>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-item active" data-view="files" type="button">
+            <span class="nav-item-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h3.5l2 2H17A2.5 2.5 0 0 1 19.5 9.5v7A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5z" />
+              </svg>
+            </span>
+            <span>文件</span>
+          </button>
+          <button class="nav-item" data-view="workflow" type="button">
+            <span class="nav-item-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <circle cx="6.5" cy="12" r="2.2" />
+                <circle cx="17.5" cy="6.5" r="2.2" />
+                <circle cx="17.5" cy="17.5" r="2.2" />
+                <path d="M8.7 11.1 15.3 7.4" />
+                <path d="M8.7 12.9 15.3 16.6" />
+              </svg>
+            </span>
+            <span>流程</span>
+          </button>
+          <button class="nav-item" data-view="drawing-apps" type="button">
+            <span class="nav-item-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M5 4.5h10.5L19 8v11.5H5z" />
+                <path d="M15.5 4.5V8H19" />
+                <path d="M8 12h8" />
+                <path d="M8 15h5" />
+                <path d="M8 18h3" />
+              </svg>
+            </span>
+            <span>图纸应用</span>
+          </button>
+          <button class="nav-item" data-view="model-apps" type="button">
+            <span class="nav-item-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3 4.5 7.2v8.6L12 20l7.5-4.2V7.2z" />
+                <path d="M12 11.5 4.8 7.4" />
+                <path d="M12 11.5 19.2 7.4" />
+                <path d="M12 11.5V20" />
+                <path d="M8.5 5.2 16 9.5" />
+              </svg>
+            </span>
+            <span>模型应用</span>
+          </button>
+          <button class="nav-item" data-view="project-settings" type="button">
+            <span class="nav-item-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M5 5.5h5.2l1.4 1.8H19v11.2H5z" />
+                <path d="M8 11h8" />
+                <path d="M8 14h5" />
+                <path d="M17.5 15.5h3" />
+                <path d="M19 14v3" />
+              </svg>
+            </span>
+            <span>项目设置</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-user">
+          <button id="sidebarUserMenuButton" class="sidebar-user-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
+            <div id="sidebarUserAvatar" class="sidebar-user-avatar">管</div>
+            <div class="sidebar-user-copy">
+              <strong id="sidebarUserName">管理员</strong>
+              <span id="sidebarUserRole">超级管理员</span>
+              <span id="sidebarUserEmail" class="sidebar-user-email">admin@cde.local</span>
+            </div>
+            <span class="sidebar-user-caret" aria-hidden="true">⌄</span>
+          </button>
+          <div id="sidebarUserMenu" class="sidebar-user-menu hidden" role="menu">
+            <button id="openSystemSettingsButton" class="sidebar-user-menu-item admin" type="button" role="menuitem">平台管理</button>
+            <button id="openProfileCenterButton" class="sidebar-user-menu-item" type="button" role="menuitem">个人中心</button>
+            <button id="openProfileSecurityButton" class="sidebar-user-menu-item" type="button" role="menuitem">账户安全</button>
+            <button id="sidebarLogoutButton" class="sidebar-user-menu-item danger" type="button" role="menuitem">退出登录</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <button id="openFilesButton" class="ghost-button compact-button review-exit-button review-global-exit hidden" type="button" aria-label="退出 PDF 页面">
+          <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 18l-6-6l6-6" />
+            <path d="M9 12h10" />
+          </svg>
+          <span>退出</span>
+        </button>
+        <header class="topbar">
+          <div class="topbar-copy">
+            <p id="headerEyebrow" class="eyebrow">产品测试 / 文件管理</p>
+            <h2 id="headerTitle">文件管理</h2>
+          </div>
+
+          <div id="projectSwitcher" class="project-switcher">
+            <button
+              id="projectSwitchButton"
+              class="project-switch-button"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+            >
+              <span id="projectSwitchLabel" class="project-switch-label">当前项目</span>
+              <strong id="projectSwitchCurrentName" class="project-switch-current">CDE文件管理系统</strong>
+              <span class="project-switch-caret" aria-hidden="true">⌄</span>
+            </button>
+            <div id="projectSwitchMenu" class="project-switch-menu hidden" role="menu"></div>
+          </div>
+
+          <div id="headerTools" class="header-tools">
+            <button id="languageToggleButton" class="header-lang-toggle" type="button" data-no-static-translate="true" translate="no">中 | EN</button>
+            <div class="header-notification-shell">
+              <button id="notificationToggleButton" class="header-notify-button" type="button" aria-label="通知" aria-haspopup="dialog" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15 18H9" />
+                  <path d="M18 16V11a6 6 0 1 0-12 0v5l-2 2h16z" />
+                </svg>
+                <span id="notificationBadge" class="notify-badge hidden">0</span>
+              </button>
+              <div id="notificationPanel" class="notification-panel hidden" role="dialog" aria-label="通知中心" aria-hidden="true">
+                <div class="notification-panel-head">
+                  <div class="notification-panel-copy">
+                    <span id="notificationPanelKicker" class="notification-panel-kicker">工作台提醒</span>
+                    <strong id="notificationPanelTitle">通知与待办</strong>
+                  </div>
+                  <button id="notificationMarkAllButton" class="notification-panel-action" type="button">全部已读</button>
+                </div>
+                <div id="notificationTabs" class="notification-tabs" role="tablist" aria-label="通知分类">
+                  <button id="notificationTodoTab" class="notification-tab active" type="button" role="tab" aria-selected="true" data-notification-tab="todo">
+                    <span>待办</span>
+                    <span id="notificationTodoCount" class="notification-tab-count">0</span>
+                  </button>
+                  <button id="notificationFeedTab" class="notification-tab" type="button" role="tab" aria-selected="false" data-notification-tab="notifications">
+                    <span>通知</span>
+                    <span id="notificationFeedCount" class="notification-tab-count">0</span>
+                  </button>
+                </div>
+                <div id="notificationPanelList" class="notification-panel-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="roleSwitcher" class="role-switcher hidden">
+            <button class="role-button active" data-role="initiator">发起者</button>
+            <button class="role-button" data-role="reviewer">初审人</button>
+            <button class="role-button" data-role="approver">终审人</button>
+          </div>
+        </header>
+
+        <button id="backToTopButton" class="back-to-top-button" type="button" aria-label="回到顶部" title="回到顶部" aria-hidden="true" tabindex="-1">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 19V5" />
+            <path d="m6 11 6-6 6 6" />
+          </svg>
+        </button>
+
+        <section id="summaryStrip" class="summary-strip">
+          <div id="fileSummaryStrip" class="summary-strip-panel">
+            <article class="summary-card info">
+              <div class="summary-card-copy">
+                <span>待发起</span>
+                <strong id="uploadedCount">0</strong>
+              </div>
+              <div class="summary-card-icon info" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m4 12 14-7-3 14-4-5z" />
+                  <path d="m10 14 2 5" />
+                </svg>
+              </div>
+            </article>
+            <article class="summary-card violet">
+              <div class="summary-card-copy">
+                <span>初审中</span>
+                <strong id="reviewingCount">0</strong>
+              </div>
+              <div class="summary-card-icon violet" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M6 5h9l3 3v11H6z" />
+                  <path d="M9 10h6" />
+                  <path d="M9 14h4" />
+                  <circle cx="18" cy="17" r="3.5" />
+                  <path d="m20.5 19.5 1.8 1.8" />
+                </svg>
+              </div>
+            </article>
+            <article class="summary-card green">
+              <div class="summary-card-copy">
+                <span>终审中</span>
+                <strong id="finalCount">0</strong>
+              </div>
+              <div class="summary-card-icon green" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="10" cy="9" r="3.5" />
+                  <path d="M4.5 19a5.5 5.5 0 0 1 11 0" />
+                  <circle cx="18" cy="15.5" r="2.5" />
+                  <path d="m16.7 15.5 1 1 1.6-2" />
+                </svg>
+              </div>
+            </article>
+            <article class="summary-card amber">
+              <div class="summary-card-copy">
+                <span>已归档</span>
+                <strong id="approvedCount">0</strong>
+              </div>
+              <div class="summary-card-icon amber" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 8h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" />
+                  <path d="M9 11h6" />
+                  <path d="M10 4h4" />
+                  <path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
+                </svg>
+              </div>
+            </article>
+          </div>
+          <div id="workflowSummaryStrip" class="workflow-summary-strip hidden"></div>
+        </section>
+
+        <section id="contentGrid" class="content-grid files-only">
+          <section id="filesPanel" class="panel files-panel">
+            <div class="panel-head">
+              <div>
+                <p id="filesPanelKicker" class="panel-kicker">文件列表</p>
+                <h3 id="filesPanelTitle">Document Library</h3>
+              </div>
+            </div>
+
+            <div id="fileManagerLayout" class="doc-manager-layout">
+              <aside id="folderTreePanel" class="folder-tree-panel">
+                <div class="folder-tree-head">
+                  <p class="panel-kicker">文档管理</p>
+                  <h3 class="folder-tree-title">全部文件</h3>
+                </div>
+                <div id="folderTree" class="folder-tree"></div>
+              </aside>
+
+              <div class="doc-manager-main">
+                <div id="folderBrowserBar" class="folder-browser">
+                  <div class="folder-browser-head">
+                    <div class="folder-browser-copy">
+                      <p id="librarySectionKicker" class="panel-kicker">文档库</p>
+                      <h3 id="librarySectionTitle">全部文件</h3>
+                      <p id="folderSummaryText" class="folder-summary-text"></p>
+                    </div>
+                    <div class="folder-browser-actions">
+                      <button id="createFolderButton" class="ghost-button" type="button">新建文件夹</button>
+                      <div class="upload-action-group">
+                        <button id="uploadButton" class="upload-button" type="button">上传文件</button>
+                        <button id="uploadFolderButton" class="ghost-button compact-button" type="button">上传文件夹</button>
+                        <input id="fileInput" class="hidden-file-input" type="file" multiple tabindex="-1" aria-hidden="true" hidden />
+                        <input id="folderInput" class="hidden-file-input" type="file" multiple webkitdirectory directory tabindex="-1" aria-hidden="true" hidden />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="folder-browser-toolbar">
+                    <div id="folderBreadcrumbs" class="folder-breadcrumbs"></div>
+                    <div class="folder-browser-tools">
+                      <label class="library-search">
+                        <span class="table-tool-icon search" aria-hidden="true">
+                          <svg viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="6.5" />
+                            <path d="m16 16 4 4" />
+                          </svg>
+                        </span>
+                        <input id="fileSearchInput" class="text-input compact-search-input" type="search" placeholder="搜索文档" />
+                      </label>
+                      <button id="libraryFilterButton" class="table-tool-button" type="button" aria-label="筛选" aria-haspopup="dialog" aria-expanded="false">
+                        <span class="table-tool-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M4 6h16" />
+                            <path d="M7 12h10" />
+                            <path d="M10 18h4" />
+                          </svg>
+                        </span>
+                      </button>
+                      <button id="libraryColumnSettingsButton" class="table-tool-button" type="button" aria-label="设置" aria-haspopup="dialog" aria-expanded="false">
+                        <span class="table-tool-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M19 12a7 7 0 0 0-.08-1l2.02-1.57l-2-3.46l-2.45.82a7 7 0 0 0-1.73-1L14.5 3h-5l-.26 2.79a7 7 0 0 0-1.73 1L5.06 5.97l-2 3.46L5.08 11a7 7 0 0 0 0 2l-2.02 1.57l2 3.46l2.45-.82a7 7 0 0 0 1.73 1L9.5 21h5l.26-2.79a7 7 0 0 0 1.73-1l2.45.82l2-3.46L18.92 13c.05-.33.08-.66.08-1Z" />
+                          </svg>
+                        </span>
+                      </button>
+                      <div id="libraryFilterPopover" class="library-toolbar-popover library-filter-popover hidden" role="dialog" aria-label="文件筛选"></div>
+                      <div id="libraryColumnSettingsPopover" class="library-toolbar-popover library-column-popover hidden" role="dialog" aria-label="列表设置"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="filesTableShell" class="table-shell">
+                  <div id="libraryBatchBar" class="library-batch-bar hidden">
+                    <div class="library-batch-copy">
+                      <strong id="libraryBatchCount">已选 0 项</strong>
+                      <span>支持批量下载、移动、删除和发起审阅流程。</span>
+                    </div>
+                    <div class="workflow-actions library-batch-actions">
+                      <button id="batchDownloadButton" class="ghost-button" type="button">批量下载 ZIP</button>
+                      <button id="batchMoveButton" class="ghost-button" type="button">批量移动</button>
+                      <button id="batchDeleteButton" class="ghost-button danger-button" type="button">批量删除</button>
+                      <button id="batchStartFlowButton" class="primary-button" type="button">批量发起审阅流程</button>
+                    </div>
+                  </div>
+                  <div class="table-head">
+                    <span id="tableHeadName" class="table-head-name">
+                      <label class="row-select-checkbox header-select-checkbox">
+                        <input id="librarySelectAllCheckbox" type="checkbox" aria-label="全选当前文件" />
+                        <span></span>
+                      </label>
+                      <span id="tableHeadNameLabel">名称</span>
+                    </span>
+                    <span id="tableHeadMeta" class="table-head-updater">版本</span>
+                    <span id="tableHeadStatus" class="table-head-date">状态</span>
+                    <span id="tableHeadCount" class="table-head-size">批注</span>
+                    <span id="tableHeadVersion" class="table-head-version">版本</span>
+                    <span id="tableHeadParseStatus" class="table-head-parse">解析状态</span>
+                    <span id="tableHeadOccupant" class="table-head-occupancy">占用人</span>
+                    <span id="tableHeadReviewStatus" class="table-head-review">审阅状态</span>
+                    <span id="tableHeadShareStatus" class="table-head-share">分享状态</span>
+                  </div>
+                  <div id="documentList" class="table-body"></div>
+                </div>
+              </div>
+
+            </div>
+
+            <div id="libraryDropOverlay" class="library-drop-overlay hidden" aria-hidden="true">
+              <div class="library-drop-overlay-card">
+                <strong>释放鼠标即可上传文件或文件夹</strong>
+                <p>支持多文件、整文件夹拖入；若存在同名文件，上传前会询问处理方式。</p>
+              </div>
+            </div>
+
+            <div id="reviewNavigator" class="review-navigator hidden">
+              <div id="reviewDocSummary" class="review-doc-summary"></div>
+
+              <div class="review-side-tabs">
+                <button class="review-side-tab active" data-review-tab="annotations">
+                  批注列表
+                  <span id="annotationTabBadge" class="tab-badge">0</span>
+                </button>
+                <button class="review-side-tab" data-review-tab="thumbnails">缩略图</button>
+              </div>
+
+              <section id="reviewAnnotationSidebar" class="review-annotation-sidebar">
+                <div class="review-filter-row">
+                  <select id="annotationFilter" class="text-input compact-select">
+                    <option value="all">全部批注</option>
+                    <option value="current_page">当前页</option>
+                    <option value="open">未解决</option>
+                    <option value="in_progress">进行中</option>
+                    <option value="resolved">已解决</option>
+                  </select>
+                </div>
+                <div id="reviewAnnotationSidebarList" class="review-comment-list"></div>
+              </section>
+
+              <div id="reviewThumbList" class="review-thumb-list hidden"></div>
+            </div>
+          </section>
+
+          <section id="viewerPanel" class="panel viewer-panel hidden">
+            <div class="review-document-header">
+              <div class="review-header-copy">
+                <p id="reviewProjectLine" class="review-project-line">CSD Project / Drawing Review Workspace</p>
+                <div class="review-headline">
+                  <h3 id="documentTitle">请选择一份图纸 PDF</h3>
+                  <span id="documentVersion" class="version-badge">V1</span>
+                  <span id="documentStatus" class="status-pill neutral">未选择</span>
+                </div>
+                <p id="documentMeta" class="document-meta">文件上传后，这里会显示图纸按页预览，并在审阅工作台中完成图面批注。</p>
+              </div>
+
+              <div class="review-header-side">
+                <div class="review-header-page-chip">
+                  <span class="page-chip-label">页码</span>
+                  <span id="documentPageSummary" class="mini-pill">1 / 1</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="viewer-toolbar review-toolbar">
+              <div class="tool-ribbon">
+                <div class="tool-cluster zoom-cluster">
+                  <button id="zoomOutButton" class="tool-chip toolbar-wide-chip icon-only-button" type="button" aria-label="缩小" title="缩小">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 12h14" />
+                    </svg>
+                  </button>
+                  <input
+                    id="zoomIndicator"
+                    class="tool-chip static-chip toolbar-wide-chip zoom-input"
+                    type="text"
+                    inputmode="decimal"
+                    value="100%"
+                    aria-label="缩放百分比"
+                    title="缩放百分比"
+                  />
+                  <button id="zoomInButton" class="tool-chip toolbar-wide-chip icon-only-button" type="button" aria-label="放大" title="放大">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 5v14m-7-7h14" />
+                    </svg>
+                  </button>
+                  <button id="fitViewButton" class="ghost-button compact-button toolbar-action toolbar-wide-chip icon-only-button" type="button" aria-label="进入全屏" title="进入全屏">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2" />
+                    </svg>
+                  </button>
+                </div>
+
+                <span class="tool-separator" aria-hidden="true"></span>
+
+                <div class="tool-cluster review-mode-cluster">
+                  <button id="annotationModeButton" class="ghost-button toolbar-action toolbar-wide-chip icon-only-button" type="button" aria-label="选择工具" title="选择工具">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M7.904 17.563a1.2 1.2 0 0 0 2.228.308l2.09-3.093l4.907 4.907a1.067 1.067 0 0 0 1.509 0l1.047-1.047a1.067 1.067 0 0 0 0-1.509l-4.907-4.907l3.113-2.09a1.2 1.2 0 0 0-.309-2.228L4 4z" />
+                    </svg>
+                  </button>
+                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="hand" type="button" aria-label="平移" title="平移">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M8 13V4.5a1.5 1.5 0 0 1 3 0V12m0-.5v-2a1.5 1.5 0 0 1 3 0V12m0-1.5a1.5 1.5 0 0 1 3 0V12" />
+                      <path d="M17 11.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2h.208a6 6 0 0 1-5.012-2.7L7 19q-.468-.718-3.286-5.728a1.5 1.5 0 0 1 .536-2.022a1.87 1.87 0 0 1 2.28.28L8 13M2.541 5.594a13.5 13.5 0 0 1 2.46-1.427M14 3.458a13.4 13.4 0 0 1 3.685 1.612" />
+                    </svg>
+                  </button>
+                  <button class="tool-button toolbar-wide-chip icon-only-button" data-tool="pen" type="button" aria-label="铅笔/手绘" title="铅笔/手绘">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4" />
+                    </svg>
+                  </button>
+                  <button class="tool-button toolbar-wide-chip icon-only-button" data-tool="note" type="button" aria-label="文本注释" title="文本注释">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6 5h12" />
+                      <path d="M12 5v14" />
+                    </svg>
+                  </button>
+                  <button class="tool-button toolbar-wide-chip icon-only-button active" data-tool="circle" type="button" aria-label="点批注" title="点批注">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0" />
+                      <path d="M7 12a5 5 0 1 0 10 0a5 5 0 1 0-10 0" />
+                      <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0" />
+                    </svg>
+                  </button>
+                  <button class="tool-button toolbar-wide-chip icon-only-button has-caret" data-tool="line" type="button" aria-label="箭头/引线" title="箭头/引线">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 19a2 2 0 1 0 4 0a2 2 0 1 0-4 0m4 0h3a2 2 0 0 0 2-2V9a2 2 0 0 1 2-2h7" />
+                      <path d="m18 4l3 3l-3 3" />
+                    </svg>
+                    <span class="tool-mini-caret" aria-hidden="true"></span>
+                  </button>
+                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="comment" type="button" aria-label="批注卡片" title="批注卡片">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6 5h9l3 3v11H6z" />
+                      <path d="M15 5v4h4" />
+                    </svg>
+                  </button>
+                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="clipboard" type="button" aria-label="剪贴板" title="剪贴板">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M9 4h6" />
+                      <path d="M9 6H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2" />
+                      <path d="M9 4a1 1 0 0 0-1 1v1h8V5a1 1 0 0 0-1-1z" />
+                    </svg>
+                  </button>
+                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="mention" type="button" aria-label="提及用户" title="提及用户">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0-8 0" />
+                      <path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-5.5 8.28" />
+                    </svg>
+                  </button>
+                </div>
+
+                <span class="tool-separator" aria-hidden="true"></span>
+
+                <div class="tool-cluster review-asset-cluster">
+                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="attach" type="button" aria-label="附件" title="附件">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m9 12.5 5.17-5.17a3 3 0 1 1 4.24 4.24l-7.07 7.07a5 5 0 0 1-7.07-7.07l7.78-7.78" />
+                    </svg>
+                  </button>
+                  <button class="tool-button toolbar-wide-chip icon-only-button" data-tool="mark" type="button" aria-label="矩形标记" title="矩形标记">
+                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 7h10" />
+                      <path d="M9 17h10" />
+                      <path d="M6 18L18 6" />
+                    </svg>
+                  </button>
+                </div>
+
+                <span class="tool-separator" aria-hidden="true"></span>
+
+                <div id="toolbarColorGroup" class="tool-cluster color-tools">
+                  <button class="color-swatch-button active" data-toolbar-color="red" type="button" aria-label="红色" title="红色">
+                    <span class="color-dot red" aria-hidden="true"></span>
+                    <span class="tool-mini-caret" aria-hidden="true"></span>
+                  </button>
+                  <button class="color-swatch-button" data-toolbar-color="amber" type="button" aria-label="琥珀" title="琥珀">
+                    <span class="color-dot amber" aria-hidden="true"></span>
+                    <span class="tool-mini-caret" aria-hidden="true"></span>
+                  </button>
+                  <button class="color-swatch-button" data-toolbar-color="blue" type="button" aria-label="蓝色" title="蓝色">
+                    <span class="color-dot blue" aria-hidden="true"></span>
+                    <span class="tool-mini-caret" aria-hidden="true"></span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="toolbar-secondary-line">
+                <span id="draftHint" class="hint-pill">进入批注模式后，可落点、框选或添加文本。</span>
+                <span id="reviewPermissionHint" class="mini-pill review-permission-hint">待选中文件后显示当前节点权限。</span>
+                <div id="toolbarQuickActions" class="toolbar-quick-actions hidden" aria-live="polite"></div>
+                <span id="pageAnnotationSummary" class="mini-pill">本页 0 条</span>
+                <button id="cancelDraftButton" class="ghost-button compact-button toolbar-inline-action" type="button">清除草稿</button>
+              </div>
+            </div>
+
+            <div id="viewerFrame" class="viewer-frame">
+              <div id="reviewPageFloater" class="review-page-floater hidden">
+                <div class="page-controls">
+                  <button id="prevPageButton" class="ghost-button compact-button pager-button" type="button">‹</button>
+                  <span id="pageIndicator" class="page-indicator">0 / 0</span>
+                  <button id="nextPageButton" class="ghost-button compact-button pager-button" type="button">›</button>
+                </div>
+              </div>
+              <div id="viewerEmpty" class="viewer-empty">
+                <strong>选择一份图纸 PDF 开始审阅</strong>
+                <p>系统会按页渲染图纸 PDF，并保存批注、备注、回复和导出记录。</p>
+              </div>
+              <div id="canvasWrap" class="canvas-wrap hidden">
+                <div id="pdfPageStage" class="pdf-page-stage">
+                  <canvas id="pdfCanvas" class="pdf-canvas"></canvas>
+                  <div id="annotationLayer" class="annotation-layer"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="review-footer">
+              <div class="review-footer-meta">
+                <p id="reviewFooterNote" class="footer-note">支持点击已有批注查看属性，也支持在画布上拖拽新增批注区域。</p>
+              </div>
+              <div class="review-footer-actions">
+                <a id="exportLink" class="export-link hidden" target="_blank" rel="noreferrer">下载最新导出文件</a>
+                <button id="exportButton" class="ghost-button" type="button">导出批注</button>
+                <button id="commentReportButton" class="ghost-button" type="button">导出评论 Excel</button>
+                <button id="printButton" class="ghost-button" type="button">打印</button>
+                <button id="shareButton" class="ghost-button" type="button">分享</button>
+                <div id="reviewWorkflowActionGroup" class="review-workflow-action-group"></div>
+              </div>
+            </div>
+          </section>
+
+          <aside id="workflowPanel" class="panel workflow-panel hidden">
+            <section class="workflow-board-section">
+              <div class="panel-head workflow-board-head">
+                <div>
+                  <p class="panel-kicker">流程中心</p>
+                  <h3>Workflow Center</h3>
+                </div>
+              </div>
+
+              <div class="workflow-board-toolbar">
+                <div class="workflow-board-toolbar-main">
+                  <div id="workflowScopeTabs" class="workflow-scope-tabs">
+                    <button class="workflow-scope-tab active" data-workflow-scope="my_tasks" type="button">我的任务</button>
+                    <button class="workflow-scope-tab" data-workflow-scope="initiated" type="button">我发起的</button>
+                    <button class="workflow-scope-tab" data-workflow-scope="all" type="button">所有流程</button>
+                  </div>
+                  <div id="workflowQuickFilters" class="workflow-quick-filters"></div>
+                </div>
+                <div class="workflow-board-tools">
+                  <button id="workflowExportListButton" class="ghost-button" type="button">导出报表</button>
+                  <button id="openWorkflowTemplateManagerButton" class="ghost-button" type="button">流程模板</button>
+                  <button id="launchWorkflowButton" class="primary-button" type="button">发起流程</button>
+                  <span id="workflowBoardCount" class="mini-pill">0 条流程</span>
+                </div>
+              </div>
+
+              <div id="workflowBoardStats" class="workflow-board-stats hidden"></div>
+
+              <div class="workflow-board-table">
+                <div class="workflow-board-table-head">
+                  <span>流程</span>
+                  <span>发起人</span>
+                  <span>发起时间</span>
+                  <span>文件数</span>
+                  <span>当前节点</span>
+                  <span>已批准</span>
+                  <span>已拒绝</span>
+                  <span>流程状态</span>
+                  <span>更新时间</span>
+                </div>
+                <div id="workflowBoardList" class="workflow-board-list"></div>
+              </div>
+            </section>
+
+            <div id="workflowLegacyStack" class="workflow-legacy-stack hidden">
+            <section class="stack-section stack-intro">
+              <div class="panel-head">
+                <div>
+                  <p class="panel-kicker">流程中心</p>
+                  <h3>Workflow / Issue / Report</h3>
+                </div>
+              </div>
+              <p class="section-text">从流程页进入审阅工作台，沉淀 issue 清单，再把问题闭环结果汇总为报告与归档输出。</p>
+
+              <div class="module-flow-strip">
+                <article class="module-node review-node">
+                  <span class="module-node-kicker">审阅模块</span>
+                  <strong>文件审核与批注</strong>
+                  <p>图纸进入图纸审阅工作台，模型进入独立模型工作台，两类浏览页彼此区分。</p>
+                  <button id="openReviewButton" class="primary-button" type="button">进入图纸审阅</button>
+                </article>
+                <span class="module-arrow" aria-hidden="true">→</span>
+                <article class="module-node issue-node">
+                  <span class="module-node-kicker">问题模块</span>
+                  <strong>问题跟踪与解决</strong>
+                  <p>把批注提升为 issue 视角，按状态追踪、回复、补附件和闭环。</p>
+                </article>
+                <span class="module-arrow" aria-hidden="true">→</span>
+                <article class="module-node report-node">
+                  <span class="module-node-kicker">报告模块</span>
+                  <strong>归档与导出</strong>
+                  <p>汇总流程结论、issue 状态和文档备注，输出可归档版本。</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="stack-section">
+              <div class="panel-head">
+                <div>
+                  <p class="panel-kicker">流程模块</p>
+                  <h3>Workflow Control</h3>
+                </div>
+                <span id="workflowHealthBadge" class="mini-pill">待发起</span>
+              </div>
+
+              <div id="workflowSummaryGrid" class="module-stat-grid"></div>
+
+              <div class="workflow-field-grid">
+                <label class="detail-field">
+                  <span class="field-label">流程名称</span>
+                  <input id="workflowName" class="text-input" type="text" placeholder="例如：BIM 模型审核" />
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">发起者</span>
+                  <input id="initiatorName" class="text-input" type="text" value="翔宇 洪" />
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">初审人</span>
+                  <select id="reviewerSelect" class="text-input">
+                    <option value="结构工程师">结构工程师</option>
+                    <option value="项目经理">项目经理</option>
+                    <option value="采购负责人">采购负责人</option>
+                  </select>
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">终审人</span>
+                  <select id="approverSelect" class="text-input">
+                    <option value="总工">总工</option>
+                    <option value="项目总监">项目总监</option>
+                    <option value="部门负责人">部门负责人</option>
+                  </select>
+                </label>
+                <label class="detail-field workflow-field-span">
+                  <span class="field-label">截止日期</span>
+                  <input id="dueDate" class="text-input" type="date" />
+                </label>
+              </div>
+
+              <div class="workflow-actions">
+                <button id="startFlowButton" class="primary-button" type="button">发起流程</button>
+              </div>
+              <div id="workflowActions" class="workflow-actions"></div>
+
+              <div class="module-subsection">
+                <div class="mini-section-head">
+                  <strong>节点进度</strong>
+                  <span class="mini-pill">角色流转</span>
+                </div>
+                <div id="workflowSteps" class="card-list"></div>
+              </div>
+
+
+              <div class="module-subsection">
+                <div class="mini-section-head">
+                  <strong>流程活动</strong>
+                  <span class="mini-pill">时间线</span>
+                </div>
+                <div id="activityList" class="card-list"></div>
+              </div>
+            </section>
+
+            <section class="stack-section">
+              <div class="panel-head">
+                <div>
+                  <p class="panel-kicker">问题模块</p>
+                  <h3>Issue Tracker</h3>
+                </div>
+                <span id="issueModuleBadge" class="mini-pill">0 项</span>
+              </div>
+
+              <div id="issueSummaryGrid" class="module-stat-grid issue-stat-grid"></div>
+              <div id="issueBoard" class="issue-board"></div>
+            </section>
+
+            <section class="stack-section">
+              <div class="panel-head">
+                <div>
+                  <p class="panel-kicker">报告模块</p>
+                  <h3>Report & Archive</h3>
+                </div>
+                <span id="reportModuleBadge" class="mini-pill">待生成</span>
+              </div>
+
+              <div id="reportChecklist" class="report-checklist"></div>
+              <div id="reportPreview" class="report-preview"></div>
+
+              <div class="workflow-actions">
+                <button id="workflowExportButton" class="primary-button" type="button">导出审阅版</button>
+                <button id="copyReportButton" class="ghost-button" type="button">复制报告摘要</button>
+                <button id="openLatestExportButton" class="ghost-button" type="button">打开最新导出</button>
+              </div>
+
+              <div id="reportActivityList" class="card-list"></div>
+            </section>
+            </div>
+          </aside>
+
+          <aside id="reviewPanel" class="panel review-panel hidden">
+            <section class="stack-section annotation-workbench-section">
+              <div class="panel-head annotation-workbench-head">
+                <div>
+                  <p class="panel-kicker">Annotation Workspace</p>
+                  <h3 id="annotationDetailHeading">No annotation selected</h3>
+                  <p id="annotationMetaLine" class="annotation-meta-line">Select a markup to review details, evidence, and discussion.</p>
+                </div>
+                <span id="annotationDetailBadge" class="mini-pill annotation-number-pill">--</span>
+              </div>
+
+              <div id="annotationEmptyCard" class="annotation-empty-state">
+                <strong>Select or create an annotation</strong>
+                <p>Click a markup on the drawing or use the tools to create one. Details, evidence, and discussion will appear here.</p>
+              </div>
+
+              <div id="annotationDetailBody" class="annotation-detail-body hidden">
+                <div class="annotation-status-row">
+                  <div>
+                    <span class="field-label">状态</span>
+                    <div id="annotationStatusGroup" class="status-toggle annotation-status-auto">
+                      <span class="mini-pill signal-pill open">未解决</span>
+                    </div>
+                  </div>
+                  <div id="annotationColorGroup" class="detail-color-row compact-color-row" aria-label="Markup color">
+                    <button class="detail-color-button active" data-detail-color="red" type="button">Red</button>
+                    <button class="detail-color-button" data-detail-color="amber" type="button">Amber</button>
+                    <button class="detail-color-button" data-detail-color="blue" type="button">Blue</button>
+                  </div>
+                </div>
+
+                <div class="annotation-meta-grid" aria-label="Annotation metadata">
+                  <div class="metadata-field">
+                    <span class="field-label">负责人</span>
+                    <span id="annotationActorInput" class="metadata-value">--</span>
+                  </div>
+                  <div class="metadata-field">
+                    <span class="field-label">创建时间</span>
+                    <span id="annotationCreatedInput" class="metadata-value">--</span>
+                  </div>
+                  <div class="metadata-field">
+                    <span class="field-label">页码</span>
+                    <span id="annotationPageInput" class="metadata-value">--</span>
+                  </div>
+                  <div class="metadata-field">
+                    <span class="field-label">类型</span>
+                    <span id="annotationTypeInput" class="metadata-value">--</span>
+                  </div>
+                </div>
+
+                <section class="annotation-workbench-card issue-details-card">
+                  <div class="annotation-section-head">
+                    <div>
+                      <p class="panel-kicker">问题详情</p>
+                      <h4>需要关注什么？</h4>
+                    </div>
+                  </div>
+                  <label class="field-label" for="annotationTitleInput">Title</label>
+                  <input id="annotationTitleInput" class="text-input annotation-title-input" type="text" placeholder="e.g. Add camera / adjust cable / verify equipment" />
+                  <label class="field-label" for="annotationDetailInput">Description</label>
+                  <textarea
+                    id="annotationDetailInput"
+                    class="text-area annotation-description-input"
+                    placeholder="Describe the issue, expected fix, or review decision."
+                  ></textarea>
+                </section>
+
+                <section id="attachmentBlock" class="annotation-workbench-card attachment-block evidence-card">
+                  <div class="attachment-block-head annotation-section-head">
+                    <div>
+                      <p class="panel-kicker">证据</p>
+                      <h4>图片、文件和链接</h4>
+                    </div>
+                    <span id="attachmentCountBadge" class="mini-pill">0 items</span>
+                  </div>
+
+                  <details id="annotationEvidenceDisclosure" class="evidence-disclosure">
+                    <summary>
+                      <span>添加证据</span>
+                      <span class="evidence-disclosure-hint">图片、文件或链接</span>
+                    </summary>
+                    <div id="annotationAttachmentToolbar" class="attachment-toolbar evidence-toolbar">
+                      <button id="attachImageButton" class="ghost-button attachment-action" type="button">Image</button>
+                      <button id="attachFileButton" class="ghost-button attachment-action" type="button">File</button>
+                      <button id="attachLinkButton" class="ghost-button attachment-action" type="button">Link</button>
+                      <input id="annotationImageInput" class="hidden-file-input" type="file" accept="image/*" multiple />
+                      <input
+                        id="annotationFileInput"
+                        class="hidden-file-input"
+                        type="file"
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.txt,.zip"
+                        multiple
+                      />
+                    </div>
+                  </details>
+
+                  <p id="attachmentHelperText" class="attachment-helper-text">
+                    Add supporting photos, reference files, or external links.
+                  </p>
+
+                  <div id="annotationAttachmentList" class="attachment-list evidence-list">
+                    <div class="empty-card">No evidence attached yet.</div>
+                  </div>
+                </section>
+
+                <div id="annotationActionGroup" class="workflow-actions annotation-sticky-actions">
+                  <button id="cancelAnnotationEditButton" class="ghost-button annotation-action-control" type="button">取消修改</button>
+                  <button id="deleteAnnotationButton" class="ghost-button danger-button" type="button">Delete</button>
+                  <button id="resolveQuickButton" class="ghost-button hidden" type="button">自动判断状态</button>
+                  <button id="saveAnnotationButton" class="primary-button" type="button">Update Annotation</button>
+                </div>
+              </div>
+            </section>
+
+            <section id="replySection" class="stack-section discussion-section">
+              <div class="panel-head compact-panel-head">
+                <div>
+                  <p class="panel-kicker">Discussion</p>
+                  <h3>Updates & resolution</h3>
+                </div>
+              </div>
+              <div id="replyList" class="card-list reply-list"></div>
+              <div id="replyComposer" class="reply-composer compact-reply-composer">
+                <textarea
+                  id="replyInput"
+                  class="text-area reply-input"
+                  placeholder="Add a decision, update, or remediation note."
+                ></textarea>
+                <div id="replyAttachmentBlock" class="attachment-block reply-attachment-block compact-attachment-block">
+                  <div class="attachment-block-head annotation-section-head">
+                    <div>
+                      <p class="panel-kicker">Reply Evidence</p>
+                      <h4>Optional attachments</h4>
+                    </div>
+                    <span id="replyAttachmentCountBadge" class="mini-pill">0 items</span>
+                  </div>
+
+                  <details id="replyEvidenceDisclosure" class="evidence-disclosure reply-evidence-disclosure">
+                    <summary>
+                      <span>Attach evidence</span>
+                      <span class="evidence-disclosure-hint">Optional</span>
+                    </summary>
+                    <div class="attachment-toolbar evidence-toolbar">
+                      <button id="replyAttachImageButton" class="ghost-button attachment-action" type="button">Image</button>
+                      <button id="replyAttachFileButton" class="ghost-button attachment-action" type="button">File</button>
+                      <button id="replyAttachLinkButton" class="ghost-button attachment-action" type="button">Link</button>
+                      <input id="replyImageInput" class="hidden-file-input" type="file" accept="image/*" multiple />
+                      <input
+                        id="replyFileInput"
+                        class="hidden-file-input"
+                        type="file"
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.txt,.zip"
+                        multiple
+                      />
+                    </div>
+                  </details>
+
+                  <p id="replyAttachmentHelperText" class="attachment-helper-text">
+                    Attach photos, references, or links before posting.
+                  </p>
+
+                  <div id="replyAttachmentList" class="attachment-list evidence-list">
+                    <div class="empty-card">No reply evidence attached.</div>
+                  </div>
+                </div>
+                <div class="workflow-actions reply-actions">
+                  <button id="replyButton" class="primary-button" type="button">Post Update</button>
+                </div>
+              </div>
+            </section>
+
+            <section id="remarksSection" class="stack-section document-remarks-section">
+              <details class="document-remarks-disclosure">
+                <summary>
+                  <span>
+                    <span class="panel-kicker">Document Remarks</span>
+                    <strong>File-level summary</strong>
+                  </span>
+                  <span class="mini-pill">Report</span>
+                </summary>
+                <textarea
+                  id="remarksInput"
+                  class="text-area remarks-area"
+                  placeholder="Add file-level review conclusions, archive notes, or follow-up requirements."
+                ></textarea>
+                <div id="remarksActionGroup" class="workflow-actions">
+                  <button id="saveRemarksButton" class="ghost-button" type="button">Save Remarks</button>
+                </div>
+              </details>
+            </section>
+          </aside>
+
+          <section id="drawingAppsPanel" class="panel drawing-apps-panel hidden">
+            <div class="panel-head drawing-apps-head">
+              <div>
+                <p class="panel-kicker">图纸应用</p>
+                <h3>图纸应用</h3>
+              </div>
+              <span id="drawingSmartReviewStatusBadge" class="mini-pill">AI 预审需求</span>
+            </div>
+
+            <div class="drawing-app-layout">
+              <div class="drawing-app-entry" data-drawing-app-view="home">
+                <button class="drawing-app-entry-card active" data-drawing-app-tool="drawing_register" type="button">
+                  <span class="drawing-app-entry-index">01</span>
+                  <strong>图纸目录</strong>
+                  <span>目录与打印包</span>
+                  <small>从上传声明自动归集 PDF / DWG，维护版本、状态、目录导出和打印包。</small>
+                </button>
+                <button class="drawing-app-entry-card" data-drawing-app-tool="smart_review" type="button">
+                  <span class="drawing-app-entry-index">02</span>
+                  <strong>图纸智能审查（AI 审图）</strong>
+                  <span>审批前自动预检</span>
+                  <small>审批前自动发现图框、标注、版本和语义一致性问题。</small>
+                </button>
+                <button class="drawing-app-entry-card" data-drawing-app-tool="redline_compare" type="button">
+                  <span class="drawing-app-entry-index">03</span>
+                  <strong>图纸版本红线对比</strong>
+                  <span>版本差异可视化</span>
+                  <small>对比两个版本的文字、图形和修订说明差异。</small>
+                </button>
+                <button class="drawing-app-entry-card" data-drawing-app-tool="spec_check" type="button">
+                  <span class="drawing-app-entry-index">04</span>
+                  <strong>图纸与规格书关联校验</strong>
+                  <span>规格一致性</span>
+                  <small>校验图纸材料、设备参数和规格书条款是否一致。</small>
+                </button>
+                <button class="drawing-app-entry-card" data-drawing-app-tool="ocr_search" type="button">
+                  <span class="drawing-app-entry-index">05</span>
+                  <strong>图纸 OCR 全文检索</strong>
+                  <span>跨图纸检索</span>
+                  <small>提取图纸文字层与图片文字，支持跨项目检索。</small>
+                </button>
+              </div>
+
+              <div id="drawingRegisterWorkbench" class="drawing-register-workbench hidden" data-drawing-app-view="drawing_register"></div>
+
+              <div class="drawing-smart-review-workbench hidden" data-drawing-app-view="smart_review">
+                <div class="model-app-page-head">
+                  <button class="ghost-button compact-button" data-drawing-app-tool="home" type="button">返回图纸应用</button>
+                  <div>
+                    <p class="panel-kicker">图纸智能审查</p>
+                    <h3>图纸智能审查</h3>
+                  </div>
+                </div>
+                <div id="drawingSmartReviewGuide" class="drawing-review-guide">
+                  <div id="drawingSmartReviewHero" class="drawing-review-hero"></div>
+                  <div id="drawingSmartReviewSummaryGrid" class="manager-summary-grid"></div>
+                  <div id="drawingSmartReviewPipeline" class="drawing-review-pipeline"></div>
+                  <div id="drawingSmartReviewRequirementSections" class="drawing-review-requirements"></div>
+                  <span class="sr-only">审批前置门控</span>
+                  <div id="drawingSmartReviewDataModel" class="drawing-review-data-model"></div>
+                  <button class="primary-button hidden" type="button">运行智能审查</button>
+                </div>
+              </div>
+
+              <div id="redlineCompareWorkbench" class="drawing-redline-workbench hidden" data-drawing-app-view="redline_compare"></div>
+              <div id="drawingSpecCheckWorkbench" class="drawing-spec-check-workbench hidden" data-drawing-app-view="spec_check">
+                <span class="sr-only">Drawing-Spec Check</span>
+                <span class="sr-only">Spec Register</span>
+                <span class="sr-only">Specification Maintenance</span>
+                <span class="sr-only" data-drawing-spec-upload-field="file">Upload Specification</span>
+                <span class="sr-only" data-drawing-spec-action="open-upload">Open Upload Specification</span>
+                <span class="sr-only" data-drawing-spec-action="upload-spec">Register Specification</span>
+                <span class="sr-only" data-drawing-spec-action="start-check">Start Check</span>
+                <span class="sr-only">Select Specification</span>
+                <span class="sr-only">Select Drawing</span>
+                <span class="sr-only">Comparison Results</span>
+              </div>
+              <div id="drawingOcrSearchWorkbench" class="drawing-ocr-workbench hidden" data-drawing-app-view="ocr_search"></div>
+            </div>
+          </section>
+
+          <section id="modelAppsPanel" class="panel model-apps-panel hidden">
+            <div class="panel-head model-apps-head">
+              <div>
+                <p class="panel-kicker">模型应用</p>
+                <h3>模型应用</h3>
+              </div>
+              <span id="modelClashStatusBadge" class="mini-pill">0 项碰撞</span>
+            </div>
+
+            <div class="model-app-layout">
+              <div class="model-app-entry" data-model-app-view="home">
+                <button class="model-app-entry-card active" data-model-app-tool="quantity" type="button">
+                  <span class="model-app-entry-index">01</span>
+                  <strong>对象属性批量提取 + 工程量统计</strong>
+                  <span>工程量统计</span>
+                  <small>提取模型构件属性、系统区域和工程量，形成可导出的统计口径。</small>
+                </button>
+                <button class="model-app-entry-card" data-model-app-tool="clash" type="button">
+                  <span class="model-app-entry-index">02</span>
+                  <strong>自动碰撞检测</strong>
+                  <span>碰撞与 Issue</span>
+                  <small>基于 APS 几何索引执行碰撞检测，输出热力图、矩阵和 Issue。</small>
+                </button>
+                <button class="model-app-entry-card" data-model-app-tool="health" type="button">
+                  <span class="model-app-entry-index">03</span>
+                  <strong>模型健康度检查</strong>
+                  <span>审批前质量门控</span>
+                  <small>审批前检查属性覆盖、命名规则、坐标与模型质量风险。</small>
+                </button>
+                <button class="model-app-entry-card" data-model-app-tool="diff" type="button">
+                  <span class="model-app-entry-index">04</span>
+                  <strong>模型差异对比</strong>
+                  <span>版本变更追踪</span>
+                  <small>对比两个模型版本的构件新增、删除、属性和位置变化。</small>
+                </button>
+                <button class="model-app-entry-card" data-model-app-tool="schedule" type="button">
+                  <span class="model-app-entry-index">05</span>
+                  <strong>施工进度可视化</strong>
+                  <span>4D 进度联动</span>
+                  <small>导入 P6 XER 计划并映射模型构件，驱动 4D 进度回放。</small>
+                </button>
+              </div>
+
+              <div class="construction-schedule-workbench hidden" data-model-app-view="schedule">
+                <div class="model-app-page-head">
+                  <button class="ghost-button compact-button" data-model-app-tool="home" type="button">返回模型应用</button>
+                  <div>
+                    <p class="panel-kicker">施工进度可视化</p>
+                    <h3>施工进度可视化</h3>
+                  </div>
+                </div>
+
+                <section id="scheduleModelPicker" class="model-app-model-picker construction-schedule-model-picker" data-schedule-page="model">
+                  <div class="model-app-home-head">
+                    <div>
+                      <p class="panel-kicker">模型选择</p>
+                      <h3>选择施工进度模型</h3>
+                      <span>从当前项目三维模型中选择一次 4D 进度对象；APS 未配置或模型未转换时只允许导入计划，不允许打开 Viewer 播放。</span>
+                    </div>
+                    <span id="scheduleModelCountBadge" class="mini-pill">0 个模型</span>
+                  </div>
+                  <div id="scheduleModelList" class="model-app-model-list construction-schedule-model-list"></div>
+                </section>
+
+                <div class="quantity-guide construction-schedule-guide">
+                  <article id="scheduleGuideModel" class="quantity-guide-step active" data-schedule-step="model">
+                    <span class="quantity-guide-index">01</span>
+                    <strong>选择模型</strong>
+                    <small id="scheduleGuideModelText">待选择</small>
+                  </article>
+                  <article id="scheduleGuideImport" class="quantity-guide-step" data-schedule-step="import">
+                    <span class="quantity-guide-index">02</span>
+                    <strong>导入 XER</strong>
+                    <small id="scheduleGuideImportText">待预览</small>
+                  </article>
+                  <article id="scheduleGuideMapping" class="quantity-guide-step" data-schedule-step="mapping">
+                    <span class="quantity-guide-index">03</span>
+                    <strong>构件映射</strong>
+                    <small id="scheduleGuideMappingText">未映射</small>
+                  </article>
+                  <article id="scheduleGuideReview" class="quantity-guide-step" data-schedule-step="review">
+                    <span class="quantity-guide-index">04</span>
+                    <strong>可视化闭环</strong>
+                    <small id="scheduleGuideReviewText">待生成</small>
+                  </article>
+                </div>
+
+                <div class="construction-schedule-pager">
+                  <button id="schedulePrevStepButton" class="ghost-button compact-button" type="button">上一步</button>
+                  <div>
+                    <strong id="schedulePagerTitle">选择模型</strong>
+                    <span id="schedulePagerNote">先选择一个三维模型，再导入 P6 XER 计划。</span>
+                  </div>
+                  <button id="scheduleNextStepButton" class="primary-button compact-button" type="button">下一步</button>
+                </div>
+
+                <div class="construction-schedule-launch-grid" data-schedule-page="import">
+                  <section class="quantity-card construction-schedule-import-card">
+                    <div class="mini-section-head">
+                      <strong>计划导入</strong>
+                      <span id="scheduleReadinessBadge" class="mini-pill">待选择模型</span>
+                    </div>
+                    <div id="schedulePreflightList" class="quantity-preflight-list construction-schedule-preflight-list"></div>
+                    <div class="construction-schedule-form-grid">
+                      <label class="detail-field">
+                        <span class="field-label">模型文件</span>
+                        <select id="scheduleDocumentSelect" class="text-input compact-select"></select>
+                      </label>
+                      <label class="detail-field">
+                        <span class="field-label">计划版本</span>
+                        <input id="scheduleVersionNameInput" class="text-input" type="text" placeholder="Rev.4 当前计划" />
+                      </label>
+                      <label class="detail-field">
+                        <span class="field-label">已导入版本</span>
+                        <select id="scheduleVersionSelect" class="text-input compact-select"></select>
+                      </label>
+                      <label class="toggle-field model-clash-toggle">
+                        <input id="scheduleBaselineToggle" type="checkbox" />
+                        <span>设为基准计划</span>
+                      </label>
+                    </div>
+                    <label class="detail-field construction-schedule-file-field">
+                      <span class="field-label">XER 文件</span>
+                      <input id="scheduleXerFileInput" class="text-input" type="file" accept=".xer,.txt,text/plain" />
+                    </label>
+                    <label class="detail-field construction-schedule-xer-field">
+                      <span class="field-label">XER 内容</span>
+                      <textarea id="scheduleXerInput" class="text-input construction-schedule-xer-input" rows="8" placeholder="%T PROJECT&#10;%F proj_id proj_short_name ..."></textarea>
+                    </label>
+                    <div class="quantity-actions construction-schedule-actions">
+                      <button id="scheduleRefreshButton" class="ghost-button" type="button">刷新</button>
+                      <button id="schedulePreviewButton" class="ghost-button" type="button">解析预览</button>
+                      <button id="scheduleImportButton" class="primary-button" type="button">确认导入</button>
+                      <button id="scheduleAutoMapButton" class="ghost-button" type="button">自动映射</button>
+                    </div>
+                    <p id="scheduleMessage" class="access-policy-summary"></p>
+                  </section>
+
+                  <section class="quantity-card construction-schedule-preview-card">
+                    <div class="mini-section-head">
+                      <strong>解析预览 / 版本</strong>
+                      <span id="schedulePreviewBadge" class="mini-pill">未解析</span>
+                    </div>
+                    <div id="schedulePreviewPanel" class="construction-schedule-preview-panel"></div>
+                    <div id="scheduleVersionList" class="quantity-task-list construction-schedule-version-list"></div>
+                  </section>
+                </div>
+
+                <div id="scheduleSummaryGrid" class="manager-summary-grid" data-schedule-page="mapping review"></div>
+
+                <section class="quantity-card construction-schedule-mapping-card" data-schedule-page="mapping">
+                  <div class="mini-section-head">
+                    <strong>构件映射闭口</strong>
+                    <span class="mini-pill">批量 / CSV</span>
+                  </div>
+                  <div class="construction-schedule-form-grid">
+                    <label class="detail-field">
+                      <span class="field-label">目标 Activity</span>
+                      <select id="scheduleBulkActivitySelect" class="text-input compact-select"></select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">批量方式</span>
+                      <select id="scheduleBulkModeSelect" class="text-input compact-select">
+                        <option value="floor_type">系统/区域 + 对象类型</option>
+                        <option value="system">WBS/系统区域</option>
+                      </select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">系统/区域</span>
+                      <input id="scheduleBulkFloorInput" class="text-input" type="text" placeholder="如：RO 一段 / 取水泵房" />
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">对象类型</span>
+                      <input id="scheduleBulkElementTypeInput" class="text-input" type="text" placeholder="如：Pipe / Pump / Steel Beam" />
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">专业</span>
+                      <input id="scheduleBulkDisciplineInput" class="text-input" type="text" placeholder="工艺 / 管道 / 设备 / 土建结构" />
+                    </label>
+                  </div>
+                  <div class="construction-schedule-actions">
+                    <button id="scheduleBulkMapButton" class="ghost-button" type="button">执行批量映射</button>
+                  </div>
+                  <label class="detail-field construction-schedule-xer-field">
+                    <span class="field-label">CSV 映射导入（activityId, uniqueId, dbId, elementName, elementType, floor, discipline）</span>
+                    <textarea id="scheduleMappingCsvInput" class="text-input construction-schedule-xer-input" rows="4" placeholder="A1005,pump-p101,501,High Pressure Pump P-101,Pump,RO 一段,设备"></textarea>
+                  </label>
+                  <div class="construction-schedule-actions">
+                    <button id="scheduleImportMappingButton" class="ghost-button" type="button">导入 CSV 映射</button>
+                    <button id="scheduleExportWorkbookButton" class="ghost-button" type="button">导出进度 Excel</button>
+                    <button id="scheduleExportWeeklyButton" class="ghost-button" type="button">导出周报 PDF</button>
+                    <button id="scheduleExportGanttButton" class="ghost-button" type="button">导出甘特 PDF</button>
+                  </div>
+                </section>
+
+                <section class="quantity-card construction-schedule-visual-card" data-schedule-page="review">
+                  <div class="mini-section-head">
+                    <strong>时间轴与 Viewer</strong>
+                    <span id="scheduleTimelineBadge" class="mini-pill">未加载</span>
+                  </div>
+                  <div class="construction-schedule-timeline-controls">
+                    <label class="detail-field">
+                      <span class="field-label">查看日期</span>
+                      <input id="scheduleDateInput" class="text-input" type="date" />
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">播放速度</span>
+                      <select id="schedulePlaybackSpeedSelect" class="text-input compact-select">
+                        <option value="day">1 天/帧</option>
+                        <option value="week" selected>1 周/秒</option>
+                        <option value="month">1 月/秒</option>
+                      </select>
+                    </label>
+                    <button id="scheduleLoadTimelineButton" class="ghost-button" type="button">加载时间点</button>
+                    <button id="scheduleOpenViewerButton" class="primary-button" type="button">打开 4D Viewer</button>
+                    <button id="scheduleWeeklyReportButton" class="ghost-button" type="button">生成周报</button>
+                  </div>
+                  <div class="construction-schedule-legend">
+                    <span><i class="future"></i>未来</span>
+                    <span><i class="not-started"></i>未开始</span>
+                    <span><i class="in-progress"></i>进行中</span>
+                    <span><i class="completed"></i>完成</span>
+                    <span><i class="delayed"></i>滞后</span>
+                    <span><i class="unmapped"></i>无映射</span>
+                  </div>
+                  <div id="scheduleTimelinePanel" class="construction-schedule-timeline-panel"></div>
+                </section>
+
+                <div class="construction-schedule-report-grid" data-schedule-page="review">
+                  <section class="quantity-card construction-schedule-gantt-card">
+                    <div class="mini-section-head">
+                      <strong>甘特联动</strong>
+                      <span id="scheduleGanttBadge" class="mini-pill">0 Activity</span>
+                    </div>
+                    <div id="scheduleGanttPanel" class="construction-schedule-gantt-panel"></div>
+                  </section>
+
+                  <section class="quantity-card construction-schedule-alert-card">
+                    <div class="mini-section-head">
+                      <strong>进度预警</strong>
+                      <span id="scheduleAlertBadge" class="mini-pill">0 条</span>
+                    </div>
+                    <div id="scheduleAlertList" class="construction-schedule-alert-list"></div>
+                  </section>
+                </div>
+
+                <section class="quantity-card construction-schedule-weekly-card" data-schedule-page="review">
+                  <div class="mini-section-head">
+                    <strong>进度周报</strong>
+                    <span id="scheduleWeeklyBadge" class="mini-pill">未生成</span>
+                  </div>
+                  <div id="scheduleWeeklyPanel" class="construction-schedule-weekly-panel"></div>
+                </section>
+              </div>
+
+              <div class="model-clash-workbench hidden" data-model-app-view="clash">
+                <div class="model-app-page-head">
+                  <button class="ghost-button compact-button" data-model-app-tool="home" type="button">返回模型应用</button>
+                  <div>
+                    <p class="panel-kicker">自动碰撞检测</p>
+                    <h3>自动碰撞检测</h3>
+                  </div>
+                </div>
+                <div class="model-clash-guide">
+                  <section class="model-clash-step">
+                    <div class="model-clash-step-head">
+                      <span class="model-clash-step-index">1</span>
+                      <div>
+                        <strong>选择检测模型</strong>
+                        <p>勾选已完成 APS 转换并具备几何索引的模型。</p>
+                      </div>
+                      <span id="modelClashSelectionBadge" class="mini-pill">0 / 0</span>
+                    </div>
+                    <div id="modelClashModelList" class="model-clash-model-list"></div>
+                  </section>
+
+                  <section class="model-clash-step">
+                    <div class="model-clash-step-head">
+                      <span class="model-clash-step-index">2</span>
+                      <div>
+                        <strong>配置检测规则</strong>
+                        <p>设置容差、跨专业规则和同专业过滤。</p>
+                      </div>
+                    </div>
+                    <div class="model-clash-rule-grid">
+                      <label class="detail-field">
+                        <span class="field-label">碰撞容差</span>
+                        <input id="modelClashToleranceInput" class="text-input" type="number" min="0" step="0.01" value="0" />
+                      </label>
+                      <label class="detail-field">
+                        <span class="field-label">专业对</span>
+                        <select id="modelClashDisciplinePairSelect" class="text-input compact-select">
+                          <option value="structure:mep">结构 / 机电</option>
+                          <option value="architecture:mep">建筑 / 机电</option>
+                          <option value="architecture:structure">建筑 / 结构</option>
+                          <option value="all">全部跨专业</option>
+                        </select>
+                      </label>
+                      <label class="detail-field">
+                        <span class="field-label">热力图网格</span>
+                        <select id="modelClashHeatmapGridSizeSelect" class="text-input compact-select">
+                          <option value="1">1m × 1m × 1m</option>
+                          <option value="2">2m × 2m × 2m</option>
+                          <option value="0.5">0.5m × 0.5m × 0.5m</option>
+                        </select>
+                      </label>
+                      <label class="toggle-field model-clash-toggle">
+                        <input id="modelClashIgnoreSameToggle" type="checkbox" checked />
+                        <span>忽略同专业碰撞</span>
+                      </label>
+                    </div>
+                  </section>
+
+                  <section class="model-clash-step model-clash-confirm-step">
+                    <div class="model-clash-step-head">
+                      <span class="model-clash-step-index">3</span>
+                      <div>
+                        <strong>确认并发起</strong>
+                        <p>确认模型与规则后，手动提交一次碰撞检测。</p>
+                      </div>
+                    </div>
+                    <div id="modelClashConfirmSummary" class="model-clash-confirm-summary"></div>
+                    <div class="model-clash-actions">
+                      <button id="modelClashRefreshButton" class="ghost-button" type="button">刷新记录</button>
+                      <button id="modelClashRunButton" class="primary-button" type="button">开始检测</button>
+                    </div>
+                  </section>
+                </div>
+
+                <section class="model-clash-card">
+                  <div class="mini-section-head">
+                    <strong>检测结果</strong>
+                    <span id="modelClashRunBadge" class="mini-pill">未运行</span>
+                  </div>
+                  <div id="modelClashSummaryGrid" class="manager-summary-grid"></div>
+                  <div id="modelClashRecordList" class="model-clash-record-list"></div>
+                </section>
+
+                <section class="model-clash-card model-clash-heatmap-card">
+                  <div class="mini-section-head">
+                    <strong>碰撞热力图</strong>
+                    <span id="modelClashHeatmapBadge" class="mini-pill">未生成</span>
+                  </div>
+                  <div class="model-clash-heatmap-controls">
+                    <label class="detail-field">
+                      <span class="field-label">检测版本</span>
+                      <select id="modelClashHeatmapSelect" class="text-input compact-select"></select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">专业对过滤</span>
+                      <select id="modelClashHeatmapPairSelect" class="text-input compact-select">
+                        <option value="all">全部专业对</option>
+                        <option value="structure:mep">结构 / 机电</option>
+                        <option value="architecture:mep">建筑 / 机电</option>
+                        <option value="architecture:structure">建筑 / 结构</option>
+                      </select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">Issue 状态</span>
+                      <select id="modelClashHeatmapStatusSelect" class="text-input compact-select">
+                        <option value="open">仅未关闭</option>
+                        <option value="all">全部状态</option>
+                        <option value="resolved">已解决</option>
+                        <option value="approved">已批准</option>
+                      </select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">体积阈值</span>
+                      <input id="modelClashHeatmapMinVolumeInput" class="text-input" type="number" min="0" step="0.01" value="0" />
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">楼层 / Z 切片</span>
+                      <input id="modelClashHeatmapFloorInput" class="text-input" type="text" placeholder="例如 0-4 或 8" />
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">透明度</span>
+                      <input id="modelClashHeatmapOpacityInput" class="range-input" type="range" min="0.15" max="0.8" step="0.05" value="0.45" />
+                    </label>
+                    <label class="toggle-field model-clash-toggle">
+                      <input id="modelClashHeatmapVisibleToggle" type="checkbox" checked />
+                      <span>显示热力图层</span>
+                    </label>
+                  </div>
+                  <div class="model-clash-heatmap-main">
+                    <div>
+                      <div id="modelClashHeatmapCanvas" class="model-clash-heatmap-canvas"></div>
+                      <div class="model-clash-heatmap-legend">
+                        <span class="heatmap-swatch blue"></span><span>低</span>
+                        <span class="heatmap-swatch green"></span><span>中</span>
+                        <span class="heatmap-swatch yellow"></span><span>较高</span>
+                        <span class="heatmap-swatch red"></span><span>高</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="mini-section-head">
+                        <strong>Top 热点区域</strong>
+                        <span id="modelClashHotspotBadge" class="mini-pill">Top 5</span>
+                      </div>
+                      <div id="modelClashHotspotList" class="model-clash-hotspot-list"></div>
+                    </div>
+                  </div>
+                  <div class="model-clash-export-actions">
+                    <button id="modelClashOpenHeatmapViewerButton" class="ghost-button compact-button" type="button">Viewer 叠加</button>
+                    <button id="modelClashExportSnapshotButton" class="ghost-button compact-button" type="button">导出截图</button>
+                    <button id="modelClashExportMatrixButton" class="ghost-button compact-button" type="button">导出矩阵 Excel</button>
+                    <button id="modelClashExportHotspotsButton" class="ghost-button compact-button" type="button">导出热点 PDF</button>
+                    <button id="modelClashExportPackageButton" class="primary-button compact-button" type="button">一键打包</button>
+                  </div>
+                </section>
+
+                <section class="model-clash-card model-clash-matrix-card">
+                  <div class="mini-section-head">
+                    <strong>专业碰撞矩阵</strong>
+                    <span id="modelClashMatrixBadge" class="mini-pill">0 专业</span>
+                  </div>
+                  <div id="modelClashMatrixTable" class="model-clash-matrix-table"></div>
+                </section>
+
+                <section class="model-clash-card model-clash-trend-card">
+                  <div class="mini-section-head">
+                    <strong>版本趋势对比</strong>
+                    <span id="modelClashTrendBadge" class="mini-pill">选择两个版本</span>
+                  </div>
+                  <div class="model-clash-trend-controls">
+                    <select id="modelClashTrendLeftSelect" class="text-input compact-select"></select>
+                    <select id="modelClashTrendRightSelect" class="text-input compact-select"></select>
+                  </div>
+                  <div id="modelClashTrendTable" class="model-clash-trend-table"></div>
+                </section>
+
+                <p id="modelClashMessage" class="access-policy-summary"></p>
+              </div>
+
+              <div class="quantity-workbench hidden" data-model-app-view="quantity">
+                <div class="model-app-page-head">
+                  <button class="ghost-button compact-button" data-model-app-tool="home" type="button">返回模型应用</button>
+                  <div>
+                    <p class="panel-kicker">工程量统计</p>
+                    <h3>工程量统计</h3>
+                  </div>
+                </div>
+                <section id="quantityModelPicker" class="model-app-model-picker quantity-model-picker">
+                  <div class="model-app-home-head">
+                    <div>
+                      <p class="panel-kicker">模型选择</p>
+                      <h3>选择工程量统计模型</h3>
+                      <span>从当前项目模型中选择一次统计对象；未完成 APS 转换的模型会保留在列表中并展示状态，避免误发起后台任务。</span>
+                    </div>
+                    <span id="quantityModelCountBadge" class="mini-pill">0 个模型</span>
+                  </div>
+                  <div id="quantityModelList" class="model-app-model-list quantity-model-list"></div>
+                </section>
+                <div class="quantity-guide">
+                  <article id="quantityGuideModel" class="quantity-guide-step">
+                    <span class="quantity-guide-index">01</span>
+                    <strong>选择模型</strong>
+                    <small id="quantityGuideModelText">待选择</small>
+                  </article>
+                  <article id="quantityGuideTemplate" class="quantity-guide-step">
+                    <span class="quantity-guide-index">02</span>
+                    <strong>配置口径</strong>
+                    <small id="quantityGuideTemplateText">默认模板</small>
+                  </article>
+                  <article id="quantityGuideExtract" class="quantity-guide-step">
+                    <span class="quantity-guide-index">03</span>
+                    <strong>手动提取</strong>
+                    <small id="quantityGuideExtractText">未发起</small>
+                  </article>
+                  <article id="quantityGuideResult" class="quantity-guide-step">
+                    <span class="quantity-guide-index">04</span>
+                    <strong>结果归档</strong>
+                    <small id="quantityGuideResultText">待生成</small>
+                  </article>
+                </div>
+                <section class="quantity-toolbar">
+                  <div class="quantity-launch-head">
+                    <div>
+                      <strong>手动提取配置</strong>
+                      <p>确认模型版本、统计模板和过滤口径后，再提交后台属性提取任务。</p>
+                    </div>
+                    <span id="quantityReadinessBadge" class="mini-pill">待选择模型</span>
+                  </div>
+                  <div id="quantityPreflightList" class="quantity-preflight-list"></div>
+                  <div class="quantity-rule-grid">
+                    <label class="detail-field">
+                      <span class="field-label">模型文件</span>
+                      <select id="quantityDocumentSelect" class="text-input compact-select"></select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">统计模板</span>
+                      <select id="quantityTemplateSelect" class="text-input compact-select"></select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">字段范围</span>
+                      <select id="quantityFieldModeSelect" class="text-input compact-select">
+                        <option value="template">按模板字段</option>
+                        <option value="all">全量属性</option>
+                      </select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">分组维度</span>
+                      <select id="quantityGroupPresetSelect" class="text-input compact-select">
+                        <option value="elementType,floor,discipline,material">对象类型 / 系统区域 / 专业 / 材质规格</option>
+                        <option value="elementType">按对象类型</option>
+                        <option value="elementType,floor">对象类型 / 系统区域</option>
+                        <option value="discipline,elementType">专业 / 对象类型</option>
+                        <option value="floor,discipline,elementType">系统区域 / 专业 / 对象类型</option>
+                      </select>
+                    </label>
+                  </div>
+                  <section class="quantity-filter-panel" aria-label="工程量筛选条件">
+                    <div class="mini-section-head">
+                      <div>
+                        <strong>按模型属性筛选</strong>
+                        <p>这些条件会写入下一次属性提取任务；筛选器优先使用已提取模型属性，首次提取前提供海水淡化项目常用预设。</p>
+                      </div>
+                      <span id="quantityFilterBadge" class="mini-pill">不限</span>
+                    </div>
+                    <div id="quantityFilterBuilder" class="quantity-filter-builder"></div>
+                  </section>
+                  <section class="quantity-filter-panel" aria-label="属性字段覆盖率">
+                    <div class="mini-section-head">
+                      <div>
+                        <strong>字段覆盖率预扫描</strong>
+                        <p>提交正式提取前，可先扫描模型属性字典，确认系统/区域、对象类型、管线长度、重量等字段是否能被当前模板识别。</p>
+                      </div>
+                      <span id="quantityDictionaryBadge" class="mini-pill">未扫描</span>
+                    </div>
+                    <div id="quantityPropertyDictionaryPanel" class="quantity-dictionary-panel"></div>
+                  </section>
+                  <div class="quantity-actions">
+                    <button id="quantityRefreshButton" class="ghost-button" type="button">刷新</button>
+                    <button id="quantityScanFieldsButton" class="ghost-button" type="button">扫描字段</button>
+                    <button id="quantityExtractButton" class="primary-button" type="button">开始提取</button>
+                    <button id="quantitySaveTemplateButton" class="ghost-button" type="button">保存模板</button>
+                    <button id="quantityExportButton" class="ghost-button" type="button">导出 Excel</button>
+                  </div>
+                  <div id="quantityLaunchSummary" class="quantity-launch-summary"></div>
+                </section>
+
+                <div id="quantitySummaryGrid" class="manager-summary-grid"></div>
+
+                <div class="quantity-grid">
+                  <section class="quantity-card quantity-summary-card">
+                    <div class="mini-section-head">
+                      <strong>工程量汇总</strong>
+                      <span id="quantityTaskBadge" class="mini-pill">未提取</span>
+                    </div>
+                    <div id="quantityTaskList" class="quantity-task-list"></div>
+                    <div class="quantity-table-wrap">
+                      <table class="quantity-table">
+                        <thead>
+                          <tr>
+                            <th>对象类型</th>
+                            <th>系统/区域</th>
+                            <th>专业</th>
+                            <th>材质/规格</th>
+                            <th>数量</th>
+                            <th>面积</th>
+                            <th>长度</th>
+                            <th>体积</th>
+                          </tr>
+                        </thead>
+                        <tbody id="quantitySummaryTableBody"></tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section class="quantity-card">
+                    <div class="mini-section-head">
+                      <strong>对象明细</strong>
+                      <span id="quantitySnapshotBadge" class="mini-pill">0 对象</span>
+                    </div>
+                    <div id="quantitySnapshotList" class="quantity-snapshot-list"></div>
+                  </section>
+                </div>
+
+                <section class="quantity-card quantity-compare-card">
+                  <div class="mini-section-head">
+                    <strong>版本工程量对比</strong>
+                    <span id="quantityCompareBadge" class="mini-pill">选择两次提取结果</span>
+                  </div>
+                  <div class="quantity-compare-controls">
+                    <select id="quantityCompareLeftSelect" class="text-input compact-select"></select>
+                    <select id="quantityCompareRightSelect" class="text-input compact-select"></select>
+                    <button id="quantityCompareButton" class="ghost-button" type="button">对比</button>
+                  </div>
+                  <div id="quantityCompareTable" class="quantity-compare-table"></div>
+                </section>
+
+                <p id="quantityMessage" class="access-policy-summary"></p>
+              </div>
+
+              <div class="model-health-workbench hidden" data-model-app-view="health">
+                <div class="model-app-page-head">
+                  <button class="ghost-button compact-button" data-model-app-tool="home" type="button">返回模型应用</button>
+                  <div>
+                    <p class="panel-kicker">模型健康度检查</p>
+                    <h3>模型健康度检查</h3>
+                  </div>
+                </div>
+
+                <section id="modelHealthModelPicker" class="model-app-model-picker model-health-model-picker">
+                  <div class="model-app-home-head">
+                    <div>
+                      <p class="panel-kicker">审批前置健康度门控</p>
+                      <h3>选择待检查模型</h3>
+                      <span>从当前项目已完成 APS 转换的模型中手动选择一次质检对象，报告会作为审批发起前的门控依据。</span>
+                    </div>
+                    <span id="modelHealthModelCountBadge" class="mini-pill">0 个模型</span>
+                  </div>
+                  <div id="modelHealthModelList" class="model-app-model-list model-health-model-list"></div>
+                </section>
+
+                <div class="quantity-guide model-health-guide">
+                  <article id="modelHealthGuideModel" class="quantity-guide-step">
+                    <span class="quantity-guide-index">01</span>
+                    <strong>选择模型</strong>
+                    <small id="modelHealthGuideModelText">待选择</small>
+                  </article>
+                  <article id="modelHealthGuideRuleset" class="quantity-guide-step">
+                    <span class="quantity-guide-index">02</span>
+                    <strong>选择规则集</strong>
+                    <small id="modelHealthGuideRulesetText">默认模板</small>
+                  </article>
+                  <article id="modelHealthGuideRun" class="quantity-guide-step">
+                    <span class="quantity-guide-index">03</span>
+                    <strong>手动检查</strong>
+                    <small id="modelHealthGuideRunText">未发起</small>
+                  </article>
+                  <article id="modelHealthGuideReport" class="quantity-guide-step">
+                    <span class="quantity-guide-index">04</span>
+                    <strong>报告门控</strong>
+                    <small id="modelHealthGuideReportText">待生成</small>
+                  </article>
+                </div>
+
+                <div class="model-health-config-layout">
+                  <section class="quantity-toolbar model-health-toolbar">
+                    <div class="quantity-launch-head">
+                      <div>
+                        <strong>检查配置</strong>
+                        <p>规则引擎负责确定性问题，AI 负责语义异常和离群候选；提交后进入后台任务队列。</p>
+                      </div>
+                      <span id="modelHealthReadinessBadge" class="mini-pill">待选择模型</span>
+                    </div>
+                    <div id="modelHealthPreflightList" class="quantity-preflight-list model-health-preflight-list"></div>
+                    <div class="quantity-rule-grid model-health-rule-grid">
+                      <label class="detail-field">
+                        <span class="field-label">模型文件</span>
+                        <select id="modelHealthDocumentSelect" class="text-input compact-select"></select>
+                      </label>
+                      <label class="detail-field">
+                        <span class="field-label">规则集</span>
+                        <select id="modelHealthRulesetSelect" class="text-input compact-select"></select>
+                      </label>
+                      <label class="detail-field">
+                        <span class="field-label">门控模式</span>
+                        <select id="modelHealthGateModeSelect" class="text-input compact-select" disabled>
+                          <option value="strict">严格模式</option>
+                          <option value="standard">标准模式</option>
+                          <option value="loose">宽松模式</option>
+                        </select>
+                      </label>
+                      <label class="toggle-field model-clash-toggle">
+                        <input id="modelHealthAiEnabledToggle" type="checkbox" disabled />
+                        <span>AI 异常识别</span>
+                      </label>
+                    </div>
+                    <div id="modelHealthRulesetSummary" class="quantity-launch-summary model-health-ruleset-summary"></div>
+                    <div class="quantity-actions model-health-actions">
+                      <button id="modelHealthRefreshButton" class="ghost-button" type="button">刷新</button>
+                      <button id="modelHealthRunButton" class="primary-button" type="button">开始健康度检查</button>
+                    </div>
+                    <div id="modelHealthLaunchSummary" class="quantity-launch-summary"></div>
+                  </section>
+
+                  <aside id="modelHealthTemplateSummaryPanel" class="quantity-card model-health-template-summary-card">
+                    <div class="mini-section-head">
+                      <div>
+                        <strong>模板概要</strong>
+                        <p>当前规则模板的覆盖范围、门控要求、AI 检查和项目注意事项。</p>
+                      </div>
+                      <span id="modelHealthTemplateSummaryBadge" class="mini-pill">未选择</span>
+                    </div>
+                    <div id="modelHealthTemplateSummaryGrid" class="model-health-template-summary-grid"></div>
+                    <div id="modelHealthTemplateDisciplineSummary" class="model-health-template-discipline-summary"></div>
+                    <div id="modelHealthTemplateAiSummary" class="model-health-template-ai-summary"></div>
+                    <div id="modelHealthTemplateNotes" class="model-health-template-notes"></div>
+                  </aside>
+                </div>
+
+                <div id="modelHealthSummaryGrid" class="manager-summary-grid"></div>
+
+                <div class="model-health-grid">
+                  <section class="quantity-card model-health-card">
+                    <div class="mini-section-head">
+                      <strong>检查任务</strong>
+                      <span id="modelHealthTaskBadge" class="mini-pill">未运行</span>
+                    </div>
+                    <div id="modelHealthTaskList" class="quantity-task-list model-health-task-list"></div>
+                  </section>
+
+                  <section class="quantity-card model-health-card">
+                    <div class="mini-section-head">
+                      <strong>审批前置门控</strong>
+                      <span id="modelHealthGateBadge" class="mini-pill">未检查</span>
+                    </div>
+                    <div id="modelHealthGatePanel" class="model-health-gate-panel"></div>
+                  </section>
+                </div>
+
+                <section class="quantity-card model-health-report-card">
+                  <div class="mini-section-head">
+                    <strong>健康度报告</strong>
+                    <span id="modelHealthReportBadge" class="mini-pill">未生成</span>
+                  </div>
+                  <div class="model-health-report-layout">
+                    <div>
+                      <div class="mini-section-head model-health-subhead">
+                        <strong>规则引擎结果</strong>
+                        <span id="modelHealthRuleBadge" class="mini-pill">0 项</span>
+                      </div>
+                      <div id="modelHealthCategorySummary" class="model-health-category-summary"></div>
+                    </div>
+                    <div>
+                      <div class="mini-section-head model-health-subhead">
+                        <strong>AI 异常识别结果</strong>
+                        <span id="modelHealthAiBadge" class="mini-pill">0 项</span>
+                      </div>
+                      <div id="modelHealthComparisonPanel" class="model-health-comparison-panel"></div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="quantity-card model-health-issue-card">
+                  <div class="mini-section-head">
+                    <strong>问题列表</strong>
+                    <span id="modelHealthIssueBadge" class="mini-pill">0 项</span>
+                  </div>
+                  <div class="model-health-issue-filters">
+                    <select id="modelHealthIssueSourceFilter" class="text-input compact-select">
+                      <option value="all">全部来源</option>
+                      <option value="rule">规则引擎</option>
+                      <option value="ai">AI 异常</option>
+                    </select>
+                    <select id="modelHealthIssueLevelFilter" class="text-input compact-select">
+                      <option value="all">全部级别</option>
+                      <option value="error">Error</option>
+                      <option value="warning">Warning</option>
+                      <option value="info">Info</option>
+                      <option value="suspected">AI 疑似</option>
+                    </select>
+                    <select id="modelHealthIssueCategoryFilter" class="text-input compact-select">
+                      <option value="all">全部类别</option>
+                    </select>
+                  </div>
+                  <div id="modelHealthIssueList" class="model-health-issue-list"></div>
+                </section>
+
+                <p id="modelHealthMessage" class="access-policy-summary"></p>
+              </div>
+
+              <div class="model-diff-workbench hidden" data-model-app-view="diff">
+                <div class="model-app-page-head">
+                  <button class="ghost-button compact-button" data-model-app-tool="home" type="button">返回模型应用</button>
+                  <div>
+                    <p class="panel-kicker">模型差异对比</p>
+                    <h3>模型差异对比</h3>
+                  </div>
+                </div>
+
+                <div id="modelDiffGuide" class="quantity-guide model-diff-guide">
+                  <div id="modelDiffGuideModel" class="quantity-guide-step active">
+                    <span>1</span>
+                    <strong>选择模型</strong>
+                    <p id="modelDiffGuideModelText">从当前项目模型中选择同一文件的两个版本。</p>
+                  </div>
+                  <div id="modelDiffGuideVersions" class="quantity-guide-step">
+                    <span>2</span>
+                    <strong>选择版本</strong>
+                    <p id="modelDiffGuideVersionsText">支持 Rev.A 对 Rev.C 等非相邻版本。</p>
+                  </div>
+                  <div id="modelDiffGuideRun" class="quantity-guide-step">
+                    <span>3</span>
+                    <strong>发起对比</strong>
+                    <p id="modelDiffGuideRunText">后台复用已有属性快照，按稳定标识符比对。</p>
+                  </div>
+                  <div id="modelDiffGuideReport" class="quantity-guide-step">
+                    <span>4</span>
+                    <strong>审阅差异</strong>
+                    <p id="modelDiffGuideReportText">在报告、Viewer 和 Issue 流程中闭环。</p>
+                  </div>
+                </div>
+
+                <div class="model-diff-launch-grid">
+                  <section class="quantity-card model-diff-model-card">
+                    <div class="mini-section-head">
+                      <strong>模型选择</strong>
+                      <span id="modelDiffModelCountBadge" class="mini-pill">0 个模型</span>
+                    </div>
+                    <div id="modelDiffModelList" class="model-app-model-list"></div>
+                  </section>
+
+                  <section class="quantity-card model-diff-launch-card">
+                    <div class="mini-section-head">
+                      <strong>版本与规则</strong>
+                      <span id="modelDiffReadinessBadge" class="mini-pill">待选择</span>
+                    </div>
+                    <div class="model-diff-version-grid">
+                      <label class="detail-field">
+                        <span class="field-label">模型文件</span>
+                        <select id="modelDiffDocumentSelect" class="text-input compact-select"></select>
+                      </label>
+                      <label class="detail-field">
+                        <span class="field-label">版本 A</span>
+                        <select id="modelDiffVersionASelect" class="text-input compact-select"></select>
+                      </label>
+                      <label class="detail-field">
+                        <span class="field-label">版本 B</span>
+                        <select id="modelDiffVersionBSelect" class="text-input compact-select"></select>
+                      </label>
+                      <label class="detail-field">
+                        <span class="field-label">位移容差 mm</span>
+                        <input id="modelDiffToleranceInput" class="text-input" type="number" min="0" step="1" value="10" />
+                      </label>
+                    </div>
+                    <div id="modelDiffPreflightList" class="quantity-preflight-list"></div>
+                    <div class="model-diff-actions">
+                      <button id="modelDiffRefreshButton" class="ghost-button" type="button">刷新差异任务</button>
+                      <button id="modelDiffRunButton" class="primary-button" type="button">发起版本对比</button>
+                    </div>
+                    <p id="modelDiffMessage" class="access-policy-summary"></p>
+                  </section>
+                </div>
+
+                <section class="quantity-card model-diff-task-card">
+                  <div class="mini-section-head">
+                    <strong>对比任务</strong>
+                    <span id="modelDiffTaskBadge" class="mini-pill">未运行</span>
+                  </div>
+                  <div id="modelDiffTaskList" class="quantity-task-list model-diff-task-list"></div>
+                </section>
+
+                <section class="quantity-card model-diff-report-card">
+                  <div class="mini-section-head">
+                    <strong>差异报告</strong>
+                    <span id="modelDiffReportBadge" class="mini-pill">未生成</span>
+                  </div>
+                  <div id="modelDiffSummaryGrid" class="manager-summary-grid"></div>
+                  <div class="model-diff-report-layout">
+                    <div class="model-diff-ai-panel">
+                      <div class="mini-section-head model-diff-subhead">
+                        <strong>AI 变更说明</strong>
+                        <button id="modelDiffCopySummaryButton" class="ghost-button compact-button" type="button">复制说明</button>
+                      </div>
+                      <div id="modelDiffAiSummaryPanel" class="model-diff-ai-summary"></div>
+                    </div>
+                    <div class="model-diff-viewer-panel">
+                      <div class="mini-section-head model-diff-subhead">
+                        <strong>Viewer 差异图层</strong>
+                        <button id="modelDiffOpenViewerButton" class="ghost-button compact-button" type="button">打开 Viewer</button>
+                      </div>
+                      <div class="model-diff-legend">
+                        <span><i class="added"></i>新增</span>
+                        <span><i class="deleted"></i>删除</span>
+                        <span><i class="modified"></i>属性变更</span>
+                        <span><i class="moved"></i>位置移动</span>
+                        <span><i class="unmatched"></i>无法比对</span>
+                      </div>
+                      <div class="model-diff-layer-controls">
+                        <label class="detail-field compact-field">
+                          <span class="field-label">查看模式</span>
+                          <select id="modelDiffViewerModeSelect" class="text-input compact-select">
+                            <option value="overlay">叠加模式</option>
+                            <option value="split">A/B 分屏</option>
+                          </select>
+                        </label>
+                        <label class="toggle-field"><input id="modelDiffShowAddedToggle" type="checkbox" checked /><span>新增</span></label>
+                        <label class="toggle-field"><input id="modelDiffShowDeletedToggle" type="checkbox" checked /><span>删除</span></label>
+                        <label class="toggle-field"><input id="modelDiffShowModifiedToggle" type="checkbox" checked /><span>变更</span></label>
+                        <label class="toggle-field"><input id="modelDiffShowMovedToggle" type="checkbox" checked /><span>移动</span></label>
+                        <label class="toggle-field"><input id="modelDiffOnlyDifferencesToggle" type="checkbox" checked /><span>只看差异</span></label>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="quantity-card model-diff-record-card">
+                  <div class="mini-section-head">
+                    <strong>差异构件列表</strong>
+                    <span id="modelDiffRecordBadge" class="mini-pill">0 项</span>
+                  </div>
+                  <div class="model-diff-filter-bar">
+                    <select id="modelDiffTypeFilter" class="text-input compact-select">
+                      <option value="all">全部差异类型</option>
+                      <option value="added">新增</option>
+                      <option value="deleted">删除</option>
+                      <option value="modified">属性变更</option>
+                      <option value="moved">位置移动</option>
+                      <option value="unmatched">无法比对</option>
+                    </select>
+                    <select id="modelDiffElementFilter" class="text-input compact-select">
+                      <option value="all">全部对象类型</option>
+                    </select>
+                    <select id="modelDiffAreaFilter" class="text-input compact-select">
+                      <option value="all">全部系统/区域</option>
+                    </select>
+                    <select id="modelDiffDisciplineFilter" class="text-input compact-select">
+                      <option value="all">全部专业</option>
+                    </select>
+                    <label class="toggle-field model-diff-filter-toggle">
+                      <input id="modelDiffOnlyUnlinkedToggle" type="checkbox" />
+                      <span>只看未关联 Issue</span>
+                    </label>
+                    <button id="modelDiffBulkIssueButton" class="ghost-button compact-button" type="button">批量创建 Issue</button>
+                  </div>
+                  <div class="model-diff-record-layout">
+                    <div class="model-diff-table-wrap">
+                      <table class="model-diff-table">
+                        <thead>
+                          <tr>
+                            <th>对象</th>
+                            <th>差异</th>
+                            <th>系统/区域</th>
+                            <th>专业</th>
+                            <th>变更</th>
+                            <th>操作</th>
+                          </tr>
+                        </thead>
+                        <tbody id="modelDiffRecordTableBody"></tbody>
+                      </table>
+                    </div>
+                    <aside id="modelDiffDetailPanel" class="model-diff-detail-panel"></aside>
+                  </div>
+                </section>
+
+                <section class="quantity-card model-diff-trend-card">
+                  <div class="mini-section-head">
+                    <strong>版本趋势</strong>
+                    <span id="modelDiffTrendBadge" class="mini-pill">0 组</span>
+                  </div>
+                  <div id="modelDiffTrendChart" class="model-diff-trend-chart"></div>
+                  <div id="modelDiffTrendTable" class="model-diff-trend-table"></div>
+                </section>
+              </div>
+            </div>
+          </section>
+
+          <section id="accessPanel" class="panel access-panel hidden">
+            <div class="panel-head access-panel-head">
+              <div>
+                <p class="panel-kicker">系统设置</p>
+                <h3>系统设置</h3>
+              </div>
+            </div>
+
+            <div class="access-layout">
+              <aside class="access-subnav" aria-label="系统与项目设置导航">
+                <div class="access-subnav-group" data-access-scope="project">
+                  <span class="access-subnav-label" data-access-nav-label="overview">总览</span>
+                  <button class="access-subnav-item active" data-access-menu="overview" data-access-scope="project" type="button">概览</button>
+                </div>
+                <div class="access-subnav-group" data-access-scope="system">
+                  <span class="access-subnav-label" data-access-nav-label="system">系统级设置</span>
+                  <button class="access-subnav-item" data-access-menu="project_management" data-access-scope="system" type="button">项目库管理</button>
+                  <button class="access-subnav-item" data-access-menu="aps_configuration" data-access-scope="system" type="button">APS 配置</button>
+                  <button class="access-subnav-item" data-access-menu="ai_configuration" data-access-scope="system" type="button">AI 配置</button>
+                  <button class="access-subnav-item" data-access-menu="email_channel" data-access-scope="system" type="button">邮件通道</button>
+                </div>
+                <div class="access-subnav-group" data-access-scope="project">
+                  <span class="access-subnav-label" data-access-nav-label="project">当前项目设置</span>
+                  <button class="access-subnav-item" data-access-menu="guest_policy" data-access-scope="project" type="button">访客策略</button>
+                  <button class="access-subnav-item" data-access-menu="project_notifications" data-access-scope="project" type="button">项目通知</button>
+                  <button class="access-subnav-item" data-access-menu="members" data-access-scope="project" type="button">用户邀请</button>
+                  <button class="access-subnav-item" data-access-menu="folder_permissions" data-access-scope="project" type="button">目录权限</button>
+                  <button class="access-subnav-item" data-access-menu="audit" data-access-scope="project" type="button">审计日志</button>
+                </div>
+                <div class="access-subnav-group" data-access-scope="access_model">
+                  <span class="access-subnav-label" data-access-nav-label="access_model">权限模型</span>
+                  <button class="access-subnav-item" data-access-menu="hierarchy" data-access-scope="model" type="button">权限层级</button>
+                  <button class="access-subnav-item" data-access-menu="roles" data-access-scope="model" type="button">角色定义</button>
+                  <button class="access-subnav-item" data-access-menu="matrix" data-access-scope="model" type="button">权限矩阵</button>
+                </div>
+              </aside>
+
+              <div class="access-panel-scroll">
+                <section id="accessOverviewView" class="stack-section access-view-section">
+                  <div class="mini-section-head">
+                    <strong>当前权限概览</strong>
+                    <span id="accessCurrentRoleBadge" class="mini-pill">--</span>
+                  </div>
+                  <div id="accessSummaryCards" class="module-stat-grid access-summary-grid"></div>
+                </section>
+
+                <section id="accessProjectManagementView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">平台级项目库</p>
+                      <h3>Project Registry</h3>
+                      <p id="projectManagementScopeNote" class="access-scope-note">跨项目创建、编辑和初始化项目。</p>
+                    </div>
+                    <span id="projectManagementCapabilityBadge" class="mini-pill">--</span>
+                  </div>
+
+                  <div id="projectManagementSummary" class="module-stat-grid access-summary-grid"></div>
+
+                  <div class="project-management-layout">
+                    <section class="project-management-create-card">
+                      <div class="mini-section-head">
+                        <strong id="projectManagementFormTitle">新建项目</strong>
+                        <span id="projectManagementFormModeBadge" class="mini-pill">新建项目</span>
+                      </div>
+
+                      <div class="project-management-form-grid">
+                        <label class="detail-field">
+                          <span class="field-label">项目名称</span>
+                          <input id="projectNameInput" class="text-input" type="text" placeholder="例如：北区海水淡化二期" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">项目编码</span>
+                          <input id="projectCodeInput" class="text-input" type="text" placeholder="例如：CDE-ADS-02" />
+                        </label>
+                        <label class="detail-field project-management-field-span">
+                          <span class="field-label">项目说明</span>
+                          <textarea id="projectDescriptionInput" class="text-area" maxlength="200" placeholder="描述项目范围、交付目标或当前阶段，便于后续快速识别。"></textarea>
+                        </label>
+                      </div>
+
+                      <div class="project-management-mode-grid">
+                        <article class="project-management-mode-card">
+                          <div class="project-management-mode-head">
+                            <strong>成员初始化</strong>
+                            <span class="mini-pill">成员</span>
+                          </div>
+                          <div id="projectMemberInitSelector" class="workflow-choice-grid project-choice-grid"></div>
+                          <label class="detail-field">
+                            <span class="field-label">复制来源项目</span>
+                            <select id="projectMemberSourceSelect" class="text-input"></select>
+                          </label>
+                        </article>
+
+                        <article class="project-management-mode-card">
+                          <div class="project-management-mode-head">
+                            <strong>模板初始化</strong>
+                            <span class="mini-pill">模板</span>
+                          </div>
+                          <div id="projectTemplateInitSelector" class="workflow-choice-grid project-choice-grid"></div>
+                          <label class="detail-field">
+                            <span class="field-label">复制来源项目</span>
+                            <select id="projectTemplateSourceSelect" class="text-input"></select>
+                          </label>
+                        </article>
+                      </div>
+
+                      <div class="project-management-policy-card">
+                        <div class="project-management-mode-head">
+                          <strong>默认目录策略</strong>
+                          <span class="mini-pill">Folders</span>
+                        </div>
+                        <div id="projectFolderPolicySelector" class="workflow-choice-grid project-policy-grid"></div>
+                      </div>
+
+                      <p id="projectManagementMessage" class="access-inline-feedback hidden"></p>
+
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="cancelProjectEditButton" class="ghost-button hidden" type="button">取消编辑</button>
+                        <button id="createProjectButton" class="primary-button" type="button">创建项目</button>
+                        <span id="projectManagementHint" class="access-policy-summary">创建后会立即写入真实项目、目录、成员与模板配置。</span>
+                      </div>
+                    </section>
+
+                    <section class="project-management-preview-card">
+                      <div class="mini-section-head">
+                        <strong>初始化预览</strong>
+                        <span class="mini-pill">预览</span>
+                      </div>
+                      <div id="projectManagementPreviewMeta" class="project-management-preview-meta"></div>
+                      <div id="projectFolderPolicyPreview" class="project-folder-policy-preview"></div>
+                    </section>
+                  </div>
+
+                  <div class="mini-section-head access-subsection-head">
+                    <strong>现有项目</strong>
+                    <span id="projectManagementProjectCount" class="mini-pill">0 个项目</span>
+                  </div>
+                  <div id="projectManagementList" class="card-list project-management-list"></div>
+                </section>
+
+                <section id="accessHierarchyView" class="stack-section access-view-section hidden">
+                  <div class="mini-section-head">
+                    <strong>权限层级</strong>
+                    <span class="mini-pill">三层模型</span>
+                  </div>
+                  <div class="access-scope-grid">
+                    <article class="access-scope-card">
+                      <strong>平台级</strong>
+                      <p>跨项目系统管理能力，仅超级管理员持有。</p>
+                    </article>
+                    <article class="access-scope-card">
+                      <strong>项目级</strong>
+                      <p>按项目分配角色，同一用户在不同项目可拥有不同身份。</p>
+                    </article>
+                    <article class="access-scope-card">
+                      <strong>文件夹 / 文件级</strong>
+                      <p>继承项目角色并向下收紧，不能突破项目角色上限。</p>
+                    </article>
+                  </div>
+
+                  <div class="mini-section-head access-subsection-head">
+                    <strong>特殊场景</strong>
+                    <span class="mini-pill">规则说明</span>
+                  </div>
+                  <div class="access-scene-grid">
+                    <article class="access-scope-card">
+                      <strong>审批期间文件锁定</strong>
+                      <p>文件进入流程后自动进入审批锁定态。审批人可继续批注，但不能上传新版本或在线编辑正文。</p>
+                    </article>
+                    <article class="access-scope-card">
+                      <strong>用户离开项目</strong>
+                      <p>移除成员后会自动释放其签出占用；历史批注、版本和流程记录继续保留，便于追溯。</p>
+                    </article>
+                    <article class="access-scope-card">
+                      <strong>外部合作方访问</strong>
+                      <p>推荐以访客角色加入项目，再配合文件夹覆盖权限控制可见范围，而不是长期依赖分享链接。</p>
+                    </article>
+                    <article class="access-scope-card">
+                      <strong>一人多项目多角色</strong>
+                      <p>角色按项目维度生效。同一用户在不同项目可以是不同身份，权限彼此独立。</p>
+                    </article>
+                  </div>
+                </section>
+
+                <section id="accessRolesView" class="stack-section access-view-section hidden">
+                  <div class="mini-section-head">
+                    <strong>角色定义</strong>
+                    <span class="mini-pill">5 类角色</span>
+                  </div>
+                  <div id="accessRoleCards" class="access-role-cards"></div>
+                </section>
+
+                <section id="accessMatrixView" class="stack-section access-view-section hidden">
+                  <div class="mini-section-head">
+                    <strong>权限矩阵</strong>
+                    <span class="mini-pill">文档 / 审阅 / 流程 / 成员管理</span>
+                  </div>
+                  <div id="accessMatrixTable" class="access-matrix-wrap"></div>
+                </section>
+
+                <section id="accessGuestPolicyView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">访客策略</p>
+                      <h3>Guest Policy</h3>
+                    </div>
+                  </div>
+                  <div class="access-policy-grid">
+                    <label class="toggle-card" for="guestDownloadToggle">
+                      <div>
+                        <strong>允许下载</strong>
+                        <p>关闭后，访客仅可在线预览，不能下载文件原件。</p>
+                      </div>
+                      <input id="guestDownloadToggle" type="checkbox" />
+                    </label>
+                    <label class="toggle-card" for="guestAnnotateToggle">
+                      <div>
+                        <strong>允许批注</strong>
+                        <p>控制访客是否可以在 PDF、模型和 Office 审阅中创建批注。</p>
+                      </div>
+                      <input id="guestAnnotateToggle" type="checkbox" />
+                    </label>
+                    <label class="toggle-card" for="guestReplyToggle">
+                      <div>
+                        <strong>允许回复</strong>
+                        <p>控制访客是否可以在已有批注下继续讨论、补充附件和说明。</p>
+                      </div>
+                      <input id="guestReplyToggle" type="checkbox" />
+                    </label>
+                  </div>
+                  <div class="workflow-actions access-policy-actions">
+                    <button id="guestPolicySaveButton" class="primary-button" type="button">保存访客策略</button>
+                    <span id="guestPolicySummary" class="access-policy-summary">访客默认只读，按项目策略决定是否开放下载与协作。</span>
+                  </div>
+                </section>
+
+                <section id="accessEmailNotificationsView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">邮件通知</p>
+                      <h3>邮件通知</h3>
+                    </div>
+                    <span id="emailConfigCapabilityBadge" class="mini-pill">--</span>
+                  </div>
+
+                  <div id="emailConfigSummary" class="module-stat-grid access-summary-grid"></div>
+
+                  <div class="project-management-layout email-config-layout">
+                    <section id="systemEmailConfigCard" class="project-management-create-card email-config-card">
+                      <div class="mini-section-head">
+                        <strong>发信通道</strong>
+                        <span class="mini-pill">SMTP</span>
+                      </div>
+
+                      <label class="toggle-card" for="systemEmailEnabledToggle">
+                        <div>
+                          <strong>启用邮件发信</strong>
+                          <p>启用后，系统可按下方 SMTP 配置向项目成员邮箱发送真实通知。</p>
+                        </div>
+                        <input id="systemEmailEnabledToggle" type="checkbox" />
+                      </label>
+
+                      <label class="toggle-card" for="systemEmailAuthToggle">
+                        <div>
+                          <strong>启用 SMTP 认证</strong>
+                          <p>关闭后按匿名发信连接 SMTP；开启后需填写账号和密码或应用专用密码。</p>
+                        </div>
+                        <input id="systemEmailAuthToggle" type="checkbox" />
+                      </label>
+
+                      <div class="access-toolbar-grid email-config-grid">
+                        <label class="detail-field">
+                          <span class="field-label">SMTP 主机</span>
+                          <input id="systemEmailHostInput" class="text-input" type="text" placeholder="例如：smtp.exmail.qq.com" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">端口</span>
+                          <input id="systemEmailPortInput" class="text-input" type="number" min="1" max="65535" placeholder="587" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">加密方式</span>
+                          <select id="systemEmailEncryptionSelect" class="text-input"></select>
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">SMTP 用户名</span>
+                          <input id="systemEmailUsernameInput" class="text-input" type="text" placeholder="例如：system@company.com" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">SMTP 密码</span>
+                          <input id="systemEmailPasswordInput" class="text-input" type="password" placeholder="留空则保持已保存密码" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">发件名称</span>
+                          <input id="systemEmailSenderNameInput" class="text-input" type="text" placeholder="CDE文件管理系统" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">发件邮箱</span>
+                          <input id="systemEmailSenderEmailInput" class="text-input" type="email" placeholder="system@example.com" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Reply-To</span>
+                          <input id="systemEmailReplyToInput" class="text-input" type="email" placeholder="reply@example.com" />
+                        </label>
+                        <label class="detail-field email-config-field-span">
+                          <span class="field-label">主题前缀</span>
+                          <input id="systemEmailSubjectPrefixInput" class="text-input" type="text" maxlength="48" placeholder="[CDE]" />
+                        </label>
+                      </div>
+
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="saveSystemEmailConfigButton" class="primary-button" type="button">保存发信配置</button>
+                        <span id="systemEmailSummary" class="access-policy-summary">保存后即写入真实邮件通道配置，后续通知可直接启用邮件发送。</span>
+                      </div>
+                    </section>
+
+                    <section id="projectEmailNotificationCard" class="project-management-preview-card email-config-card">
+                      <div class="mini-section-head">
+                        <strong>项目通知策略</strong>
+                        <span class="mini-pill">项目</span>
+                      </div>
+
+                      <label class="toggle-card" for="projectEmailEnabledToggle">
+                        <div>
+                          <strong>启用当前项目邮件通知</strong>
+                          <p>打开后，项目内的审批、批注、版本和解析事件将按规则进入邮件通知通道。</p>
+                        </div>
+                        <input id="projectEmailEnabledToggle" type="checkbox" />
+                      </label>
+
+                      <div class="access-toolbar-grid email-config-grid compact">
+                        <label class="detail-field">
+                          <span class="field-label">发送频率</span>
+                          <select id="projectEmailDigestSelect" class="text-input"></select>
+                        </label>
+                        <label class="toggle-card email-config-inline-toggle" for="projectEmailGuestToggle">
+                          <div>
+                            <strong>包含访客</strong>
+                            <p>开启后，具备邮箱的访客也会按当前策略收到邮件提醒。</p>
+                          </div>
+                          <input id="projectEmailGuestToggle" type="checkbox" />
+                        </label>
+                      </div>
+
+                      <div class="mini-section-head access-subsection-head">
+                        <strong>接收对象</strong>
+                        <span class="mini-pill">接收对象</span>
+                      </div>
+                      <div id="projectEmailRecipientGrid" class="access-policy-grid email-config-option-grid"></div>
+
+                      <div class="mini-section-head access-subsection-head">
+                        <strong>触发事件</strong>
+                        <span class="mini-pill">触发事件</span>
+                      </div>
+                      <div id="projectEmailEventGrid" class="email-config-event-grid"></div>
+
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="saveProjectEmailConfigButton" class="primary-button" type="button">保存通知策略</button>
+                        <span id="projectEmailSummary" class="access-policy-summary">当前项目默认不发邮件；启用后会优先以成员账号邮箱作为收件地址。</span>
+                      </div>
+                    </section>
+                  </div>
+
+                  <p id="emailConfigMessage" class="access-inline-feedback hidden"></p>
+                </section>
+
+                <section id="accessApsConfigurationView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">APS 配置</p>
+                      <h3>APS Configuration</h3>
+                    </div>
+                    <span id="apsConfigCapabilityBadge" class="mini-pill">--</span>
+                  </div>
+
+                  <div id="apsConfigSummary" class="module-stat-grid access-summary-grid"></div>
+
+                  <div class="project-management-layout ai-config-layout">
+                    <section class="project-management-create-card ai-config-card">
+                      <div class="mini-section-head">
+                        <strong>Model Derivative 通道</strong>
+                        <span class="mini-pill">APS</span>
+                      </div>
+
+                      <label class="toggle-card" for="systemApsEnabledToggle">
+                        <div>
+                          <strong>启用 APS 模型能力</strong>
+                          <p>启用后，模型转换、Viewer 预览、Issue 三维定位和工程量属性提取会使用这里的 APS 凭证。</p>
+                        </div>
+                        <input id="systemApsEnabledToggle" type="checkbox" />
+                      </label>
+
+                      <div class="access-toolbar-grid ai-config-grid">
+                        <label class="detail-field">
+                          <span class="field-label">Client ID</span>
+                          <input id="systemApsClientIdInput" class="text-input" type="text" autocomplete="off" placeholder="APS Client ID" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Client Secret</span>
+                          <input id="systemApsClientSecretInput" class="text-input" type="password" autocomplete="new-password" placeholder="留空则保持已保存密钥" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Bucket Key</span>
+                          <input id="systemApsBucketKeyInput" class="text-input" type="text" placeholder="cde-project-models" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Bucket Policy</span>
+                          <select id="systemApsBucketPolicySelect" class="text-input"></select>
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Bucket Region</span>
+                          <input id="systemApsBucketRegionInput" class="text-input" type="text" placeholder="US" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Viewer Version</span>
+                          <input id="systemApsViewerVersionInput" class="text-input" type="text" placeholder="7.*" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Viewer Env</span>
+                          <input id="systemApsViewerEnvInput" class="text-input" type="text" placeholder="AutodeskProduction2" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Viewer API</span>
+                          <input id="systemApsViewerApiInput" class="text-input" type="text" placeholder="streamingV2" />
+                        </label>
+                      </div>
+
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="saveSystemApsConfigButton" class="primary-button" type="button">保存 APS 配置</button>
+                        <span id="systemApsSummary" class="access-policy-summary">未配置完整时，模型转换、Viewer 和工程量提取会在功能页明确提示。</span>
+                      </div>
+                    </section>
+
+                    <section class="project-management-preview-card ai-config-card">
+                      <div class="mini-section-head">
+                        <strong>生效范围</strong>
+                        <span class="mini-pill">模型应用</span>
+                      </div>
+                      <div class="access-scope-card ai-config-contract-card">
+                        <strong>模型转换</strong>
+                        <p>上传 IFC、RVT、DWG 等模型文件后，后台转换任务会使用当前配置的 Client ID、Secret 与 Bucket。</p>
+                      </div>
+                      <div class="access-scope-card ai-config-contract-card">
+                        <strong>Viewer 与定位</strong>
+                        <p>APS Viewer 加载、视点保存、Issue 三维定位和构件高亮会读取这里的 Viewer 版本与运行环境。</p>
+                      </div>
+                      <div class="access-scope-card ai-config-contract-card">
+                        <strong>工程量统计</strong>
+                        <p>工程量属性提取会先检查 APS 配置、模型 URN 和转换状态，不满足条件时禁止提交后台任务。</p>
+                      </div>
+                    </section>
+                  </div>
+
+                  <p id="apsConfigMessage" class="access-inline-feedback hidden"></p>
+                </section>
+
+                <section id="accessAiConfigurationView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">AI 配置</p>
+                      <h3>AI Configuration</h3>
+                    </div>
+                    <span id="aiConfigCapabilityBadge" class="mini-pill">--</span>
+                  </div>
+
+                  <div id="aiConfigSummary" class="module-stat-grid access-summary-grid"></div>
+
+                  <div class="project-management-layout ai-config-layout">
+                    <section class="project-management-create-card ai-config-card">
+                      <div class="mini-section-head">
+                        <strong>AI配置</strong>
+                        <span class="mini-pill">AI API</span>
+                      </div>
+
+                      <label class="toggle-card" for="systemAiEnabledToggle">
+                        <div>
+                          <strong>启用AI</strong>
+                          <p>未通过测试不能启用AI；启用后，流程报告中的 CRS 草稿会优先调用配置的 AI API。</p>
+                        </div>
+                        <input id="systemAiEnabledToggle" type="checkbox" />
+                      </label>
+
+                      <div class="access-toolbar-grid ai-config-grid">
+                        <label class="detail-field ai-config-field-span">
+                          <span class="field-label">AI API 地址</span>
+                          <input id="systemAiEndpointInput" class="text-input" type="url" placeholder="https://ai.example.com/v1/cde/crs" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">模型名称</span>
+                          <input id="systemAiModelInput" class="text-input" type="text" placeholder="例如：cde-crs-summary" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">API Key</span>
+                          <input id="systemAiApiKeyInput" class="text-input" type="password" placeholder="留空则保持已保存密钥" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">超时时间（ms）</span>
+                          <input id="systemAiTimeoutInput" class="text-input" type="number" min="3000" max="120000" step="1000" placeholder="20000" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">分批条数</span>
+                          <input id="systemAiBatchSizeInput" class="text-input" type="number" min="1" max="500" placeholder="100" />
+                        </label>
+                      </div>
+
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="saveSystemAiConfigButton" class="primary-button" type="button">保存 AI 配置</button>
+                        <button id="testSystemAiConfigButton" class="ghost-button" type="button">调用测试</button>
+                        <span id="systemAiSummary" class="access-policy-summary">未启用时，CRS 草稿仍会使用系统内置智能汇总能力。</span>
+                      </div>
+                    </section>
+
+                    <section class="project-management-preview-card ai-config-card">
+                      <div class="mini-section-head">
+                        <strong>调用量</strong>
+                        <span class="mini-pill">调用统计</span>
+                      </div>
+                      <div class="access-scope-card ai-config-contract-card">
+                        <strong>调用测试</strong>
+                        <p>无需先启用即可使用当前表单配置发起测试调用；未通过测试不能启用AI，配置变更后需重新测试。</p>
+                      </div>
+                      <div class="access-scope-card ai-config-contract-card">
+                        <strong>分批调用</strong>
+                        <p>批注数量超过分批条数时，系统会按批次调用 AI API，再合并生成 CRS 草稿。</p>
+                      </div>
+                      <div class="access-scope-card ai-config-contract-card">
+                        <strong>调用结果</strong>
+                        <p>未通过测试不能启用AI；保存和测试结果会记录在审计日志，正式调用失败时仍会回退到内置汇总。</p>
+                      </div>
+                    </section>
+                  </div>
+
+                  <p id="aiConfigMessage" class="access-inline-feedback hidden"></p>
+                </section>
+
+                <section id="accessMembersView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">用户邀请</p>
+                      <h3>User Invitation</h3>
+                    </div>
+                  </div>
+                  <div class="access-toolbar-grid">
+                    <label class="detail-field">
+                      <span class="field-label">姓名</span>
+                      <input id="accessAddMemberName" class="text-input" type="text" placeholder="例如：采购负责人" />
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">邮箱</span>
+                      <input id="accessAddMemberEmail" class="text-input" type="email" placeholder="name@example.com" />
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">角色</span>
+                      <select id="accessAddMemberRole" class="text-input"></select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">链接有效期（天）</span>
+                      <input id="accessInviteExpiryInput" class="text-input" type="number" min="1" max="30" value="7" />
+                    </label>
+                    <div class="workflow-actions access-inline-actions">
+                      <button id="accessAddMemberButton" class="primary-button" type="button">生成邀请链接</button>
+                    </div>
+                  </div>
+                  <p id="accessInviteResult" class="access-inline-feedback hidden"></p>
+
+                  <div class="mini-section-head access-subsection-head">
+                    <strong>待接受邀请</strong>
+                    <span class="mini-pill">邀请链接</span>
+                  </div>
+                  <div id="memberInviteList" class="card-list access-member-list"></div>
+
+                  <div class="mini-section-head access-subsection-head">
+                    <strong>已加入成员</strong>
+                    <span class="mini-pill">项目成员</span>
+                  </div>
+                  <div id="memberList" class="card-list access-member-list"></div>
+                </section>
+
+                <section id="accessFolderPermissionView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">文件夹覆盖权限</p>
+                      <h3>Folder Override</h3>
+                    </div>
+                  </div>
+                  <div class="access-toolbar-grid">
+                    <label class="detail-field">
+                      <span class="field-label">文件夹</span>
+                      <select id="folderPermissionFolderSelect" class="text-input"></select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">成员</span>
+                      <select id="folderPermissionUserSelect" class="text-input"></select>
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">权限</span>
+                      <select id="folderPermissionRoleSelect" class="text-input"></select>
+                    </label>
+                    <div class="workflow-actions access-inline-actions">
+                      <button id="folderPermissionSaveButton" class="primary-button" type="button">保存覆盖</button>
+                    </div>
+                  </div>
+                  <div id="folderPermissionList" class="card-list access-folder-permission-list"></div>
+                </section>
+
+                <section id="accessAuditView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">审计日志</p>
+                      <h3>Audit Log</h3>
+                    </div>
+                  </div>
+                  <div class="access-toolbar-grid audit-filter-grid">
+                    <label class="detail-field">
+                      <span class="field-label">开始日期</span>
+                      <input id="auditLogDateFromInput" class="text-input" type="date" />
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">结束日期</span>
+                      <input id="auditLogDateToInput" class="text-input" type="date" />
+                    </label>
+                    <div class="workflow-actions access-inline-actions audit-filter-actions">
+                      <button id="auditLogClearFilterButton" class="ghost-button" type="button">清除筛选</button>
+                    </div>
+                    <span id="auditLogFilterSummary" class="access-policy-summary">默认显示最近 120 条审计日志。</span>
+                  </div>
+                  <div id="auditLogList" class="card-list access-audit-list"></div>
+                </section>
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="profileCenterModal" class="file-manager-modal hidden" aria-hidden="true">
+      <div class="file-manager-modal-backdrop"></div>
+      <div class="file-manager-modal-dialog profile-center-dialog" role="dialog" aria-modal="true" aria-labelledby="profileCenterTitle">
+        <div class="file-manager-modal-head">
+          <div>
+            <p class="panel-kicker">个人中心</p>
+            <h3 id="profileCenterTitle">个人中心</h3>
+            <p class="file-manager-modal-meta">查看当前账户信息，并在这里维护个人安全设置。</p>
+          </div>
+          <button id="closeProfileCenterModalButton" class="file-manager-modal-close" type="button" aria-label="关闭个人中心">×</button>
+        </div>
+
+        <div class="profile-center-layout">
+          <div class="profile-center-tabs">
+            <button class="profile-center-tab active" data-profile-tab="overview" type="button">个人资料</button>
+            <button class="profile-center-tab" data-profile-tab="security" type="button">账户安全</button>
+          </div>
+
+          <div class="profile-center-body">
+            <section id="profileCenterOverview" class="stack-section">
+              <div class="mini-section-head">
+                <strong>当前账户</strong>
+                <span id="profileCurrentRoleBadge" class="mini-pill">--</span>
+              </div>
+              <div class="access-current-account-card profile-current-account-card">
+                <span class="field-label">当前登录</span>
+                <strong id="accessCurrentAccountName">未登录</strong>
+                <span id="accessCurrentAccountMeta" class="access-current-account-meta">--</span>
+              </div>
+
+              <div class="mini-section-head">
+                <strong id="profileLarkBindingTitle">飞书绑定</strong>
+                <span id="profileLarkBindingStatus" class="mini-pill">未绑定</span>
+              </div>
+              <div class="access-current-account-card profile-lark-binding-card">
+                <span id="profileLarkBindingLabel" class="field-label">飞书账号</span>
+                <strong id="profileLarkBindingName">未绑定飞书账号</strong>
+                <span id="profileLarkBindingMeta" class="access-current-account-meta">绑定后可直接使用飞书登录。</span>
+                <div class="workflow-actions access-inline-actions profile-lark-binding-actions">
+                  <button id="profileLarkBindButton" class="primary-button" type="button">绑定飞书</button>
+                  <button id="profileLarkUnbindButton" class="ghost-button" type="button">解除绑定</button>
+                </div>
+                <p id="profileLarkBindingMessage" class="access-inline-feedback hidden"></p>
+              </div>
+            </section>
+
+            <section id="profileCenterSecurity" class="stack-section hidden">
+              <div class="panel-head compact-panel-head">
+                <div>
+                  <p class="panel-kicker">账户安全</p>
+                  <h3>Account Security</h3>
+                </div>
+              </div>
+              <p id="accessPasswordHint" class="access-policy-summary">当前账号可在这里修改登录密码；新建账号首次登录后建议立即改密。</p>
+              <div class="access-toolbar-grid">
+                <label class="detail-field">
+                  <span class="field-label">当前密码</span>
+                  <input id="accessCurrentPasswordInput" class="text-input" type="password" autocomplete="current-password" placeholder="请输入当前密码" />
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">新密码</span>
+                  <input id="accessNewPasswordInput" class="text-input" type="password" autocomplete="new-password" placeholder="至少 8 位" />
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">确认新密码</span>
+                  <input id="accessConfirmPasswordInput" class="text-input" type="password" autocomplete="new-password" placeholder="再次输入新密码" />
+                </label>
+                <div class="workflow-actions access-inline-actions">
+                  <button id="accessChangePasswordButton" class="primary-button" type="button">修改密码</button>
+                </div>
+              </div>
+              <p id="accessPasswordMessage" class="access-inline-feedback hidden"></p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fileManagerModal" class="file-manager-modal hidden" aria-hidden="true">
+      <div class="file-manager-modal-backdrop"></div>
+      <div class="file-manager-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileManagerModalTitle">
+        <div class="file-manager-modal-head">
+          <div>
+            <p class="panel-kicker">属性面板</p>
+            <h3 id="fileManagerModalTitle">文件属性</h3>
+            <p id="fileManagerModalMeta" class="file-manager-modal-meta">管理当前文件或文件夹的基础信息、访问范围和相关动作。</p>
+          </div>
+          <button id="closeFileManagerModalButton" class="file-manager-modal-close" type="button" aria-label="关闭属性面板">×</button>
+        </div>
+
+        <aside id="fileManagerDetailPanel" class="file-detail-panel file-detail-modal-panel">
+          <section id="folderManagerSection" class="file-detail-section hidden">
+            <div class="file-detail-head">
+              <div>
+                <p class="panel-kicker">当前目录</p>
+                <h4 id="folderManagerTitle">全部文件</h4>
+              </div>
+              <span id="folderManagerBadge" class="mini-pill">ROOT</span>
+            </div>
+
+            <div id="folderManagerSummary" class="folder-manager-summary"></div>
+
+            <div id="folderManagerRootHint" class="empty-card compact-empty hidden">
+              当前是根目录，用于汇总全部项目文件。进入某个目录后可继续重命名、移动或删除。
+            </div>
+
+            <div id="folderManagerBody" class="library-detail-body hidden">
+              <label class="detail-field">
+                <span class="field-label">文件夹名称</span>
+                <input id="folderNameInput" class="text-input" type="text" placeholder="请输入文件夹名称" />
+              </label>
+
+              <div class="detail-grid">
+                <label class="detail-field">
+                  <span class="field-label">上级目录</span>
+                  <select id="folderParentSelect" class="text-input"></select>
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">访问范围</span>
+                  <select id="folderAccessSelect" class="text-input"></select>
+                </label>
+              </div>
+
+              <div class="workflow-actions">
+                <button id="saveFolderButton" class="ghost-button" type="button">保存目录</button>
+                <button id="deleteFolderButton" class="ghost-button danger-button" type="button">删除目录</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="libraryDetailSection" class="file-detail-section hidden">
+            <div class="file-detail-head">
+              <div>
+                <p class="panel-kicker">当前文件</p>
+                <h4 id="libraryDetailTitle">未选中文件</h4>
+              </div>
+              <span id="libraryDetailStatus" class="mini-pill">--</span>
+            </div>
+
+            <div id="libraryDetailEmpty" class="empty-card compact-empty">
+              在中间列表中选中一个文件后，这里可以管理版本、权限、分享和操作记录。
+            </div>
+
+            <div id="libraryDetailBody" class="library-detail-body hidden">
+              <label class="detail-field">
+                <span class="field-label">文件名称</span>
+                <input id="libraryNameInput" class="text-input" type="text" placeholder="请输入文件名称" />
+              </label>
+
+              <div class="detail-grid">
+                <label class="detail-field">
+                  <span class="field-label">当前版本</span>
+                  <input id="libraryVersionInput" class="text-input" type="text" disabled />
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">上传人</span>
+                  <input id="libraryUploaderInput" class="text-input" type="text" disabled />
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">访问权限</span>
+                  <select id="libraryAccessSelect" class="text-input"></select>
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">下载范围</span>
+                  <select id="libraryDownloadSelect" class="text-input"></select>
+                </label>
+              </div>
+
+              <div class="detail-toggle-grid">
+                <label class="toggle-card" for="libraryWatermarkToggle">
+                  <div>
+                    <strong>预览水印</strong>
+                    <p>关键文件预览时显示水印，避免外发泄漏。</p>
+                  </div>
+                  <input id="libraryWatermarkToggle" type="checkbox" />
+                </label>
+
+                <label class="toggle-card" for="libraryCheckoutToggle">
+                  <div>
+                    <strong id="libraryCheckoutHeading">签出 / 占用</strong>
+                    <p id="libraryCheckoutHint">签出后其他人只能只读下载，不能上传新版本覆盖。</p>
+                  </div>
+                  <input id="libraryCheckoutToggle" type="checkbox" />
+                </label>
+              </div>
+
+              <label class="detail-field">
+                <span class="field-label">移动到</span>
+                <select id="libraryMoveSelect" class="text-input"></select>
+              </label>
+
+              <div class="workflow-actions">
+                <button id="saveLibraryMetaButton" class="ghost-button" type="button">保存配置</button>
+                <button id="moveLibraryButton" class="ghost-button" type="button">移动文件</button>
+              </div>
+
+              <div id="libraryDrawingMetadataCard" class="manager-card hidden">
+                <div class="mini-section-head">
+                  <strong>图纸属性</strong>
+                  <span id="libraryDrawingMetadataStatus" class="mini-pill">未声明</span>
+                </div>
+
+                <div class="detail-grid">
+                  <label class="detail-field">
+                    <span class="field-label">图纸编号</span>
+                    <input id="libraryDrawingNumberInput" class="text-input" type="text" placeholder="Drawing No." />
+                  </label>
+                  <label class="detail-field">
+                    <span class="field-label">图纸名称</span>
+                    <input id="libraryDrawingNameInput" class="text-input" type="text" placeholder="Drawing Name" />
+                  </label>
+                  <label class="detail-field">
+                    <span class="field-label">专业</span>
+                    <select id="libraryDrawingDisciplineSelect" class="text-input"></select>
+                  </label>
+                  <label class="detail-field">
+                    <span class="field-label">版本号</span>
+                    <input id="libraryDrawingRevisionInput" class="text-input" type="text" placeholder="Rev.A" />
+                  </label>
+                </div>
+
+                <label class="detail-field">
+                  <span class="field-label">关联图纸</span>
+                  <input id="libraryRelatedDrawingInput" class="text-input" type="text" placeholder="Related Drawing No." />
+                </label>
+              </div>
+
+              <div id="libraryApsCard" class="manager-card hidden">
+                <div class="mini-section-head">
+                  <strong>APS 模型工作台</strong>
+                  <span id="libraryApsStatus" class="mini-pill">未配置</span>
+                </div>
+
+                <label class="detail-field">
+                  <span class="field-label">Model URN</span>
+                  <input id="libraryApsUrnInput" class="text-input" type="text" placeholder="填写 APS 翻译完成后的模型 URN" />
+                </label>
+
+                <div class="detail-grid">
+                  <label class="detail-field">
+                    <span class="field-label">默认视图</span>
+                    <select id="libraryApsDefaultViewSelect" class="text-input">
+                      <option value="auto">自动选择</option>
+                      <option value="3d">优先 3D</option>
+                      <option value="2d">优先 2D</option>
+                    </select>
+                  </label>
+                  <label class="detail-field">
+                    <span class="field-label">2D View GUID</span>
+                    <input id="libraryAps2dGuidInput" class="text-input" type="text" placeholder="可选，指定默认 2D 图纸" />
+                  </label>
+                  <label class="detail-field">
+                    <span class="field-label">3D View GUID</span>
+                    <input id="libraryAps3dGuidInput" class="text-input" type="text" placeholder="可选，指定默认 3D 模型" />
+                  </label>
+                </div>
+
+                <p id="libraryApsHelperText" class="mono-note">为 DWG / NWD / NWC / RVT / IFC 文件配置 APS URN 后，可直接进入模型渲染与审阅工作台。</p>
+
+                <div class="workflow-actions">
+                  <button id="openApsViewerButton" class="ghost-button" type="button">打开模型工作台</button>
+                </div>
+              </div>
+
+              <div class="manager-card">
+                <div class="mini-section-head">
+                  <strong>临时分享</strong>
+                  <span id="libraryShareStatus" class="mini-pill">未开启</span>
+                </div>
+
+                <div class="detail-grid">
+                  <label class="detail-field">
+                    <span class="field-label">分享权限</span>
+                    <select id="librarySharePermissionSelect" class="text-input"></select>
+                  </label>
+                  <label class="detail-field">
+                    <span class="field-label">失效日期</span>
+                    <input id="libraryShareExpiresInput" class="text-input" type="date" />
+                  </label>
+                </div>
+
+                <div class="workflow-actions">
+                  <button id="generateShareLinkButton" class="ghost-button" type="button">生成分享链接</button>
+                  <button id="copyShareLinkButton" class="ghost-button" type="button">复制链接</button>
+                  <button id="disableShareLinkButton" class="ghost-button" type="button">关闭分享</button>
+                </div>
+
+                <p id="libraryShareLink" class="mono-note">当前还没有生成临时分享链接。</p>
+              </div>
+
+              <div class="manager-card">
+                <div class="mini-section-head">
+                  <strong>版本记录</strong>
+                  <span id="libraryVersionCountBadge" class="mini-pill">0 版</span>
+                </div>
+
+                <div class="workflow-actions">
+                  <button id="openVersionManagerButton" class="ghost-button" type="button">打开版本弹窗</button>
+                </div>
+
+                <label class="detail-field">
+                  <span class="field-label">版本说明</span>
+                  <input id="versionNoteInput" class="text-input" type="text" placeholder="例如：业主反馈更新 / 校审意见回传" />
+                </label>
+
+                <div class="workflow-actions">
+                  <button id="uploadNewVersionButton" class="primary-button" type="button">上传新版本</button>
+                  <button id="deleteLibraryButton" class="ghost-button danger-button" type="button">删除文件</button>
+                  <input id="newVersionFileInput" class="hidden-file-input" type="file" />
+                </div>
+
+                <div id="versionHistoryList" class="card-list compact-card-list"></div>
+              </div>
+
+              <div class="manager-card">
+                <div class="mini-section-head">
+                  <strong>最近操作</strong>
+                  <span id="libraryActivityCountBadge" class="mini-pill">0 条</span>
+                </div>
+                <div id="libraryActivityList" class="card-list compact-card-list"></div>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <div id="versionManagerModal" class="version-manager-modal hidden" aria-hidden="true">
+      <div class="version-manager-backdrop"></div>
+      <div class="version-manager-dialog" role="dialog" aria-modal="true" aria-labelledby="versionManagerTitle">
+        <div class="file-manager-modal-head version-manager-head">
+          <div>
+            <p class="panel-kicker">版本管理</p>
+            <h3 id="versionManagerTitle">版本弹窗</h3>
+            <p id="versionManagerMeta" class="file-manager-modal-meta">管理当前文件的全部版本、解析状态、版本说明和版本级分享。</p>
+          </div>
+          <button id="closeVersionManagerModalButton" class="file-manager-modal-close" type="button" aria-label="关闭版本弹窗">×</button>
+        </div>
+
+        <div class="version-manager-toolbar">
+          <div id="versionManagerDocSummary" class="version-manager-doc-summary"></div>
+          <div class="version-manager-toolbar-side">
+            <label class="detail-field version-manager-note-field">
+              <span class="field-label">新版本说明</span>
+              <input id="versionManagerNoteInput" class="text-input" type="text" maxlength="200" placeholder="例如：修改了第 3 页标注 / 更新业主回复" />
+            </label>
+            <div class="workflow-actions version-manager-actions">
+              <button id="versionManagerCreateButton" class="primary-button" type="button">创建新版本</button>
+              <button id="versionManagerCompareButton" class="ghost-button" type="button">版本对比</button>
+              <input id="versionManagerFileInput" class="hidden-file-input" type="file" />
+            </div>
+          </div>
+        </div>
+
+        <div class="version-manager-table">
+          <div class="version-manager-table-head">
+            <span>文件名称</span>
+            <span>版本</span>
+            <span>解析状态</span>
+            <span>文件大小</span>
+            <span>操作</span>
+            <span>说明</span>
+          </div>
+          <div id="versionManagerList" class="version-manager-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="workflowDetailModal" class="workflow-detail-modal hidden" aria-hidden="true">
+      <div class="workflow-detail-backdrop"></div>
+      <div class="workflow-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="workflowDetailModalTitle">
+        <div class="workflow-detail-head">
+          <div>
+            <p id="workflowDetailModalKicker" class="panel-kicker">流程详情</p>
+            <h3 id="workflowDetailModalTitle">流程详情</h3>
+            <p id="workflowDetailModalMeta" class="file-manager-modal-meta">查看当前流程的节点、issue、报告与归档动作。</p>
+          </div>
+          <button id="closeWorkflowDetailModalButton" class="file-manager-modal-close" type="button" aria-label="关闭流程详情">×</button>
+        </div>
+        <div id="workflowDetailTabs" class="workflow-detail-tabs"></div>
+        <div id="workflowDetailModalBody" class="workflow-detail-modal-body"></div>
+      </div>
+    </div>
+
+    <div id="launchFlowModal" class="workflow-launch-modal hidden" aria-hidden="true">
+      <div class="workflow-detail-backdrop"></div>
+      <div class="workflow-launch-dialog" role="dialog" aria-modal="true" aria-labelledby="launchFlowTitle">
+        <div class="workflow-detail-head">
+          <div>
+            <p class="panel-kicker">流程发起</p>
+            <h3 id="launchFlowTitle">发起流程</h3>
+            <p id="launchFlowMeta" class="file-manager-modal-meta">选择一个或多个文件，套用流程模板后发起审批流。</p>
+          </div>
+          <button id="closeLaunchFlowModalButton" class="file-manager-modal-close" type="button" aria-label="关闭流程发起">×</button>
+        </div>
+
+        <div class="workflow-launch-body">
+          <div class="workflow-launch-grid">
+            <label id="launchFlowNameField" class="detail-field workflow-form-field">
+              <span class="field-label"><span class="field-required">*</span>流程名称</span>
+              <input id="launchFlowNameInput" class="text-input" type="text" maxlength="100" placeholder="例如：土建图纸审阅 / 模型会签 / 资料发布审批" />
+              <span id="launchFlowNameError" class="field-error hidden">请输入流程名称</span>
+            </label>
+            <div id="launchFlowTemplateField" class="detail-field workflow-form-field workflow-template-picker-shell">
+              <span class="field-label"><span class="field-required">*</span>流程模板</span>
+              <select id="launchFlowTemplateSelect" class="sr-only" aria-hidden="true" tabindex="-1"></select>
+              <button id="launchFlowTemplateTrigger" class="workflow-template-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                <span class="workflow-template-trigger-copy">
+                  <strong id="launchFlowTemplateValue">请选择工作流程</strong>
+                  <span id="launchFlowTemplatePath" class="workflow-template-trigger-path">项目级流程 / CDE文件管理系统</span>
+                </span>
+                <span class="workflow-template-trigger-icon" aria-hidden="true">
+                  <svg viewBox="0 0 16 16">
+                    <path d="M4 6l4 4 4-4" />
+                  </svg>
+                </span>
+              </button>
+              <div id="launchFlowTemplateMenu" class="workflow-template-menu hidden" role="listbox" aria-label="流程模板"></div>
+              <span id="launchFlowTemplateError" class="field-error hidden">请选择工作流程</span>
+            </div>
+          </div>
+
+          <div id="launchFlowTemplateSummary" class="workflow-template-summary"></div>
+          <div id="launchFlowSteps" class="workflow-launch-steps"></div>
+          <div id="launchFlowAutoExport" class="workflow-launch-export hidden"></div>
+
+          <section id="launchFlowFilesField" class="workflow-launch-file-card workflow-form-field">
+            <div class="workflow-launch-file-head">
+              <div>
+                <p class="panel-kicker">审阅文件</p>
+                <h4>添加审阅文件</h4>
+              </div>
+              <span id="launchFlowSelectedCount" class="mini-pill">已选择 0 个文件</span>
+            </div>
+            <button id="openFlowFilePickerButton" class="workflow-launch-file-picker" type="button">
+              <span class="workflow-launch-file-picker-plus" aria-hidden="true">+</span>
+              <span class="workflow-launch-file-picker-copy">
+                <strong>添加审阅文件</strong>
+                <span>从项目目录中选择一个或多个文件，可继续追加或删减</span>
+              </span>
+            </button>
+            <div id="launchFlowSelectedFiles" class="workflow-launch-file-list"></div>
+            <span id="launchFlowFilesError" class="field-error hidden">请至少添加 1 个审阅文件</span>
+          </section>
+
+          <label class="detail-field workflow-launch-desc-field">
+            <span class="field-label">当前版本描述</span>
+            <textarea id="launchFlowDescriptionInput" class="text-area" maxlength="200" placeholder="请输入当前版本描述（可不填），例如：更新了第 3 页批注，补充了材料回复。"></textarea>
+            <span id="launchFlowDescriptionCount" class="workflow-launch-desc-count">0 / 200</span>
+          </label>
+
+          <div id="launchFlowSubmitError" class="launch-submit-error hidden"></div>
+        </div>
+
+        <div class="workflow-launch-footer">
+          <div class="workflow-actions">
+            <button id="cancelLaunchFlowButton" class="ghost-button" type="button">取消</button>
+            <button id="confirmLaunchFlowButton" class="primary-button" type="button">发起流程</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="workflowFilePickerModal" class="workflow-file-picker-modal hidden" aria-hidden="true">
+      <div class="workflow-detail-backdrop"></div>
+      <div class="workflow-file-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="workflowFilePickerTitle">
+        <div class="workflow-detail-head">
+          <div>
+            <p class="panel-kicker">添加审阅文件</p>
+            <h3 id="workflowFilePickerTitle">选择文件或文件夹</h3>
+            <p class="file-manager-modal-meta">支持多选文件，也支持勾选文件夹一次性加入全部子文件。</p>
+          </div>
+          <button id="closeWorkflowFilePickerButton" class="file-manager-modal-close" type="button" aria-label="关闭文件选择">×</button>
+        </div>
+        <div id="workflowFilePickerTree" class="workflow-file-picker-tree"></div>
+        <div class="workflow-launch-footer">
+          <span id="workflowFilePickerCount" class="mini-pill">已选择 0 个文件</span>
+          <div class="workflow-actions">
+            <button id="cancelWorkflowFilePickerButton" class="ghost-button" type="button">取消</button>
+            <button id="confirmWorkflowFilePickerButton" class="primary-button" type="button">确定</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="workflowTemplateManagerModal" class="workflow-template-manager-modal hidden" aria-hidden="true">
+      <div class="workflow-detail-backdrop"></div>
+      <div class="workflow-template-manager-dialog" role="dialog" aria-modal="true" aria-labelledby="workflowTemplateManagerTitle">
+        <div class="workflow-detail-head">
+          <div>
+            <p class="panel-kicker">流程模板</p>
+            <h3 id="workflowTemplateManagerTitle">流程模板管理</h3>
+            <p class="file-manager-modal-meta">支持配置串联、并联全签、并联任一通过等节点模式。</p>
+          </div>
+          <button id="closeWorkflowTemplateManagerButton" class="file-manager-modal-close" type="button" aria-label="关闭模板管理">×</button>
+        </div>
+
+        <div class="workflow-template-manager-layout">
+          <aside class="workflow-template-manager-side">
+            <div class="workflow-template-manager-side-head">
+              <strong>模板列表</strong>
+              <button id="createWorkflowTemplateButton" class="ghost-button" type="button">新建模板</button>
+            </div>
+            <div id="workflowTemplateManagerList" class="workflow-template-manager-list"></div>
+          </aside>
+
+          <section class="workflow-template-editor">
+            <div class="workflow-launch-grid">
+              <label class="detail-field">
+                <span class="field-label">模板名称</span>
+                <input id="workflowTemplateNameInput" class="text-input" type="text" placeholder="例如：Civil documents review" />
+              </label>
+              <label class="detail-field">
+                <span class="field-label">分类</span>
+                <select id="workflowTemplateCategoryInput" class="text-input"></select>
+              </label>
+              <label class="detail-field">
+                <span class="field-label">项目名称</span>
+                <input id="workflowTemplateProjectInput" class="text-input" type="text" placeholder="例如：CDE文件管理系统" />
+              </label>
+              <label class="detail-field">
+                <span class="field-label">允许发起角色</span>
+                <select id="workflowTemplateRolesSelect" class="sr-only" multiple aria-hidden="true" tabindex="-1">
+                  <option value="super_admin">超级管理员</option>
+                  <option value="project_admin">项目管理员</option>
+                  <option value="reviewer">审阅者</option>
+                  <option value="editor">编辑者</option>
+                </select>
+                <div id="workflowTemplateRolesSelector" class="workflow-selector-shell compact-selector"></div>
+              </label>
+            </div>
+
+            <label class="detail-field workflow-field-span">
+              <span class="field-label">模板说明</span>
+              <textarea id="workflowTemplateDescriptionInput" class="text-area" placeholder="说明这个模板适用于哪些场景、目标文件和审批要求。"></textarea>
+            </label>
+
+            <div class="workflow-template-autoexport">
+              <label class="toggle-card">
+                <input id="workflowTemplateAutoExportToggle" type="checkbox" />
+                <span>审批通过后自动导出</span>
+              </label>
+              <div class="workflow-template-autoexport-summary">
+                <strong id="workflowTemplateAutoExportStatus">自动导出未开启</strong>
+                <p id="workflowTemplateAutoExportHint">关闭后不会自动生成审阅版文件或审批记录单。</p>
+              </div>
+              <div class="workflow-template-autoexport-config">
+                <label class="detail-field workflow-field-span">
+                  <span class="field-label">导出目标路径</span>
+                  <select id="workflowTemplateExportFolderSelect" class="sr-only" aria-hidden="true" tabindex="-1"></select>
+                  <input id="workflowTemplateExportPathInput" class="sr-only" type="text" />
+                  <button id="workflowTemplateExportTargetButton" class="workflow-folder-target-trigger" type="button">
+                    <span class="workflow-folder-target-copy">
+                      <strong id="workflowTemplateExportTargetValue">请选择导出目录</strong>
+                      <span id="workflowTemplateExportTargetMeta">点击从项目目录中选择真实目标文件夹</span>
+                    </span>
+                    <span class="workflow-folder-target-icon" aria-hidden="true">›</span>
+                  </button>
+                </label>
+                <label class="detail-field">
+                  <span class="field-label">命名规则</span>
+                  <input id="workflowTemplateExportRuleInput" class="text-input" type="text" placeholder="命名规则，例如 流程发起时间 + 审核流程名称 + 发起人" />
+                </label>
+                <div class="workflow-template-export-options workflow-field-span">
+                  <span class="field-label">导出内容</span>
+                  <div id="workflowTemplateExportContentSelector" class="workflow-choice-grid"></div>
+                  <label class="sr-only">
+                    <input id="workflowTemplateExportReviewedToggle" type="checkbox" />
+                  </label>
+                  <label class="sr-only">
+                    <input id="workflowTemplateExportApprovalReportToggle" type="checkbox" />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <section class="workflow-template-step-section">
+              <div class="workflow-template-step-head">
+                <div>
+                  <p class="panel-kicker">审批步骤</p>
+                  <h4>Steps</h4>
+                </div>
+                <button id="addWorkflowTemplateStepButton" class="ghost-button" type="button">新增步骤</button>
+              </div>
+              <div id="workflowTemplateStepsEditor" class="workflow-template-steps-editor"></div>
+            </section>
+
+            <div class="workflow-launch-footer">
+              <div class="workflow-actions">
+                <button id="deleteWorkflowTemplateButton" class="ghost-button danger-button" type="button">删除模板</button>
+              </div>
+              <div class="workflow-actions">
+                <button id="saveWorkflowTemplateButton" class="primary-button" type="button">保存模板</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="workflowTemplateFolderPickerModal" class="workflow-file-picker-modal hidden" aria-hidden="true">
+      <div class="workflow-detail-backdrop"></div>
+      <div class="workflow-file-picker-dialog workflow-folder-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="workflowTemplateFolderPickerTitle">
+        <div class="workflow-detail-head">
+          <div>
+            <p class="panel-kicker">导出目录</p>
+            <h3 id="workflowTemplateFolderPickerTitle">选择真实目标路径</h3>
+            <p class="file-manager-modal-meta">自动导出会把文件直接落到这个项目目录中，不再接受手工输入虚拟路径。</p>
+          </div>
+          <button id="closeWorkflowTemplateFolderPickerButton" class="file-manager-modal-close" type="button" aria-label="关闭导出路径选择">×</button>
+        </div>
+        <div class="workflow-folder-picker-summary">
+          <span class="field-label">当前目标</span>
+          <strong id="workflowTemplateFolderPickerPath">请选择导出目录</strong>
+          <p id="workflowTemplateFolderPickerHint">请选择一个真实目录，导出文件会自动放入该目录。</p>
+        </div>
+        <div id="workflowTemplateFolderPickerTree" class="workflow-file-picker-tree workflow-folder-picker-tree"></div>
+        <div class="workflow-launch-footer">
+          <div class="workflow-actions">
+            <button id="cancelWorkflowTemplateFolderPickerButton" class="ghost-button" type="button">取消</button>
+            <button id="confirmWorkflowTemplateFolderPickerButton" class="primary-button" type="button">确定目标路径</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="attachmentPreviewModal" class="attachment-preview-modal hidden" aria-hidden="true">
+      <div class="attachment-preview-backdrop"></div>
+      <div class="attachment-preview-dialog">
+        <button id="closeAttachmentPreviewButton" class="attachment-preview-close" type="button">×</button>
+        <img id="attachmentPreviewImage" class="attachment-preview-image" alt="附件预览" />
+        <div class="attachment-preview-meta">
+          <strong id="attachmentPreviewTitle">附件预览</strong>
+          <span id="attachmentPreviewCaption"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="uploadProgressDock" class="upload-progress-dock hidden" aria-live="polite">
+      <button id="uploadProgressCollapsedButton" class="upload-progress-collapsed hidden" type="button" aria-expanded="false">
+        <span class="upload-progress-collapsed-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M6 7.5h12" />
+            <path d="M6 12h12" />
+            <path d="M6 16.5h8" />
+          </svg>
+        </span>
+        <span class="upload-progress-collapsed-copy">
+          <strong id="uploadProgressCollapsedLabel">任务进度</strong>
+          <span id="uploadProgressCollapsedSummary" class="mini-pill">0 / 0</span>
+        </span>
+      </button>
+
+      <div id="uploadProgressPanel" class="upload-progress-panel">
+        <div class="upload-progress-head">
+          <div class="upload-progress-head-copy">
+            <p id="uploadProgressKicker" class="panel-kicker">任务进度</p>
+            <h4 id="uploadProgressTitle">任务进度</h4>
+            <p id="uploadProgressHint" class="upload-progress-hint">仅显示我上传的文件与解析任务</p>
+          </div>
+          <div class="upload-progress-actions">
+            <button id="uploadProgressClearButton" class="upload-progress-action" type="button">
+              <span class="sr-only">清空已完成任务</span>
+              <svg viewBox="0 0 24 24">
+                <path d="M9 6.5h6" />
+                <path d="M5.5 7.5h13" />
+                <path d="m8 9.5.6 8.2a1 1 0 0 0 1 .8h4.8a1 1 0 0 0 1-.8l.6-8.2" />
+                <path d="M10 11.5v4.5" />
+                <path d="M14 11.5v4.5" />
+              </svg>
+            </button>
+            <button id="uploadProgressCollapseButton" class="upload-progress-action" type="button">
+              <span class="sr-only">收起任务面板</span>
+              <svg viewBox="0 0 24 24">
+                <path d="m8 10 4 4 4-4" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="upload-progress-meta">
+          <span id="uploadProgressSummary" class="mini-pill">0 / 0</span>
+        </div>
+        <div id="uploadProgressEmpty" class="upload-progress-empty hidden">
+          <strong id="uploadProgressEmptyTitle">暂无任务</strong>
+          <p id="uploadProgressEmptyCopy">你上传的文件、图纸解析和模型转换会显示在这里。</p>
+        </div>
+        <div id="uploadProgressList" class="upload-progress-list"></div>
+      </div>
+    </div>
+
+    <div id="uploadDrawingMetadataModal" class="upload-drawing-modal hidden" aria-hidden="true">
+      <div class="upload-drawing-backdrop"></div>
+      <div class="upload-drawing-dialog" role="dialog" aria-modal="true" aria-labelledby="uploadDrawingMetadataTitle">
+        <div class="file-manager-modal-head upload-drawing-head">
+          <div>
+            <p class="panel-kicker">图纸属性声明</p>
+            <h3 id="uploadDrawingMetadataTitle">上传前确认图纸属性</h3>
+            <p id="uploadDrawingMetadataMeta" class="file-manager-modal-meta">PDF 可标记为图纸；字段包含图纸编号、图纸名称、专业、版本号、关联图纸。</p>
+          </div>
+          <button id="closeUploadDrawingMetadataButton" class="file-manager-modal-close" type="button" aria-label="关闭图纸属性声明">×</button>
+        </div>
+        <datalist id="uploadDrawingRelatedOptions"></datalist>
+        <div id="uploadDrawingMetadataList" class="upload-drawing-list"></div>
+        <span class="sr-only">选择已有图纸</span>
+        <p id="uploadDrawingMetadataError" class="upload-drawing-error hidden"></p>
+        <div class="upload-drawing-actions">
+          <button id="cancelUploadDrawingMetadataButton" class="ghost-button" type="button">取消</button>
+          <button id="confirmUploadDrawingMetadataButton" class="primary-button" type="button">开始上传</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="uploadConflictModal" class="upload-conflict-modal hidden" aria-hidden="true">
+      <div class="upload-conflict-backdrop"></div>
+      <div class="upload-conflict-dialog" role="dialog" aria-modal="true" aria-labelledby="uploadConflictTitle">
+        <p class="panel-kicker">同名文件处理</p>
+        <h3 id="uploadConflictTitle">检测到同名文件</h3>
+        <p id="uploadConflictMessage" class="file-manager-modal-meta">请选择当前文件的处理方式。</p>
+        <div class="upload-conflict-actions">
+          <button id="uploadConflictReplaceButton" class="primary-button" type="button">替换并生成新版本</button>
+          <button id="uploadConflictRenameButton" class="ghost-button" type="button">保留两者</button>
+          <button id="uploadConflictSkipButton" class="ghost-button danger-button" type="button">跳过</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

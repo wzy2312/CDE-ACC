@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CDE文件管理系统</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .invite-topbar {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .invite-lang-toggle {
+        min-height: 36px;
+        padding: 0 14px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+        color: #58708f;
+        font-weight: 600;
+      }
+
+      .invite-summary {
+        padding: 16px 18px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: var(--surface-soft);
+        display: grid;
+        gap: 10px;
+      }
+
+      .invite-summary-row {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .invite-summary-row span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .invite-summary-row strong {
+        color: var(--ink);
+        font-size: 14px;
+        line-height: 1.5;
+        word-break: break-word;
+      }
+
+      .invite-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .invite-secondary-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 16px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .invite-helper {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      @media (max-width: 640px) {
+        .invite-summary-row {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+
+        .invite-actions,
+        .invite-secondary-link,
+        .auth-submit-button {
+          width: 100%;
+        }
+      }
+
+
+      /* UI audit third pass: invite page polish */
+      .invite-lang-toggle,
+      .invite-secondary-link {
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+      }
+
+      .invite-lang-toggle:hover,
+      .invite-secondary-link:hover {
+        transform: translateY(-1px);
+        border-color: rgba(29, 111, 232, 0.22);
+        color: var(--blue-deep);
+        background: #fff;
+        box-shadow: var(--shadow-tiny);
+      }
+
+      .invite-lang-toggle:focus-visible,
+      .invite-secondary-link:focus-visible {
+        outline: none;
+        box-shadow: var(--focus-ring);
+      }
+
+      .invite-summary {
+        border-color: rgba(18, 33, 58, 0.075);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.94));
+        box-shadow: var(--shadow-tiny);
+      }
+
+      .invite-summary-row + .invite-summary-row {
+        padding-top: 10px;
+        border-top: 1px solid rgba(18, 33, 58, 0.06);
+      }
+
+      .invite-helper {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(29, 111, 232, 0.06);
+        color: var(--text-dim);
+      }
+
+      .invite-actions .primary-button,
+      .invite-actions .invite-secondary-link {
+        flex: 1 1 180px;
+      }
+
+
+
+      /* UI audit sixth pass: invite accessibility */
+      @media (hover: none), (pointer: coarse) {
+        .invite-lang-toggle,
+        .invite-secondary-link,
+        .primary-button,
+        .text-input {
+          min-height: 44px;
+        }
+      }
+
+      @media (prefers-contrast: more) {
+        .invite-summary,
+        .invite-lang-toggle,
+        .invite-secondary-link,
+        .text-input {
+          border-color: var(--line-strong);
+        }
+      }
+
+      @media (forced-colors: active) {
+        .invite-summary,
+        .invite-lang-toggle,
+        .invite-secondary-link,
+        .primary-button,
+        .text-input {
+          border: 1px solid CanvasText !important;
+        }
+
+        .primary-button {
+          forced-color-adjust: none;
+          background: Highlight !important;
+          color: HighlightText !important;
+          border-color: Highlight !important;
+        }
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="auth-shell">
+      <div class="auth-shell-backdrop"></div>
+      <section class="auth-card">
+        <div class="invite-topbar">
+          <button id="inviteLanguageToggle" class="invite-lang-toggle" type="button">中 | EN</button>
+        </div>
+
+        <div class="auth-brand brand">
+          <div class="brand-mark">CDE</div>
+          <div class="brand-copy">
+            <p id="inviteBrandKicker" class="brand-kicker">CDE FILE MANAGEMENT</p>
+            <h1 id="inviteBrandTitle">CDE文件管理系统</h1>
+          </div>
+        </div>
+
+        <div class="auth-copy">
+          <p id="inviteKicker" class="panel-kicker">项目邀请</p>
+          <h2 id="inviteTitle" class="auth-card-title">加入项目</h2>
+          <p id="inviteDescription" class="auth-card-description">通过邀请链接完成账户激活并设置登录密码。</p>
+        </div>
+
+        <p id="inviteStatusText" class="auth-status-text"></p>
+
+        <div id="inviteSummary" class="invite-summary hidden">
+          <div class="invite-summary-row">
+            <span id="inviteNameLabel">姓名</span>
+            <strong id="inviteNameValue">--</strong>
+          </div>
+          <div class="invite-summary-row">
+            <span id="inviteEmailLabel">邮箱</span>
+            <strong id="inviteEmailValue">--</strong>
+          </div>
+          <div class="invite-summary-row">
+            <span id="inviteRoleLabel">角色</span>
+            <strong id="inviteRoleValue">--</strong>
+          </div>
+          <div class="invite-summary-row">
+            <span id="inviteExpiryLabel">有效期</span>
+            <strong id="inviteExpiryValue">--</strong>
+          </div>
+          <div class="invite-summary-row">
+            <span id="inviteInviterLabel">邀请人</span>
+            <strong id="inviteInviterValue">--</strong>
+          </div>
+        </div>
+
+        <form id="inviteForm" class="auth-form">
+          <label>
+            <span id="inviteNameFieldLabel" class="field-label">姓名</span>
+            <input id="inviteNameInput" class="text-input auth-input" type="text" autocomplete="name" placeholder="请输入姓名" />
+          </label>
+          <label>
+            <span id="invitePasswordFieldLabel" class="field-label">设置密码</span>
+            <input id="invitePasswordInput" class="text-input auth-input" type="password" autocomplete="new-password" placeholder="至少 8 位" />
+          </label>
+          <label>
+            <span id="inviteConfirmFieldLabel" class="field-label">确认密码</span>
+            <input id="inviteConfirmInput" class="text-input auth-input" type="password" autocomplete="new-password" placeholder="再次输入密码" />
+          </label>
+          <p id="inviteHelperText" class="invite-helper">设置完成后将自动登录，并返回系统首页。</p>
+          <p id="inviteErrorText" class="auth-error-text hidden"></p>
+          <div class="invite-actions">
+            <button id="inviteSubmitButton" class="primary-button auth-submit-button" type="submit">激活并进入系统</button>
+            <a id="inviteBackLink" class="invite-secondary-link" href="/">返回登录</a>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <script>
+      const LANGUAGE_STORAGE_KEY = "cde.language";
+      const LANGUAGE_META = {
+        zh: {
+          htmlLang: "zh-CN",
+          title: "CDE文件管理系统",
+          toggle: "中 | EN",
+        },
+        en: {
+          htmlLang: "en-US",
+          title: "CDE File Management System",
+          toggle: "ZH | 英",
+        },
+      };
+
+      const state = {
+        language: readStoredLanguage(),
+        loading: false,
+        submitting: false,
+        inviteToken: new URLSearchParams(window.location.search).get("invite") || "",
+        invite: null,
+        error: "",
+        status: "",
+        form: {
+          name: "",
+          password: "",
+          confirmPassword: "",
+        },
+      };
+
+      const elements = {
+        inviteLanguageToggle: document.querySelector("#inviteLanguageToggle"),
+        inviteBrandTitle: document.querySelector("#inviteBrandTitle"),
+        inviteKicker: document.querySelector("#inviteKicker"),
+        inviteTitle: document.querySelector("#inviteTitle"),
+        inviteDescription: document.querySelector("#inviteDescription"),
+        inviteStatusText: document.querySelector("#inviteStatusText"),
+        inviteSummary: document.querySelector("#inviteSummary"),
+        inviteNameLabel: document.querySelector("#inviteNameLabel"),
+        inviteEmailLabel: document.querySelector("#inviteEmailLabel"),
+        inviteRoleLabel: document.querySelector("#inviteRoleLabel"),
+        inviteExpiryLabel: document.querySelector("#inviteExpiryLabel"),
+        inviteInviterLabel: document.querySelector("#inviteInviterLabel"),
+        inviteNameValue: document.querySelector("#inviteNameValue"),
+        inviteEmailValue: document.querySelector("#inviteEmailValue"),
+        inviteRoleValue: document.querySelector("#inviteRoleValue"),
+        inviteExpiryValue: document.querySelector("#inviteExpiryValue"),
+        inviteInviterValue: document.querySelector("#inviteInviterValue"),
+        inviteForm: document.querySelector("#inviteForm"),
+        inviteNameFieldLabel: document.querySelector("#inviteNameFieldLabel"),
+        invitePasswordFieldLabel: document.querySelector("#invitePasswordFieldLabel"),
+        inviteConfirmFieldLabel: document.querySelector("#inviteConfirmFieldLabel"),
+        inviteNameInput: document.querySelector("#inviteNameInput"),
+        invitePasswordInput: document.querySelector("#invitePasswordInput"),
+        inviteConfirmInput: document.querySelector("#inviteConfirmInput"),
+        inviteHelperText: document.querySelector("#inviteHelperText"),
+        inviteErrorText: document.querySelector("#inviteErrorText"),
+        inviteSubmitButton: document.querySelector("#inviteSubmitButton"),
+        inviteBackLink: document.querySelector("#inviteBackLink"),
+      };
+
+      function normalizeLanguage(value) {
+        return value === "en" ? "en" : "zh";
+      }
+
+      function readStoredLanguage() {
+        try {
+          return normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
+        } catch {
+          return "zh";
+        }
+      }
+
+      function persistLanguage(language) {
+        try {
+          window.localStorage.setItem(LANGUAGE_STORAGE_KEY, normalizeLanguage(language));
+        } catch {
+          // Ignore storage errors.
+        }
+      }
+
+      function t(zh, en) {
+        return state.language === "en" ? en : zh;
+      }
+
+      function formatDateTime(value) {
+        if (!value) {
+          return "--";
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return value;
+        }
+        return new Intl.DateTimeFormat(state.language === "en" ? "en-US" : "zh-CN", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(date);
+      }
+
+      function setText(element, value) {
+        if (element) {
+          element.textContent = value;
+        }
+      }
+
+      function render() {
+        document.documentElement.lang = LANGUAGE_META[state.language].htmlLang;
+        document.title = LANGUAGE_META[state.language].title;
+        setText(elements.inviteLanguageToggle, LANGUAGE_META[state.language].toggle);
+        setText(elements.inviteBrandTitle, t("CDE文件管理系统", "CDE File Management System"));
+        setText(elements.inviteKicker, t("项目邀请", "Project Invitation"));
+        setText(elements.inviteTitle, t("加入项目", "Join Project"));
+        setText(elements.inviteDescription, t("通过邀请链接完成账户激活并设置登录密码。", "Activate your account and set a password through the invite link."));
+        setText(elements.inviteNameLabel, t("姓名", "Name"));
+        setText(elements.inviteEmailLabel, t("邮箱", "Email"));
+        setText(elements.inviteRoleLabel, t("角色", "Role"));
+        setText(elements.inviteExpiryLabel, t("有效期", "Expiry"));
+        setText(elements.inviteInviterLabel, t("邀请人", "Invited By"));
+        setText(elements.inviteNameFieldLabel, t("姓名", "Name"));
+        setText(elements.invitePasswordFieldLabel, t("设置密码", "Set Password"));
+        setText(elements.inviteConfirmFieldLabel, t("确认密码", "Confirm Password"));
+        setText(elements.inviteHelperText, t("设置完成后将自动登录，并返回系统首页。", "After setup, you will be signed in automatically and redirected to the home page."));
+        setText(elements.inviteSubmitButton, state.submitting ? t("提交中…", "Submitting...") : t("激活并进入系统", "Activate and Enter"));
+        setText(elements.inviteBackLink, t("返回登录", "Back to Sign In"));
+
+        elements.inviteNameInput.placeholder = t("请输入姓名", "Enter your name");
+        elements.invitePasswordInput.placeholder = t("至少 8 位", "At least 8 characters");
+        elements.inviteConfirmInput.placeholder = t("再次输入密码", "Re-enter your password");
+
+        elements.inviteNameInput.value = state.form.name;
+        elements.invitePasswordInput.value = state.form.password;
+        elements.inviteConfirmInput.value = state.form.confirmPassword;
+
+        if (state.invite) {
+          elements.inviteSummary.classList.remove("hidden");
+          setText(elements.inviteNameValue, state.invite.name || "--");
+          setText(elements.inviteEmailValue, state.invite.email || "--");
+          setText(elements.inviteRoleValue, state.invite.roleLabel || state.invite.role || "--");
+          setText(elements.inviteExpiryValue, formatDateTime(state.invite.expiresAt));
+          setText(elements.inviteInviterValue, state.invite.invitedByName || "--");
+          if (!state.form.name) {
+            state.form.name = state.invite.name || "";
+            elements.inviteNameInput.value = state.form.name;
+          }
+        } else {
+          elements.inviteSummary.classList.add("hidden");
+        }
+
+        setText(
+          elements.inviteStatusText,
+          state.loading
+            ? t("正在校验邀请链接…", "Verifying invite link...")
+            : state.status || t("请输入姓名并设置密码，完成后即可加入当前项目。", "Enter your name and set a password to join this project."),
+        );
+        setText(elements.inviteErrorText, state.error || "");
+        elements.inviteErrorText.classList.toggle("hidden", !state.error);
+
+        const disabled = state.loading || state.submitting || !state.invite;
+        elements.inviteNameInput.disabled = disabled;
+        elements.invitePasswordInput.disabled = disabled;
+        elements.inviteConfirmInput.disabled = disabled;
+        elements.inviteSubmitButton.disabled = disabled;
+      }
+
+      async function readInvite() {
+        if (!state.inviteToken) {
+          state.error = t("邀请链接缺少参数，请联系管理员重新发送。", "The invite link is missing a token. Please ask the administrator to resend it.");
+          render();
+          return;
+        }
+
+        state.loading = true;
+        state.error = "";
+        state.status = "";
+        render();
+
+        try {
+          const response = await fetch(`/api/member-invites/${encodeURIComponent(state.inviteToken)}`, {
+            credentials: "same-origin",
+            headers: { Accept: "application/json" },
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.error || t("邀请链接不可用。", "The invite link is unavailable."));
+          }
+          state.invite = payload.invite || null;
+          state.status = t("邀请链接已验证，请设置密码后继续。", "Invite verified. Set your password to continue.");
+        } catch (error) {
+          state.invite = null;
+          state.error = error.message || t("邀请链接校验失败。", "Unable to verify the invite link.");
+        } finally {
+          state.loading = false;
+          render();
+        }
+      }
+
+      async function acceptInvite(event) {
+        event.preventDefault();
+        if (!state.invite) {
+          return;
+        }
+
+        state.form.name = elements.inviteNameInput.value.trim();
+        state.form.password = elements.invitePasswordInput.value;
+        state.form.confirmPassword = elements.inviteConfirmInput.value;
+        state.error = "";
+        state.submitting = true;
+        render();
+
+        try {
+          const response = await fetch(`/api/member-invites/${encodeURIComponent(state.inviteToken)}/accept`, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              name: state.form.name,
+              password: state.form.password,
+              confirmPassword: state.form.confirmPassword,
+            }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.error || t("激活失败，请稍后重试。", "Activation failed. Please try again later."));
+          }
+          state.status = t("账户已激活，正在进入系统…", "Your account has been activated. Redirecting...");
+          state.form.password = "";
+          state.form.confirmPassword = "";
+          render();
+          window.setTimeout(() => {
+            window.location.href = "/";
+          }, 500);
+        } catch (error) {
+          state.error = error.message || t("激活失败，请稍后重试。", "Activation failed. Please try again later.");
+        } finally {
+          state.submitting = false;
+          render();
+        }
+      }
+
+      elements.inviteLanguageToggle.addEventListener("click", () => {
+        state.language = state.language === "zh" ? "en" : "zh";
+        persistLanguage(state.language);
+        render();
+      });
+      elements.inviteForm.addEventListener("submit", acceptInvite);
+
+      render();
+      readInvite();
+    </script>
+  </body>
+</html>

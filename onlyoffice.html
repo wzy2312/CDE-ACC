@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OnlyOffice 工作台</title>
+    <style>
+      :root {
+        --bg: #edf2f8;
+        --surface: rgba(255, 255, 255, 0.88);
+        --surface-strong: rgba(255, 255, 255, 0.96);
+        --line: rgba(23, 48, 77, 0.1);
+        --text: #17304d;
+        --muted: #6e8099;
+        --blue: #237df0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(35, 125, 240, 0.08), transparent 24%),
+          linear-gradient(180deg, #eef3f9 0%, #f8fafc 100%);
+      }
+
+      .floating-shell {
+        position: fixed;
+        z-index: 20;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .floating-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: auto;
+        pointer-events: auto;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(35, 125, 240, 0.18);
+        background: rgba(35, 125, 240, 0.1);
+        color: #135dc1;
+        font-size: 12px;
+        font-weight: 700;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 12px 32px rgba(10, 24, 44, 0.1);
+      }
+
+      .ghost-button {
+        appearance: none;
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(23, 48, 77, 0.14);
+        background: var(--surface-strong);
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 16px 38px rgba(10, 24, 44, 0.12);
+      }
+
+      .workspace {
+        position: fixed;
+        inset: 0;
+      }
+
+      .mount,
+      .state-card-wrap {
+        position: absolute;
+        inset: 0;
+      }
+
+      .state-card-wrap {
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .state-card {
+        width: min(720px, 100%);
+        padding: 22px 24px;
+        border-radius: 24px;
+        border: 1px solid var(--line);
+        background: var(--surface-strong);
+        box-shadow: 0 24px 64px rgba(10, 24, 44, 0.12);
+        display: grid;
+        gap: 12px;
+      }
+
+      .state-card h2,
+      .state-card p,
+      .state-card pre {
+        margin: 0;
+      }
+
+      .state-card p {
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .state-card pre {
+        overflow: auto;
+        padding: 14px;
+        border-radius: 16px;
+        background: #f5f8fc;
+        color: #27405d;
+        font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+
+      /* UI audit third pass: external workspace visual unification */
+      :root {
+        --bg: #eef3f9;
+        --surface: rgba(255, 255, 255, 0.9);
+        --surface-strong: rgba(255, 255, 255, 0.98);
+        --line: rgba(18, 33, 58, 0.1);
+        --text: #19314f;
+        --muted: #60728a;
+        --blue: #1d6fe8;
+        --blue-deep: #1559bd;
+        --blue-soft: rgba(29, 111, 232, 0.1);
+        --focus-ring: 0 0 0 4px rgba(29, 111, 232, 0.14);
+        --shadow-soft: 0 14px 36px rgba(20, 43, 78, 0.1);
+      }
+
+      body {
+        font-family: ui-sans-serif, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+        background:
+          radial-gradient(circle at 16% -10%, rgba(29, 111, 232, 0.12), transparent 34%),
+          linear-gradient(180deg, #f9fbff 0%, var(--bg) 100%);
+        text-rendering: geometricPrecision;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible {
+        outline: none;
+        box-shadow: var(--focus-ring);
+      }
+
+      .floating-actions .chip,
+      .ghost-button,
+      .state-card,
+      .panel {
+        border-color: var(--line);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92));
+        box-shadow: var(--shadow-soft);
+      }
+
+      .state-card h2,
+      .panel h2,
+      .viewer-card-head strong {
+        color: #0b1220;
+        letter-spacing: -0.02em;
+      }
+
+      .chip,
+      .status-pill {
+        border-color: rgba(29, 111, 232, 0.22);
+        background: var(--blue-soft);
+        color: var(--blue-deep);
+        font-weight: 800;
+      }
+
+      .status-pill.neutral {
+        border-color: rgba(96, 114, 138, 0.2);
+        background: rgba(96, 114, 138, 0.09);
+        color: var(--muted);
+      }
+
+      .ghost-button,
+      .button {
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+      }
+
+      .ghost-button:hover,
+      .button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: rgba(29, 111, 232, 0.24);
+        color: var(--blue-deep);
+        background: #fff;
+      }
+
+      .ghost-button:active,
+      .button:active:not(:disabled) {
+        transform: translateY(0) scale(0.985);
+      }
+
+      .state-card {
+        border-radius: 26px;
+      }
+
+      .state-card pre {
+        border: 1px solid rgba(18, 33, 58, 0.08);
+        background: #f4f7fb;
+        color: #27405d;
+      }
+
+      .frame,
+      .viewer-frame,
+      .viewer-mount {
+        background:
+          linear-gradient(45deg, rgba(203, 216, 232, 0.22) 25%, transparent 25%),
+          linear-gradient(-45deg, rgba(203, 216, 232, 0.22) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, rgba(203, 216, 232, 0.22) 75%),
+          linear-gradient(-45deg, transparent 75%, rgba(203, 216, 232, 0.22) 75%),
+          #eef3f8;
+        background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+        background-size: 20px 20px;
+      }
+
+      @media (max-width: 720px) {
+        .floating-shell {
+          left: auto;
+          align-items: flex-end;
+        }
+
+        .floating-actions {
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .floating-actions > * {
+          flex: 1 1 auto;
+          justify-content: center;
+        }
+
+        .state-card-wrap,
+        .state-wrap {
+          padding: 16px;
+        }
+      }
+
+
+
+      /* UI audit sixth pass: external page accessibility */
+      @media (hover: none), (pointer: coarse) {
+        button,
+        a.ghost-button,
+        .ghost-button,
+        .button,
+        .mode-button,
+        .text-input,
+        select {
+          min-height: 44px;
+        }
+      }
+
+      @media (prefers-contrast: more) {
+        :root {
+          --line: rgba(18, 33, 58, 0.34);
+          --muted: #3f526b;
+          --blue: #0f5fcb;
+          --blue-deep: #0b4fa8;
+          --focus-ring: 0 0 0 4px rgba(11, 79, 168, 0.28);
+        }
+
+        .ghost-button,
+        .button,
+        .state-card,
+        .panel,
+        .chip,
+        .status-pill,
+        .text-input,
+        select {
+          border-color: rgba(18, 33, 58, 0.34);
+        }
+      }
+
+      @media (forced-colors: active) {
+        * {
+          box-shadow: none !important;
+          text-shadow: none !important;
+        }
+
+        button,
+        a,
+        input,
+        select,
+        textarea,
+        .ghost-button,
+        .button,
+        .state-card,
+        .panel,
+        .chip,
+        .status-pill {
+          border: 1px solid CanvasText !important;
+        }
+
+        button:focus-visible,
+        a:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible {
+          outline: 2px solid Highlight !important;
+          outline-offset: 2px;
+        }
+
+        .button.primary,
+        .mode-button.active {
+          forced-color-adjust: none;
+          background: Highlight !important;
+          color: HighlightText !important;
+          border-color: Highlight !important;
+        }
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="floating-shell">
+      <div class="floating-actions">
+        <span id="modeChip" class="chip">连接中</span>
+        <button id="commentExportButton" class="ghost-button" type="button">导出评论 Excel</button>
+        <button id="backButton" class="ghost-button" type="button">返回系统</button>
+      </div>
+    </div>
+
+    <main class="workspace">
+      <div id="onlyofficeMount" class="mount hidden"></div>
+      <div id="stateWrap" class="state-card-wrap">
+        <article class="state-card">
+          <h2 id="stateTitle">正在连接 OnlyOffice</h2>
+          <p id="stateMessage">稍等一下，我们会拉取文档配置并装载编辑器。</p>
+          <pre id="stateDetail" class="hidden"></pre>
+        </article>
+      </div>
+    </main>
+
+    <script>
+      const LANGUAGE_STORAGE_KEY = "cde.language";
+      const STANDALONE_EN_TEXT = {
+        "OnlyOffice 工作台": "OnlyOffice Workspace",
+        "正在准备文档...": "Preparing document...",
+        "正在加载 OnlyOffice 配置。": "Loading OnlyOffice configuration.",
+        "连接中": "Connecting",
+        "导出评论 Excel": "Export Comments Excel",
+        "返回系统": "Back to System",
+        "正在连接 OnlyOffice": "Connecting to OnlyOffice",
+        "稍等一下，我们会拉取文档配置并装载编辑器。": "Please wait while document configuration is loaded and the editor starts.",
+        "导出中...": "Exporting...",
+        "评论导出失败，请稍后重试。": "Comment export failed. Please try again later.",
+        "在线编辑": "Online Editing",
+        "只读查看": "Read-only View",
+        "编辑模式": "Edit Mode",
+        "只读模式": "Read-only Mode",
+        "OnlyOffice 尚未就绪": "OnlyOffice Not Ready",
+        "需要先配置 Document Server 地址，Office 文档才能在线打开。": "Configure the Document Server URL before Office documents can be opened online.",
+        "未配置": "Not Configured",
+        "缺少 OnlyOffice 配置": "Missing OnlyOffice Configuration",
+        "当前 demo 已接入 OnlyOffice 打开链路，但本机还没有配置 Document Server。": "OnlyOffice integration is wired, but this machine has no Document Server configured yet.",
+        "请至少配置以下环境变量后重启本地 server.js：": "Configure at least the following environment variables, then restart local server.js:",
+        "如果 OnlyOffice 运行在 Docker，而当前文档系统运行在宿主机，": "If OnlyOffice runs in Docker while this document system runs on the host,",
+        "通常需要把 ONLYOFFICE_PUBLIC_BASE_URL 配成容器可访问的地址，例如 host.docker.internal。": "set ONLYOFFICE_PUBLIC_BASE_URL to an address reachable from the container, such as host.docker.internal.",
+        "OnlyOffice Docs API 脚本加载失败": "OnlyOffice Docs API script failed to load",
+        "缺少文档参数": "Missing Document Parameter",
+        "当前页面没有拿到 docId，无法打开 OnlyOffice。": "This page did not receive docId and cannot open OnlyOffice.",
+        "参数错误": "Invalid Parameter",
+        "OnlyOffice 配置获取失败": "Failed to load OnlyOffice configuration",
+        "OnlyOffice Docs API 未正确注入": "OnlyOffice Docs API was not injected correctly",
+        "OnlyOffice 打开失败": "OnlyOffice Open Failed",
+        "文档工作台没有成功初始化。": "The document workspace did not initialize successfully.",
+        "失败": "Failed",
+        "OnlyOffice 装载失败": "OnlyOffice Load Failed",
+        "未知错误，请稍后重试。": "Unknown error. Please try again later.",
+      };
+
+      function currentLanguage() {
+        try {
+          return window.localStorage.getItem(LANGUAGE_STORAGE_KEY) === "en" ? "en" : "zh";
+        } catch {
+          return "zh";
+        }
+      }
+
+      function t(zh, en) {
+        return currentLanguage() === "en" ? en : zh;
+      }
+
+      function localizeStandaloneText(value) {
+        const source = String(value ?? "");
+        if (!source || currentLanguage() !== "en" || !/[\u4e00-\u9fff]/.test(source)) {
+          return source;
+        }
+        if (STANDALONE_EN_TEXT[source]) {
+          return STANDALONE_EN_TEXT[source];
+        }
+        let result = source;
+        Object.entries(STANDALONE_EN_TEXT)
+          .filter(([zh]) => Array.from(zh).length > 1)
+          .sort((left, right) => right[0].length - left[0].length)
+          .forEach(([zh, en]) => {
+            result = result.replaceAll(zh, en);
+          });
+        return result;
+      }
+
+      function applyStandaloneTranslations(root = document.body) {
+        if (currentLanguage() !== "en" || !root) {
+          return;
+        }
+        const translateNode = (node) => {
+          if (node.nodeType === Node.TEXT_NODE && /[\u4e00-\u9fff]/.test(node.nodeValue || "")) {
+            node.nodeValue = localizeStandaloneText(node.nodeValue);
+            return;
+          }
+          if (node.nodeType !== Node.ELEMENT_NODE) {
+            return;
+          }
+          ["placeholder", "title", "aria-label", "alt"].forEach((attribute) => {
+            const value = node.getAttribute(attribute);
+            if (value && /[\u4e00-\u9fff]/.test(value)) {
+              node.setAttribute(attribute, localizeStandaloneText(value));
+            }
+          });
+        };
+        translateNode(root);
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ALL, {
+          acceptNode(node) {
+            if (node.nodeType === Node.ELEMENT_NODE && ["SCRIPT", "STYLE", "SVG", "PATH"].includes(node.tagName)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        });
+        while (walker.nextNode()) {
+          translateNode(walker.currentNode);
+        }
+      }
+
+      function startStandaloneTranslationObserver() {
+        if (currentLanguage() !== "en" || typeof MutationObserver === "undefined") {
+          return;
+        }
+        applyStandaloneTranslations();
+        const observer = new MutationObserver((records) => {
+          records.forEach((record) => {
+            if (record.type === "characterData" || record.type === "attributes") {
+              applyStandaloneTranslations(record.target);
+              return;
+            }
+            record.addedNodes.forEach((node) => applyStandaloneTranslations(node));
+          });
+        });
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+          attributes: true,
+          attributeFilter: ["placeholder", "title", "aria-label", "alt"],
+        });
+      }
+
+      startStandaloneTranslationObserver();
+      document.title = localizeStandaloneText(document.title);
+
+      const originalAlert = window.alert.bind(window);
+      window.alert = (message) => originalAlert(localizeStandaloneText(message));
+
+      const params = new URLSearchParams(window.location.search);
+      const docId = params.get("docId") || "";
+      const versionId = params.get("versionId") || "";
+      const mode = params.get("mode") || "edit";
+      const actor = params.get("actor") || "";
+
+      const modeChip = document.querySelector("#modeChip");
+      const stateWrap = document.querySelector("#stateWrap");
+      const stateTitle = document.querySelector("#stateTitle");
+      const stateMessage = document.querySelector("#stateMessage");
+      const stateDetail = document.querySelector("#stateDetail");
+      const mount = document.querySelector("#onlyofficeMount");
+      const commentExportButton = document.querySelector("#commentExportButton");
+
+      function leaveWorkspace() {
+        if (window.opener && !window.opener.closed) {
+          window.close();
+          return;
+        }
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+        window.location.href = "/";
+      }
+
+      function requestWorkspaceClose() {
+        if (window.docEditor && typeof window.docEditor.requestClose === "function") {
+          window.docEditor.requestClose();
+          return;
+        }
+        leaveWorkspace();
+      }
+
+      async function exportCommentReport() {
+        if (!docId) {
+          return;
+        }
+        const originalLabel = commentExportButton.textContent;
+        const pendingWindow = window.open("about:blank", "_blank");
+        if (pendingWindow) {
+          pendingWindow.opener = null;
+        }
+        commentExportButton.disabled = true;
+        commentExportButton.textContent = t("导出中...", "Exporting...");
+        try {
+          const response = await fetch(`/api/documents/${encodeURIComponent(docId)}/comment-report`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: "{}",
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload.downloadUrl) {
+            throw new Error(payload.error || t("评论导出失败，请稍后重试。", "Comment export failed. Please try again later."));
+          }
+          if (pendingWindow) {
+            pendingWindow.location.href = payload.downloadUrl;
+          } else {
+            window.open(payload.downloadUrl, "_blank", "noopener");
+          }
+        } catch (error) {
+          if (pendingWindow && !pendingWindow.closed) {
+            pendingWindow.close();
+          }
+          window.alert(error.message || t("评论导出失败，请稍后重试。", "Comment export failed. Please try again later."));
+        } finally {
+          commentExportButton.disabled = false;
+          commentExportButton.textContent = originalLabel;
+        }
+      }
+
+      document.querySelector("#backButton").addEventListener("click", requestWorkspaceClose);
+      commentExportButton.addEventListener("click", exportCommentReport);
+
+      function updateState(title, message, detail = "") {
+        stateTitle.textContent = localizeStandaloneText(title);
+        stateMessage.textContent = localizeStandaloneText(message);
+        stateDetail.textContent = localizeStandaloneText(detail);
+        stateDetail.classList.toggle("hidden", !detail);
+        stateWrap.classList.remove("hidden");
+        mount.classList.add("hidden");
+      }
+
+      function showEditor(payload) {
+        const documentTitle = payload.config.document.title || t("OnlyOffice 工作台", "OnlyOffice Workspace");
+        document.title = `${documentTitle} - OnlyOffice`;
+        modeChip.textContent = payload.mode === "edit" ? t("编辑模式", "Edit Mode") : t("只读模式", "Read-only Mode");
+        stateWrap.classList.add("hidden");
+        mount.classList.remove("hidden");
+        const config = {
+          ...payload.config,
+          events: {
+            ...(payload.config.events || {}),
+            onRequestClose: leaveWorkspace,
+          },
+        };
+        window.docEditor = new window.DocsAPI.DocEditor("onlyofficeMount", config);
+      }
+
+      function showSetup(payload) {
+        document.title = t("OnlyOffice 尚未就绪", "OnlyOffice Not Ready");
+        modeChip.textContent = t("未配置", "Not Configured");
+        updateState(
+          t("缺少 OnlyOffice 配置", "Missing OnlyOffice Configuration"),
+          payload.message || t("当前 demo 已接入 OnlyOffice 打开链路，但本机还没有配置 Document Server。", "OnlyOffice integration is wired, but this machine has no Document Server configured yet."),
+          [
+            t("请至少配置以下环境变量后重启本地 server.js：", "Configure at least the following environment variables, then restart local server.js:"),
+            "",
+            "cp .env.example .env.local",
+            "",
+            "ONLYOFFICE_SERVER_URL=http://<your-document-server>",
+            "ONLYOFFICE_PUBLIC_BASE_URL=http://<docs-app-public-origin>",
+            "ONLYOFFICE_JWT_SECRET=<optional-jwt-secret>",
+            "",
+            t("如果 OnlyOffice 运行在 Docker，而当前文档系统运行在宿主机，", "If OnlyOffice runs in Docker while this document system runs on the host,"),
+            t("通常需要把 ONLYOFFICE_PUBLIC_BASE_URL 配成容器可访问的地址，例如 host.docker.internal。", "set ONLYOFFICE_PUBLIC_BASE_URL to an address reachable from the container, such as host.docker.internal."),
+          ].join("\n"),
+        );
+      }
+
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = src;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error(t("OnlyOffice Docs API 脚本加载失败", "OnlyOffice Docs API script failed to load")));
+          document.head.appendChild(script);
+        });
+      }
+
+      async function boot() {
+        if (!docId) {
+          document.title = t("缺少文档参数", "Missing Document Parameter");
+          updateState(t("缺少文档参数", "Missing Document Parameter"), t("当前页面没有拿到 docId，无法打开 OnlyOffice。", "This page did not receive docId and cannot open OnlyOffice."));
+          modeChip.textContent = t("参数错误", "Invalid Parameter");
+          return;
+        }
+
+        try {
+          const query = new URLSearchParams();
+          if (versionId) query.set("versionId", versionId);
+          if (mode) query.set("mode", mode);
+          if (actor) query.set("actor", actor);
+          const response = await fetch(`/api/onlyoffice/documents/${encodeURIComponent(docId)}/config?${query.toString()}`, {
+            credentials: "same-origin",
+          });
+          const payload = await response.json();
+
+          if (!response.ok) {
+            throw new Error(payload.error || t("OnlyOffice 配置获取失败", "Failed to load OnlyOffice configuration"));
+          }
+
+          if (!payload.enabled) {
+            showSetup(payload);
+            return;
+          }
+
+          await loadScript(payload.docsApiUrl);
+          if (!window.DocsAPI || !window.DocsAPI.DocEditor) {
+            throw new Error(t("OnlyOffice Docs API 未正确注入", "OnlyOffice Docs API was not injected correctly"));
+          }
+          showEditor(payload);
+        } catch (error) {
+          document.title = t("OnlyOffice 打开失败", "OnlyOffice Open Failed");
+          modeChip.textContent = t("失败", "Failed");
+          updateState(t("OnlyOffice 装载失败", "OnlyOffice Load Failed"), error.message || t("未知错误，请稍后重试。", "Unknown error. Please try again later."));
+        }
+      }
+
+      void boot();
+    </script>
+  </body>
+</html>

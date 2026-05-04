@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF 审阅工作台</title>
+    <style>
+      :root {
+        --paper: #f7f4ee;
+        --surface: #fffdf8;
+        --surface-soft: #fbf8f1;
+        --line: rgba(46, 38, 29, 0.12);
+        --line-strong: rgba(46, 38, 29, 0.2);
+        --text: #201b16;
+        --muted: #776c60;
+        --blue: #2764d8;
+        --blue-soft: rgba(39, 100, 216, 0.1);
+        --red: #c9332b;
+        --red-soft: rgba(201, 51, 43, 0.12);
+        --amber: #c77912;
+        --amber-soft: rgba(199, 121, 18, 0.14);
+        --shadow: 0 18px 48px rgba(40, 33, 25, 0.12);
+        --radius: 14px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+        color: var(--text);
+        background: var(--paper);
+        font-family: ui-sans-serif, "SF Pro Display", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+        text-rendering: geometricPrecision;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      button:disabled,
+      input:disabled,
+      select:disabled,
+      textarea:disabled {
+        cursor: not-allowed;
+        opacity: 0.58;
+      }
+
+      .pdf-shell {
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .pdf-topbar {
+        min-height: 58px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 253, 248, 0.94);
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) auto auto;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .pdf-title {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+      }
+
+      .pdf-title strong,
+      .pdf-title span {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .pdf-title strong {
+        font-size: 15px;
+        letter-spacing: -0.01em;
+      }
+
+      .pdf-title span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .pdf-toolbar,
+      .pdf-actions,
+      .tool-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .tool-group {
+        padding: 4px;
+        border: 1px solid var(--line);
+        background: var(--surface-soft);
+      }
+
+      .icon-button,
+      .text-button,
+      .select-field,
+      .page-input {
+        min-height: 34px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      .icon-button {
+        width: 34px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        font-weight: 800;
+      }
+
+      .text-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 12px;
+        font-weight: 700;
+      }
+
+      .icon-button.active,
+      .text-button.primary,
+      .text-button.active {
+        border-color: rgba(39, 100, 216, 0.35);
+        background: var(--blue);
+        color: #fff;
+      }
+
+      .select-field {
+        min-width: 92px;
+        padding: 0 28px 0 10px;
+      }
+
+      .page-input {
+        width: 44px;
+        padding: 0 6px;
+        text-align: center;
+        font-weight: 800;
+      }
+
+      .page-total,
+      .zoom-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pdf-main {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 1fr 330px;
+      }
+
+      .viewer-region {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        border-right: 1px solid var(--line);
+        background:
+          linear-gradient(90deg, rgba(46, 38, 29, 0.05) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(46, 38, 29, 0.05) 1px, transparent 1px),
+          var(--paper);
+        background-size: 26px 26px;
+      }
+
+      .viewer-scroll {
+        position: absolute;
+        inset: 0;
+        overflow: auto;
+        padding: 72px 48px 58px;
+      }
+
+      .canvas-stage {
+        position: relative;
+        width: max-content;
+        min-width: 100%;
+        min-height: 100%;
+        display: grid;
+        justify-content: center;
+        align-content: start;
+      }
+
+      .page-wrap {
+        position: relative;
+        width: max-content;
+        min-height: 180px;
+        background: #fff;
+        border: 1px solid var(--line-strong);
+        box-shadow: var(--shadow);
+      }
+
+      #pdfCanvas {
+        display: block;
+        background: #fff;
+      }
+
+      .annotation-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: auto;
+      }
+
+      .annotation-box,
+      .draft-box,
+      .search-highlight {
+        position: absolute;
+        min-width: 8px;
+        min-height: 8px;
+        appearance: none;
+        padding: 0;
+        border: 2px solid var(--blue);
+        background: var(--blue-soft);
+        pointer-events: auto;
+      }
+
+      .annotation-box.red {
+        border-color: var(--red);
+        background: var(--red-soft);
+      }
+
+      .annotation-box.amber {
+        border-color: var(--amber);
+        background: var(--amber-soft);
+      }
+
+      .annotation-box.selected {
+        outline: 3px solid rgba(39, 100, 216, 0.18);
+        z-index: 5;
+      }
+
+      .annotation-box.note::after {
+        content: "T";
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 20px;
+        height: 20px;
+        display: grid;
+        place-items: center;
+        background: currentColor;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .annotation-box.circle {
+        border-radius: 999px;
+      }
+
+      .draft-box {
+        border-style: dashed;
+        border-color: var(--blue);
+        background: rgba(39, 100, 216, 0.08);
+      }
+
+      .search-highlight {
+        border-color: rgba(232, 148, 33, 0.9);
+        background: rgba(255, 200, 86, 0.36);
+        pointer-events: none;
+      }
+
+      .floating-page {
+        position: absolute;
+        z-index: 8;
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px;
+        border: 1px solid var(--line);
+        background: rgba(255, 253, 248, 0.82);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 12px 28px rgba(40, 33, 25, 0.1);
+      }
+
+      .side-panel {
+        min-width: 0;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        background: var(--surface);
+      }
+
+      .side-head {
+        padding: 14px;
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        gap: 8px;
+      }
+
+      .side-head-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .side-head h2 {
+        margin: 0;
+        font-size: 15px;
+        letter-spacing: -0.01em;
+      }
+
+      .side-head p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .filter-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .filter-row button {
+        min-height: 30px;
+        border: 1px solid var(--line);
+        background: var(--surface-soft);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .filter-row button.active {
+        border-color: rgba(39, 100, 216, 0.32);
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .annotation-list {
+        min-height: 0;
+        overflow: auto;
+        padding: 12px 14px 18px;
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+
+      .annotation-card,
+      .detail-card,
+      .state-card {
+        border: 1px solid var(--line);
+        background: var(--surface-soft);
+      }
+
+      .annotation-card {
+        padding: 10px;
+        display: grid;
+        gap: 6px;
+        text-align: left;
+      }
+
+      .annotation-card.active {
+        border-color: rgba(39, 100, 216, 0.38);
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(39, 100, 216, 0.08);
+      }
+
+      .annotation-card strong,
+      .annotation-card span,
+      .annotation-card small {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .annotation-card strong {
+        white-space: nowrap;
+        font-size: 13px;
+      }
+
+      .annotation-card span,
+      .annotation-card small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 8px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .pill.open {
+        color: var(--red);
+        border-color: rgba(201, 51, 43, 0.22);
+        background: var(--red-soft);
+      }
+
+      .pill.in_progress {
+        color: var(--amber);
+        border-color: rgba(199, 121, 18, 0.24);
+        background: var(--amber-soft);
+      }
+
+      .pill.resolved {
+        color: #137a4b;
+        border-color: rgba(19, 122, 75, 0.22);
+        background: rgba(19, 122, 75, 0.11);
+      }
+
+      .detail-card {
+        position: absolute;
+        z-index: 12;
+        right: 346px;
+        top: 76px;
+        width: min(340px, calc(100vw - 380px));
+        max-height: calc(100vh - 110px);
+        overflow: auto;
+        padding: 12px;
+        display: grid;
+        gap: 8px;
+        box-shadow: var(--shadow);
+      }
+
+      .detail-head {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .detail-head strong {
+        display: block;
+        font-size: 14px;
+      }
+
+      .detail-head span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .field-grid {
+        display: grid;
+        gap: 7px;
+      }
+
+      .field-grid label {
+        display: grid;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .text-input,
+      .textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--text);
+      }
+
+      .text-input {
+        min-height: 34px;
+        padding: 0 10px;
+      }
+
+      .textarea {
+        min-height: 74px;
+        resize: vertical;
+        padding: 9px 10px;
+        line-height: 1.5;
+      }
+
+      .detail-actions {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+
+      .detail-actions .text-button {
+        min-width: 0;
+        padding: 0 8px;
+        font-size: 12px;
+      }
+
+      .attachments,
+      .replies {
+        display: grid;
+        gap: 6px;
+      }
+
+      .mini-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .link-chip {
+        min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 8px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--blue);
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .state-wrap {
+        position: absolute;
+        inset: 0;
+        z-index: 30;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgba(247, 244, 238, 0.78);
+      }
+
+      .state-card {
+        width: min(520px, 100%);
+        padding: 18px;
+        display: grid;
+        gap: 10px;
+        box-shadow: var(--shadow);
+      }
+
+      .state-card h1,
+      .state-card p {
+        margin: 0;
+      }
+
+      .state-card h1 {
+        font-size: 18px;
+      }
+
+      .state-card p {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .toast-region {
+        position: fixed;
+        z-index: 80;
+        right: 18px;
+        bottom: 18px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .toast {
+        max-width: 360px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 253, 248, 0.96);
+        box-shadow: 0 14px 34px rgba(40, 33, 25, 0.14);
+        font-size: 13px;
+      }
+
+      .toast.alert {
+        border-color: rgba(201, 51, 43, 0.22);
+        color: var(--red);
+      }
+
+      .toast.success {
+        border-color: rgba(19, 122, 75, 0.22);
+        color: #137a4b;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 980px) {
+        .pdf-topbar {
+          grid-template-columns: 1fr;
+        }
+
+        .pdf-main {
+          grid-template-columns: 1fr;
+          grid-template-rows: 1fr minmax(220px, 34vh);
+        }
+
+        .side-panel {
+          border-top: 1px solid var(--line);
+        }
+
+        .detail-card {
+          right: 14px;
+          left: 14px;
+          top: 86px;
+          width: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="pdf-shell">
+      <header class="pdf-topbar">
+        <div class="pdf-title">
+          <strong id="documentTitle">PDF 审阅工作台</strong>
+          <span id="documentMeta">正在初始化独立 PDF 页面...</span>
+        </div>
+        <div class="pdf-toolbar">
+          <div class="tool-group" aria-label="PDF 翻页">
+            <button id="prevPageButton" class="icon-button" type="button" title="上一页">‹</button>
+            <input id="pageInput" class="page-input" type="text" inputmode="numeric" value="1" aria-label="页码" />
+            <span id="pageTotal" class="page-total">/ 0</span>
+            <button id="nextPageButton" class="icon-button" type="button" title="下一页">›</button>
+          </div>
+          <div class="tool-group" aria-label="PDF 缩放">
+            <button id="zoomOutButton" class="icon-button" type="button" title="缩小">−</button>
+            <span id="zoomLabel" class="zoom-label">100%</span>
+            <button id="zoomInButton" class="icon-button" type="button" title="放大">+</button>
+            <button id="fitButton" class="text-button" type="button">适宽</button>
+          </div>
+          <div class="tool-group" aria-label="批注工具">
+            <button id="panButton" class="icon-button active" type="button" title="拖动画布">✥</button>
+            <button id="markButton" class="icon-button" type="button" title="新增矩形批注">▢</button>
+            <button id="noteButton" class="icon-button" type="button" title="新增文本批注">T</button>
+          </div>
+        </div>
+        <div class="pdf-actions">
+          <button id="exportReviewButton" class="text-button" type="button">导出审阅版</button>
+          <button id="exportReportButton" class="text-button" type="button">导出评论清单</button>
+        </div>
+      </header>
+
+      <section class="pdf-main">
+        <section class="viewer-region">
+          <div class="floating-page">
+            <button id="floatingPrevButton" class="icon-button" type="button">‹</button>
+            <input id="floatingPageInput" class="page-input" type="text" inputmode="numeric" value="1" />
+            <span id="floatingPageTotal" class="page-total">/ 0</span>
+            <button id="floatingNextButton" class="icon-button" type="button">›</button>
+          </div>
+          <div id="viewerScroll" class="viewer-scroll">
+            <div class="canvas-stage">
+              <div id="pageWrap" class="page-wrap">
+                <canvas id="pdfCanvas"></canvas>
+                <div id="annotationLayer" class="annotation-layer"></div>
+              </div>
+            </div>
+          </div>
+          <aside id="detailCard" class="detail-card hidden" aria-live="polite"></aside>
+          <div id="stateWrap" class="state-wrap">
+            <article class="state-card">
+              <h1 id="stateTitle">正在加载 PDF</h1>
+              <p id="stateMessage">独立 PDF runtime 正在读取会话和文件信息。</p>
+              <div id="stateActions" class="pdf-actions hidden">
+                <a class="text-button primary" href="/">返回系统</a>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <aside class="side-panel">
+          <div class="side-head">
+            <div class="side-head-row">
+              <h2>批注列表</h2>
+              <button id="addAnnotationButton" class="text-button primary" type="button">新增批注</button>
+            </div>
+            <p id="permissionHint">加载权限中...</p>
+          </div>
+          <div class="filter-row">
+            <button class="active" data-filter="all" type="button">全部</button>
+            <button data-filter="open" type="button">未解决</button>
+            <button data-filter="resolved" type="button">已解决</button>
+          </div>
+          <div id="annotationList" class="annotation-list"></div>
+        </aside>
+      </section>
+    </main>
+    <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+    <script type="module" src="/pdf-runtime.js"></script>
+  </body>
+</html>
