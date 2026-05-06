@@ -25888,6 +25888,13 @@ function folderPathLabel(folderId) {
     .join(" / ");
 }
 
+function folderName(folderId) {
+  if (!folderId) {
+    return text("根目录", "Root");
+  }
+  return folderById(folderId)?.name || text("未知目录", "Unknown Folder");
+}
+
 function documentCountForFolder(folderId) {
   const childFolders = state.folders.filter((folder) => folder.parentId === folderId);
   const directDocuments = state.documents.filter((doc) => doc.parentId === folderId).length;
