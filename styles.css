@@ -115,6 +115,8 @@ body {
 }
 
 .workspace {
+  display: block;
+  grid-template-rows: none;
   background: var(--ds-bg);
 }
 
@@ -3342,6 +3344,70 @@ textarea:focus-visible,
   line-height: 1.7;
 }
 
+.acc-shared-auth-guide {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 14px;
+  align-items: center;
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
+  border-radius: 2px;
+  background:
+    linear-gradient(90deg, rgba(18, 111, 255, 0.07), rgba(255, 255, 255, 0.96) 38%),
+    rgba(255, 255, 255, 0.96);
+}
+
+.acc-shared-auth-guide strong {
+  display: block;
+  margin-top: 10px;
+  color: var(--ink);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.acc-shared-auth-guide p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.acc-shared-auth-guide ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: acc-guide-step;
+}
+
+.acc-shared-auth-guide li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.acc-shared-auth-guide li::before {
+  counter-increment: acc-guide-step;
+  content: counter(acc-guide-step);
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(18, 111, 255, 0.22);
+  border-radius: 2px;
+  background: rgba(18, 111, 255, 0.08);
+  color: var(--blue);
+  font-size: 11px;
+}
+
 .access-scene-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3618,6 +3684,45 @@ textarea:focus-visible,
   line-height: 1.6;
 }
 
+.cross-project-sharing-layout {
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr);
+}
+
+.cross-project-document-list {
+  max-height: min(52vh, 560px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.cross-project-document-card {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.cross-project-document-card.selected {
+  border-color: rgba(31, 115, 241, 0.38);
+  background: linear-gradient(180deg, rgba(245, 249, 255, 0.98), rgba(255, 255, 255, 0.98));
+}
+
+.cross-project-document-card input {
+  margin-top: 4px;
+}
+
+.cross-project-document-copy {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cross-project-document-copy strong,
+.cross-project-document-copy p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .access-inline-feedback {
   margin: 14px 0 0;
   padding: 12px 14px;
@@ -3701,6 +3806,79 @@ textarea:focus-visible,
   color: var(--muted);
   font-size: 12px;
   line-height: 1.7;
+}
+
+.access-global-user-list {
+  gap: 12px;
+}
+
+.global-user-card {
+  box-shadow: none;
+}
+
+.global-user-card-badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.global-user-project-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.global-user-project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.28fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(214, 225, 239, 0.96);
+  background: rgba(248, 250, 253, 0.84);
+}
+
+.global-user-project-row.active {
+  border-color: rgba(31, 115, 241, 0.22);
+  background: linear-gradient(180deg, rgba(245, 249, 255, 0.94), rgba(255, 255, 255, 0.94));
+}
+
+.global-user-project-row.disabled {
+  opacity: 0.72;
+}
+
+.global-user-project-toggle {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.global-user-project-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+}
+
+.global-user-project-toggle strong,
+.global-user-project-toggle small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-user-project-toggle strong {
+  font-size: 13px;
+}
+
+.global-user-project-toggle small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
 }
 
 .profile-center-dialog {
@@ -4034,6 +4212,76 @@ textarea:focus-visible,
   color: var(--text);
   font-size: 20px;
   line-height: 1;
+}
+
+.acc-import-dialog {
+  width: min(1040px, calc(100vw - 48px));
+}
+
+.acc-import-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border: 1px solid rgba(18, 33, 58, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.acc-import-list {
+  max-height: min(52vh, 520px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.acc-import-item {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(18, 33, 58, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 14px 32px rgba(15, 35, 68, 0.08);
+}
+
+.acc-import-item-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(31, 115, 241, 0.14), rgba(13, 185, 129, 0.14));
+  color: var(--blue-deep);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.acc-import-item.folder .acc-import-item-icon {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(31, 115, 241, 0.12));
+  color: #8a4b00;
+}
+
+.acc-import-item-copy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.acc-import-item-copy strong,
+.acc-import-item-copy p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acc-import-item-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .file-detail-modal-panel {
@@ -5963,6 +6211,100 @@ textarea:focus-visible,
   border-bottom: 0;
 }
 
+.workflow-template-save-feedback {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(22, 121, 91, 0.22);
+  border-left: 4px solid #16795b;
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgba(232, 248, 240, 0.96), rgba(247, 253, 250, 0.98)),
+    #f7fdfa;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  color: #153f32;
+  animation: workflowTemplateSaveReveal 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.workflow-template-save-feedback.hidden {
+  display: none;
+}
+
+.workflow-template-save-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(22, 121, 91, 0.25);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #16795b;
+}
+
+.workflow-template-save-mark svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.workflow-template-save-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.workflow-template-save-copy strong {
+  color: #123d31;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.workflow-template-save-copy span,
+.workflow-template-save-meta {
+  color: #507266;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.workflow-template-save-meta {
+  justify-self: end;
+  max-width: 260px;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-launch-footer .primary-button.is-success {
+  border-color: #16795b;
+  background: #16795b;
+  color: #fff;
+}
+
+.workflow-launch-footer .primary-button.is-success:hover:not(:disabled) {
+  border-color: #12684e;
+  background: #12684e;
+  color: #fff;
+}
+
+@keyframes workflowTemplateSaveReveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 .workflow-template-editor .workflow-selector-shell {
   padding: 12px 0 0;
   border: 0;
@@ -6544,7 +6886,6 @@ textarea:focus-visible,
   border-radius: 0;
   border: 0;
   border-top: 1px solid rgba(18, 33, 58, 0.08);
-  background: transparent;
   display: grid;
   gap: 14px;
   transition:
@@ -6863,6 +7204,11 @@ textarea:focus-visible,
 }
 
 .signal-pill.alert {
+  background: rgba(245, 179, 53, 0.16);
+  color: #9d6b07;
+}
+
+.signal-pill.warning {
   background: rgba(245, 179, 53, 0.16);
   color: #9d6b07;
 }
@@ -7406,6 +7752,22 @@ textarea:focus-visible,
   margin-bottom: 12px;
 }
 
+.annotation-list-action-bar {
+  display: grid;
+  gap: 8px;
+}
+
+.annotation-create-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.annotation-create-button.active {
+  border-color: var(--accent);
+  background: rgba(24, 119, 242, 0.12);
+  color: var(--accent);
+}
+
 .compact-select {
   margin-top: 0;
   min-height: 44px;
@@ -7500,9 +7862,24 @@ textarea:focus-visible,
   display: grid;
   place-items: center;
   border-radius: 999px;
+  background: #9f352b;
   color: #fff;
   font-size: 13px;
   font-weight: 800;
+  box-shadow: 0 0 0 2px #fff, 0 6px 16px rgba(17, 24, 39, 0.18);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.38);
+}
+
+.comment-index.status-open {
+  background: #9f352b;
+}
+
+.comment-index.status-in_progress {
+  background: #75510f;
+}
+
+.comment-index.status-resolved {
+  background: #2f6f50;
 }
 
 .color-red {
@@ -7650,6 +8027,7 @@ textarea:focus-visible,
   left: 16px;
   z-index: var(--z-modal);
   margin-bottom: 0;
+  display: none !important;
 }
 
 .review-exit-button:hover {
@@ -7780,11 +8158,14 @@ textarea:focus-visible,
 }
 
 .tool-cluster {
+  display: inline-flex;
   align-items: center;
   flex-wrap: nowrap;
+  flex: 0 0 auto;
 }
 
 .tool-separator {
+  flex: 0 0 auto;
   width: 1px;
   height: 22px;
   border-radius: 999px;
@@ -7792,6 +8173,7 @@ textarea:focus-visible,
 }
 
 .zoom-cluster {
+  flex: 0 0 auto;
   gap: 0;
   flex-wrap: nowrap;
   background: rgba(255, 255, 255, 0.52);
@@ -7966,8 +8348,7 @@ textarea:focus-visible,
   box-shadow: none;
 }
 
-.review-mode-cluster,
-.review-asset-cluster {
+.review-mode-cluster {
   gap: 3px;
 }
 
@@ -8260,6 +8641,7 @@ textarea:focus-visible,
 }
 
 .viewer-frame {
+  position: relative;
   margin-top: 16px;
   min-height: 860px;
   border: 1px solid rgba(18, 33, 58, 0.08);
@@ -8323,9 +8705,69 @@ textarea:focus-visible,
   box-shadow: 0 24px 48px rgba(18, 40, 65, 0.12);
 }
 
+.pdf-load-progress {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  top: 50%;
+  width: min(420px, calc(100% - 48px));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.pdf-load-progress-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid rgba(36, 33, 29, 0.14);
+  border-radius: var(--radius-md);
+  background: rgba(255, 254, 250, 0.94);
+  box-shadow: 0 18px 46px rgba(36, 33, 29, 0.1);
+  backdrop-filter: blur(16px);
+}
+
+.pdf-load-progress-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pdf-load-progress-copy strong {
+  color: var(--ds-ink);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.pdf-load-progress-copy span {
+  color: var(--ds-ink-3);
+  font-size: 12px;
+}
+
+.pdf-load-progress-track {
+  grid-column: 1 / -1;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 0;
+  background: rgba(36, 33, 29, 0.08);
+}
+
+.pdf-load-progress-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ds-accent), #d69a77);
+  transition: width 180ms ease;
+}
+
 .annotation-layer {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+  height: 100%;
   z-index: 4;
   pointer-events: none;
 }
@@ -8486,16 +8928,16 @@ textarea:focus-visible,
     0 10px 20px rgba(17, 37, 70, 0.18);
 }
 
-.annotation-shape.color-red .annotation-badge {
-  background: #b92822;
+.annotation-shape.status-open .annotation-badge {
+  background: #9f352b;
 }
 
-.annotation-shape.color-amber .annotation-badge {
-  background: #9f5a0d;
+.annotation-shape.status-in_progress .annotation-badge {
+  background: #75510f;
 }
 
-.annotation-shape.color-blue .annotation-badge {
-  background: #1559bd;
+.annotation-shape.status-resolved .annotation-badge {
+  background: #2f6f50;
 }
 
 .annotation-chip {
@@ -8606,38 +9048,31 @@ textarea:focus-visible,
 
 .annotation-actions {
   position: absolute;
-  top: -26px;
-  right: -4px;
+  top: -33px;
+  right: -8px;
   z-index: 3;
   display: inline-flex;
-  gap: 3px;
+  gap: 5px;
   align-items: center;
-  flex-wrap: nowrap;
-  padding: 2px;
-  border: 1px solid rgba(191, 205, 223, 0.44);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(12px) saturate(138%);
 }
 
 .annotation-action-button {
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(191, 205, 223, 0.62);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.58);
   color: #556b85;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.76),
-    0 5px 12px rgba(17, 37, 70, 0.07);
+    0 8px 18px rgba(17, 37, 70, 0.08);
+  backdrop-filter: blur(14px) saturate(138%);
   cursor: pointer;
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
 }
@@ -8670,6 +9105,9 @@ textarea:focus-visible,
 .annotation-vector {
   position: absolute;
   inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
   overflow: visible;
 }
 
@@ -8705,27 +9143,6 @@ textarea:focus-visible,
   font-size: 11px;
   line-height: 1.45;
   word-break: break-word;
-}
-
-.annotation-note-editor {
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 46px;
-  max-height: 118px;
-  padding: 6px 8px;
-  border: 1px solid rgba(191, 205, 223, 0.72);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--ink);
-  font: inherit;
-  resize: vertical;
-  outline: none;
-  pointer-events: auto;
-}
-
-.annotation-note-editor:focus {
-  border-color: currentColor;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.82);
 }
 
 .review-footer {
@@ -9465,13 +9882,6 @@ button.attachment-link.button-link:disabled {
   gap: 12px;
 }
 
-.upload-task-actions {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .upload-task-copy {
   min-width: 0;
   display: grid;
@@ -9503,12 +9913,6 @@ button.attachment-link.button-link:disabled {
   background: #fff;
   color: var(--text);
   font-size: 11px;
-}
-
-.upload-task-cancel.subtle {
-  min-width: 46px;
-  background: rgba(255, 255, 255, 0.58);
-  color: var(--muted);
 }
 
 .upload-task-progress-track {
@@ -10062,12 +10466,40 @@ body.review-immersive {
 }
 
 .workspace.review-immersive .review-panel .stack-section {
-  padding: 18px 20px;
+  padding: 14px 16px;
 }
 
 .workspace.review-immersive .review-panel .stack-section + .stack-section {
   margin-top: 0;
-  padding-top: 18px;
+  padding-top: 14px;
+}
+
+.workspace.review-immersive #workflowPanel .workflow-actions,
+.workspace.review-immersive #reviewPanel .workflow-actions {
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.workspace.review-immersive #workflowActions .action-button,
+.workspace.review-immersive #workflowPanel .workflow-actions .primary-button,
+.workspace.review-immersive #workflowPanel .workflow-actions .ghost-button {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 30px;
+  overflow: hidden;
+  padding: 0 9px;
+  border-radius: 2px;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace.review-immersive #workflowActions [data-action="submitToApprover"],
+.workspace.review-immersive #workflowActions [data-action="approveFlow"],
+.workspace.review-immersive #workflowPanel .workflow-actions #startFlowButton {
+  flex-grow: 1.35;
 }
 
 .workspace.review-immersive.review-fullscreen .content-grid.review-view {
@@ -10177,6 +10609,19 @@ body.review-immersive {
     width: min(760px, calc(100vw - 32px));
   }
 
+  .acc-shared-auth-guide {
+    grid-template-columns: 1fr;
+  }
+
+  .acc-import-toolbar,
+  .acc-import-item {
+    grid-template-columns: 1fr;
+  }
+
+  .acc-import-item-icon {
+    display: none;
+  }
+
   .version-manager-dialog {
     width: min(1000px, calc(100vw - 32px));
   }
@@ -10227,6 +10672,15 @@ body.review-immersive {
     grid-template-columns: 1fr;
   }
 
+  .global-user-project-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .global-user-project-row .ghost-button {
+    justify-self: stretch;
+  }
+
   .workflow-launch-steps,
   .workflow-template-manager-layout,
   .workflow-template-autoexport {
@@ -10241,6 +10695,17 @@ body.review-immersive {
   .workflow-choice-grid,
   .workflow-option-grid {
     grid-template-columns: 1fr;
+  }
+
+  .workflow-template-save-feedback {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .workflow-template-save-meta {
+    grid-column: 2;
+    justify-self: start;
+    max-width: 100%;
+    text-align: left;
   }
 
   .access-layout,
@@ -11354,6 +11819,7 @@ textarea:disabled,
   .row-action-button,
   .table-tool-button,
   .comment-card-action,
+  .annotation-action-button,
   .upload-progress-action,
   .review-page-floater .pager-button {
     min-width: 44px;
@@ -12300,6 +12766,10 @@ button[aria-busy="true"]::after {
   box-shadow: 0 30px 80px rgba(9, 26, 50, 0.26);
 }
 
+.action-dialog-card.is-folder-picker-dialog {
+  width: min(760px, calc(100vw - 40px));
+}
+
 .action-dialog-kicker {
   margin: 0;
   color: var(--text-dim);
@@ -12406,6 +12876,50 @@ button[aria-busy="true"]::after {
   background: rgba(217, 74, 66, 0.13);
   border-color: rgba(217, 74, 66, 0.34);
   color: #8f2d28;
+}
+
+.action-folder-picker {
+  display: grid;
+  gap: 12px;
+}
+
+.action-folder-picker-tree {
+  max-height: min(420px, 48vh);
+  overflow: auto;
+  display: grid;
+  gap: 7px;
+  padding: 4px;
+}
+
+.action-folder-picker-tree::-webkit-scrollbar {
+  width: 8px;
+}
+
+.action-folder-picker-tree::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(38, 48, 62, 0.18);
+}
+
+.action-folder-picker-row {
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.action-folder-picker-row:hover {
+  transform: translateY(-1px);
+}
+
+.action-folder-picker-row.disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.action-folder-picker-row.disabled:hover {
+  transform: none;
+}
+
+.action-folder-picker-row:focus-visible {
+  outline: 2px solid rgba(35, 125, 240, 0.32);
+  outline-offset: 2px;
 }
 
 .workflow-detail-file,
@@ -13177,7 +13691,6 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
 .annotation-detail-body {
   gap: 12px;
   margin-top: 0;
-  padding-bottom: 14px;
 }
 
 .annotation-status-row {
@@ -13250,7 +13763,7 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
 }
 
 .annotation-description-input {
-  min-height: 72px;
+  min-height: 92px;
   margin-top: 4px;
 }
 
@@ -13271,7 +13784,7 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
 
 .evidence-card.attachment-block,
 .compact-attachment-block.attachment-block {
-  padding: 12px;
+  padding: 14px;
   background: rgba(248, 251, 255, 0.82);
 }
 
@@ -13294,32 +13807,18 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
 
 .annotation-sticky-actions {
   position: static;
-  z-index: 3;
-  margin: 4px 0 0;
-  padding: 10px 0 0;
-  border-top: 1px solid rgba(210, 222, 236, 0.7);
+  margin: 2px 0 0;
+  padding: 0;
+  border-top: 0;
   background: transparent;
   backdrop-filter: none;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  align-items: center;
-  justify-content: stretch;
-  flex-wrap: nowrap;
+  justify-content: space-between;
 }
 
 .annotation-sticky-actions .primary-button,
 .annotation-sticky-actions .ghost-button {
-  width: 100%;
-  min-width: 0;
-  min-height: 30px;
-  padding: 0 4px;
-  border-radius: 2px;
-  font-size: 11px;
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-height: 40px;
+  border-radius: 13px;
 }
 
 .discussion-section .card-list {
@@ -13333,14 +13832,14 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
 
 .compact-reply-composer {
   margin-top: 12px;
-  padding: 10px;
+  padding: 12px;
   border-radius: 20px;
   border: 1px solid rgba(201, 213, 229, 0.78);
   background: rgba(255, 255, 255, 0.82);
 }
 
 .compact-reply-composer .reply-input {
-  min-height: 64px;
+  min-height: 80px;
   margin-top: 0;
 }
 
@@ -13481,7 +13980,7 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
 }
 
 .evidence-disclosure .evidence-toolbar {
-  padding: 8px;
+  padding: 10px;
   border-top: 1px solid rgba(210, 222, 236, 0.7);
   background: rgba(248, 251, 255, 0.72);
 }
@@ -13567,8 +14066,7 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
 }
 
 .review-footer-meta {
-  flex: 1 1 auto;
-  min-width: 0;
+  display: none !important;
 }
 
 .footer-note {
@@ -13579,7 +14077,7 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
 
 .review-footer-actions {
   min-width: 0;
-  flex: 0 1 auto;
+  flex: 1 1 100%;
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;
@@ -26990,7 +27488,8 @@ button,
 }
 
 .content-grid.files-only .summary-strip-panel,
-#fileSummaryStrip.summary-strip-panel {
+#fileSummaryStrip.summary-strip-panel,
+#workflowSummaryStrip.workflow-summary-strip {
   gap: 0 !important;
   overflow: hidden !important;
   border: 1px solid var(--ds-hairline) !important;
@@ -27000,7 +27499,8 @@ button,
   box-shadow: none !important;
 }
 
-#fileSummaryStrip .summary-card {
+#fileSummaryStrip .summary-card,
+#workflowSummaryStrip .summary-card {
   min-height: 108px !important;
   padding: 18px 22px !important;
   border: 0 !important;
@@ -27011,11 +27511,13 @@ button,
   box-shadow: none !important;
 }
 
-#fileSummaryStrip .summary-card:last-child {
+#fileSummaryStrip .summary-card:last-child,
+#workflowSummaryStrip .summary-card:last-child {
   border-right: 0 !important;
 }
 
-#fileSummaryStrip .summary-card span {
+#fileSummaryStrip .summary-card span,
+#workflowSummaryStrip .summary-card span {
   color: var(--ds-ink-3) !important;
   font-family: var(--ds-sans) !important;
   font-size: 12px !important;
@@ -27024,7 +27526,8 @@ button,
   text-transform: none !important;
 }
 
-#fileSummaryStrip .summary-card strong {
+#fileSummaryStrip .summary-card strong,
+#workflowSummaryStrip .summary-card strong {
   color: var(--ds-ink) !important;
   font-family: var(--ds-serif) !important;
   font-size: 34px !important;
@@ -27033,11 +27536,14 @@ button,
 }
 
 #fileSummaryStrip .summary-card.violet strong,
-#fileSummaryStrip .summary-card.amber strong {
+#fileSummaryStrip .summary-card.amber strong,
+#workflowSummaryStrip .summary-card.violet strong,
+#workflowSummaryStrip .summary-card.amber strong {
   color: var(--ds-accent-ink) !important;
 }
 
-#fileSummaryStrip .summary-card-icon {
+#fileSummaryStrip .summary-card-icon,
+#workflowSummaryStrip .summary-card-icon {
   display: none !important;
 }
 
@@ -27975,6 +28481,175 @@ button,
   border-bottom: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
+}
+
+/* ACC shared folder: remote mirrors must look different from native CDE
+   folders so users do not confuse browsing ACC with editing local folders. */
+.acc-shared-folder-node {
+  position: relative;
+}
+
+.acc-shared-folder-node::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #0db981;
+  box-shadow: 0 0 0 3px rgba(13, 185, 129, 0.12);
+  transform: translateY(4px);
+}
+
+.content-grid.files-only .folder-tree-icon.acc-shared,
+.content-grid.files-only .acc-remote-folder-glyph {
+  color: #0f766e !important;
+}
+
+.content-grid.files-only .folder-tree-icon.acc-shared::before,
+.content-grid.files-only .acc-remote-folder-glyph::before {
+  border-color: rgba(13, 148, 136, 0.74) !important;
+  background: rgba(240, 253, 250, 0.9) !important;
+}
+
+.content-grid.files-only .folder-tree-icon.acc-shared::after,
+.content-grid.files-only .acc-remote-folder-glyph::after {
+  border-color: rgba(13, 148, 136, 0.74) !important;
+  background: rgba(204, 251, 241, 0.9) !important;
+}
+
+.acc-shared-row {
+  background:
+    linear-gradient(90deg, rgba(13, 185, 129, 0.08), rgba(255, 255, 255, 0) 34%),
+    #fff !important;
+}
+
+.acc-shared-row .file-name-title {
+  gap: 9px;
+}
+
+.acc-remote-file-glyph {
+  background: rgba(13, 148, 136, 0.12) !important;
+  color: #0f766e !important;
+  border: 1px solid rgba(13, 148, 136, 0.18);
+}
+
+.external-acc-source {
+  background:
+    linear-gradient(90deg, rgba(13, 185, 129, 0.075), rgba(255, 255, 255, 0) 36%),
+    #fff !important;
+}
+
+.external-acc-source::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #14b8a6, #2563eb);
+}
+
+.acc-source-badge {
+  flex: 0 0 auto;
+  border-color: rgba(13, 148, 136, 0.18) !important;
+  background: rgba(240, 253, 250, 0.86) !important;
+  color: #0f766e !important;
+}
+
+.acc-shared-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: rgba(240, 253, 250, 0.72);
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.acc-shared-status-main {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.acc-shared-status-main strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acc-shared-status-main em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.acc-shared-status-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.acc-shared-status-strip.alert {
+  background: rgba(254, 242, 242, 0.78);
+  color: #b42318;
+}
+
+.acc-shared-status-strip.info {
+  background: rgba(239, 246, 255, 0.78);
+  color: #1d4ed8;
+}
+
+.acc-shared-empty .library-empty-icon.acc {
+  width: 46px;
+  height: 46px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(13, 148, 136, 0.12);
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.acc-shared-empty.needs-setup {
+  max-width: min(720px, 100%);
+}
+
+.acc-custom-hero {
+  align-items: center;
+  border-color: rgba(13, 148, 136, 0.18) !important;
+  background:
+    linear-gradient(135deg, rgba(240, 253, 250, 0.95), rgba(239, 246, 255, 0.9)),
+    #fff !important;
+}
+
+.acc-custom-hero strong {
+  color: #0f766e;
+}
+
+.acc-custom-flow-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.acc-custom-flow-grid .access-scope-card {
+  min-height: 118px;
+  border-color: rgba(13, 148, 136, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 980px) {
+  .acc-custom-flow-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -29636,203 +30311,6 @@ button,
   }
 }
 
-/* File row menu recovery: keep quick actions hover-triggered, but do not let
-   the final table/text overflow locks clip the More menu. */
-.content-grid.files-only .file-row:hover .row-actions,
-.content-grid.files-only .folder-row:hover .row-actions {
-  width: auto !important;
-  max-width: none !important;
-  gap: 4px !important;
-  clip: auto !important;
-  clip-path: none !important;
-  overflow: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  transform: none !important;
-}
-
-.content-grid.files-only .file-row.menu-open {
-  z-index: 180 !important;
-}
-
-.content-grid.files-only .file-row.menu-open > .file-name,
-.content-grid.files-only .file-row.menu-open .file-name-head,
-.content-grid.files-only .file-row.menu-open .row-actions,
-.content-grid.files-only .file-row.menu-open .row-menu-shell {
-  clip: auto !important;
-  clip-path: none !important;
-  overflow: visible !important;
-}
-
-.content-grid.files-only .file-row.menu-open .file-name-title,
-.content-grid.files-only .file-row.menu-open .file-name-label,
-.content-grid.files-only .file-row.menu-open .file-name > span {
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-
-.content-grid.files-only .file-row.menu-open .row-action-menu {
-  display: grid !important;
-  z-index: 240 !important;
-  min-width: 208px !important;
-  border: 1px solid var(--ds-hairline) !important;
-  border-radius: 2px !important;
-  background: var(--ds-paper) !important;
-  background-image: none !important;
-  box-shadow: 0 18px 38px rgba(40, 34, 25, 0.1) !important;
-}
-
-/* PDF review closeout: remove the remaining rounded blue cards and keep
-   annotation state presentation tied to the saved annotation status. */
-body.review-immersive,
-.shell.review-immersive,
-.workspace.review-immersive,
-.workspace.review-immersive .content-grid.review-view {
-  border-radius: 0 !important;
-  background: var(--ds-bg) !important;
-  background-image: none !important;
-}
-
-.workspace.review-immersive .content-grid.review-view {
-  overflow: hidden !important;
-}
-
-.workspace.review-immersive .files-panel,
-.workspace.review-immersive .viewer-panel,
-.workspace.review-immersive .review-panel {
-  border-radius: 0 !important;
-  border-color: var(--ds-hairline) !important;
-  background: var(--ds-paper) !important;
-  box-shadow: none !important;
-}
-
-.workspace.review-immersive .files-panel .ghost-button,
-.workspace.review-immersive .review-global-exit,
-.workspace.review-immersive .review-page-floater,
-.workspace.review-immersive .review-page-floater button,
-.workspace.review-immersive .review-page-floater span,
-.workspace.review-immersive .tool-button,
-.workspace.review-immersive .tool-chip,
-.workspace.review-immersive .status-pill,
-.workspace.review-immersive .mini-pill,
-.workspace.review-immersive .status-dot-chip,
-.workspace.review-immersive .annotation-status-pill,
-.workspace.review-immersive .comment-type-pill,
-.workspace.review-immersive .comment-card-action,
-.workspace.review-immersive .annotation-action-button,
-.workspace.review-immersive .annotation-attachment-badge,
-.workspace.review-immersive .detail-color-button,
-.workspace.review-immersive .attachment-action,
-.workspace.review-immersive .primary-button,
-.workspace.review-immersive .ghost-button {
-  border-radius: 2px !important;
-  box-shadow: none !important;
-}
-
-.workspace.review-immersive .review-annotation-sidebar,
-.workspace.review-immersive .review-thumb-list {
-  padding: 14px 16px 18px !important;
-  background: var(--ds-paper) !important;
-}
-
-.workspace.review-immersive .comment-card,
-.workspace.review-immersive .thumb-card,
-.workspace.review-immersive .annotation-status-row,
-.workspace.review-immersive .metadata-field,
-.workspace.review-immersive .metadata-field .text-input,
-.workspace.review-immersive .annotation-workbench-card,
-.workspace.review-immersive .annotation-empty-state,
-.workspace.review-immersive .attachment-block,
-.workspace.review-immersive .evidence-disclosure,
-.workspace.review-immersive .evidence-disclosure summary,
-.workspace.review-immersive .compact-reply-composer,
-.workspace.review-immersive .document-remarks-disclosure,
-.workspace.review-immersive .document-remarks-disclosure summary,
-.workspace.review-immersive .review-panel .compact-empty,
-.workspace.review-immersive .text-input,
-.workspace.review-immersive .text-area,
-.workspace.review-immersive textarea,
-.workspace.review-immersive input {
-  border-radius: 2px !important;
-  box-shadow: none !important;
-}
-
-.workspace.review-immersive .comment-card,
-.workspace.review-immersive .thumb-card {
-  border: 1px solid var(--ds-hairline) !important;
-  background: var(--ds-paper) !important;
-}
-
-.workspace.review-immersive .comment-card.selected,
-.workspace.review-immersive .thumb-card.active {
-  border-color: var(--ds-accent) !important;
-  background: var(--ds-bg) !important;
-  box-shadow: inset 2px 0 0 var(--ds-accent) !important;
-}
-
-.workspace.review-immersive .comment-index {
-  border-radius: 2px !important;
-  background: var(--ds-accent) !important;
-  color: var(--ds-paper) !important;
-  box-shadow: none !important;
-}
-
-.workspace.review-immersive .comment-card-action {
-  width: 28px !important;
-  height: 28px !important;
-  border: 1px solid var(--ds-hairline) !important;
-  background: var(--ds-paper) !important;
-  color: var(--ds-ink-2) !important;
-  font-weight: 600 !important;
-}
-
-.workspace.review-immersive .annotation-actions {
-  top: -24px !important;
-  right: -4px !important;
-  gap: 2px !important;
-  padding: 2px !important;
-  border: 1px solid var(--ds-hairline) !important;
-  border-radius: 2px !important;
-  background: color-mix(in srgb, var(--ds-paper) 82%, transparent) !important;
-  box-shadow: none !important;
-}
-
-.workspace.review-immersive .annotation-action-button {
-  width: 22px !important;
-  height: 22px !important;
-  min-width: 22px !important;
-  min-height: 22px !important;
-  border: 1px solid var(--ds-hairline) !important;
-  background: var(--ds-paper) !important;
-  color: var(--ds-ink-2) !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-}
-
-.workspace.review-immersive .comment-card-action:hover:not(:disabled),
-.workspace.review-immersive .comment-card-action:focus-visible,
-.workspace.review-immersive .annotation-action-button:hover:not(:disabled),
-.workspace.review-immersive .annotation-action-button:focus-visible {
-  border-color: var(--ds-ink-3) !important;
-  background: var(--ds-panel) !important;
-  color: var(--ds-ink) !important;
-  transform: none !important;
-}
-
-.workspace.review-immersive .annotation-status-row,
-.workspace.review-immersive .metadata-field,
-.workspace.review-immersive .annotation-workbench-card,
-.workspace.review-immersive .annotation-empty-state,
-.workspace.review-immersive .attachment-block,
-.workspace.review-immersive .document-remarks-disclosure {
-  border: 1px solid var(--ds-hairline) !important;
-  background: var(--ds-paper) !important;
-  background-image: none !important;
-}
-
-.workspace.review-immersive .review-doc-card,
-.workspace.review-immersive .review-footer,
 .workspace.review-immersive .report-check,
 .workspace.review-immersive .report-preview-card,
 .workspace.review-immersive .report-summary-item,
@@ -29868,7 +30346,7 @@ body.review-immersive,
 
 .workspace.review-immersive .annotation-workbench-card,
 .workspace.review-immersive .attachment-block {
-  padding: 12px !important;
+  padding: 14px !important;
 }
 
 .workspace.review-immersive .annotation-status-auto .mini-pill,
@@ -29915,57 +30393,28 @@ body.review-immersive,
 }
 
 .workspace.review-immersive .color-swatch-button[data-toolbar-color="red"].active,
-.workspace.review-immersive .detail-color-button[data-detail-color="red"].active {
+.workspace.review-immersive .color-swatch-button[data-color="red"].active {
   border-color: var(--review-anno-red-border) !important;
   background: var(--review-anno-red-soft) !important;
   color: var(--review-anno-red) !important;
 }
 
 .workspace.review-immersive .color-swatch-button[data-toolbar-color="amber"].active,
-.workspace.review-immersive .detail-color-button[data-detail-color="amber"].active {
+.workspace.review-immersive .color-swatch-button[data-color="amber"].active {
   border-color: var(--review-anno-amber-border) !important;
   background: var(--review-anno-amber-soft) !important;
   color: var(--review-anno-amber) !important;
 }
 
 .workspace.review-immersive .color-swatch-button[data-toolbar-color="blue"].active,
-.workspace.review-immersive .detail-color-button[data-detail-color="blue"].active {
+.workspace.review-immersive .color-swatch-button[data-color="blue"].active {
   border-color: var(--review-anno-blue-border) !important;
   background: var(--review-anno-blue-soft) !important;
   color: var(--review-anno-blue) !important;
 }
 
-.workspace.review-immersive .color-swatch-button:disabled,
-.workspace.review-immersive .detail-color-button:disabled {
+.workspace.review-immersive .color-swatch-button:disabled {
   opacity: 0.72 !important;
-}
-
-.workspace.review-immersive .detail-color-button {
-  gap: 6px !important;
-  border: 1px solid var(--ds-hairline) !important;
-  background: var(--ds-paper) !important;
-  color: var(--ds-ink-2) !important;
-}
-
-.workspace.review-immersive .detail-color-button::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.84);
-}
-
-.workspace.review-immersive .detail-color-button[data-detail-color="red"]::before {
-  background: var(--review-anno-red);
-}
-
-.workspace.review-immersive .detail-color-button[data-detail-color="amber"]::before {
-  background: var(--review-anno-amber);
-}
-
-.workspace.review-immersive .detail-color-button[data-detail-color="blue"]::before {
-  background: var(--review-anno-blue);
 }
 
 .workspace.review-immersive .annotation-shape.color-red {
@@ -29980,16 +30429,16 @@ body.review-immersive,
   color: var(--review-anno-blue) !important;
 }
 
-.workspace.review-immersive .annotation-shape.color-red .annotation-badge {
-  background: var(--review-anno-red) !important;
+.workspace.review-immersive .annotation-shape.status-open .annotation-badge {
+  background: #9f352b !important;
 }
 
-.workspace.review-immersive .annotation-shape.color-amber .annotation-badge {
-  background: var(--review-anno-amber) !important;
+.workspace.review-immersive .annotation-shape.status-in_progress .annotation-badge {
+  background: #75510f !important;
 }
 
-.workspace.review-immersive .annotation-shape.color-blue .annotation-badge {
-  background: var(--review-anno-blue) !important;
+.workspace.review-immersive .annotation-shape.status-resolved .annotation-badge {
+  background: #2f6f50 !important;
 }
 
 .workspace.review-immersive .zoom-cluster {
@@ -30034,34 +30483,24 @@ body.review-immersive,
   padding: 0 10px !important;
 }
 
-.workspace.review-immersive .annotation-sticky-actions {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 4px !important;
-  position: static !important;
-  margin: 4px 0 0 !important;
-  padding-top: 10px !important;
-  background: transparent !important;
-  backdrop-filter: none !important;
-  flex-wrap: nowrap !important;
-}
-
-.workspace.review-immersive .annotation-sticky-actions .primary-button,
-.workspace.review-immersive .annotation-sticky-actions .ghost-button {
-  width: 100% !important;
-  min-width: 0 !important;
-  min-height: 30px !important;
-  padding: 0 4px !important;
-  font-size: 11px !important;
-  line-height: 1 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
 .workspace.review-immersive .pdf-canvas {
   border-radius: 0 !important;
   box-shadow: 0 18px 42px rgba(40, 34, 25, 0.1) !important;
+}
+
+/*
+   CDE final radius consolidation.
+   Keep the production shell square and dense after legacy module styles load.
+*/
+.summary-card,
+.drawing-register-overview-card,
+.comment-card,
+.workflow-panel,
+.files-panel,
+.access-panel,
+.drawing-apps-panel,
+.model-apps-panel {
+  border-radius: 0 !important;
 }
 
 /*
@@ -30074,10 +30513,20 @@ body.review-immersive,
   .workspace:not(.review-immersive) > .summary-strip,
   .workspace:not(.review-immersive) > .content-grid.workflow-view,
   .workspace:not(.review-immersive) > .content-grid.files-only {
-    width: min(calc(100% - 96px), 1480px) !important;
-    max-width: 1480px !important;
+    width: min(calc(100% - 132px), 1580px) !important;
+    max-width: 1580px !important;
     margin-right: auto !important;
     margin-left: auto !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .workspace:not(.review-immersive) > .summary-strip > .summary-strip-panel,
+  .workspace:not(.review-immersive) > .summary-strip > .workflow-summary-strip {
+    width: 100% !important;
+    max-width: none !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
     box-sizing: border-box !important;
   }
 
@@ -30094,5 +30543,543 @@ body.review-immersive,
   .content-grid.files-only .doc-manager-layout,
   .content-grid.files-only .doc-manager-layout.library-mode {
     grid-template-columns: minmax(210px, 260px) minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .workspace:not(.review-immersive) > .summary-strip,
+  .workspace:not(.review-immersive) > .content-grid.workflow-view,
+  .workspace:not(.review-immersive) > .content-grid.files-only {
+    width: min(calc(100% - 24px), 1580px) !important;
+    max-width: min(calc(100% - 24px), 1580px) !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .workspace:not(.review-immersive) > .summary-strip > .summary-strip-panel,
+  .workspace:not(.review-immersive) > .summary-strip > .workflow-summary-strip,
+  .content-grid.workflow-view .workflow-panel,
+  .content-grid.workflow-view .workflow-board-section,
+  .content-grid.files-only .files-panel,
+  .content-grid.files-only .doc-manager-layout,
+  .content-grid.files-only .doc-manager-main,
+  .content-grid.files-only .folder-tree-panel {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .content-grid.files-only .doc-manager-layout,
+  .content-grid.files-only .doc-manager-layout.library-mode {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+#contentGrid.content-grid.files-only > #filesPanel.files-panel.library-shell {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#contentGrid.content-grid.files-only > #filesPanel.files-panel.library-shell > #fileManagerLayout.doc-manager-layout {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Row action menus are positioned against the viewport at runtime so they are
+   not clipped by dense table/header overflow rules on the file and workflow pages. */
+.row-action-menu.row-action-menu-floating {
+  position: fixed !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: 4200 !important;
+  max-width: min(260px, calc(100vw - 24px)) !important;
+  overscroll-behavior: contain !important;
+}
+
+.row-action-menu.row-action-menu-floating[data-placement="top"] {
+  transform-origin: right bottom !important;
+}
+
+.row-action-menu.row-action-menu-floating[data-placement="bottom"] {
+  transform-origin: right top !important;
+}
+
+.content-grid.files-only .doc-manager-main:has(.row-action-menu-floating),
+.content-grid.files-only .table-shell:has(.row-action-menu-floating),
+.content-grid.workflow-view .workflow-board-section:has(.row-action-menu-floating),
+.content-grid.workflow-view .workflow-board-list:has(.row-action-menu-floating) {
+  overflow: visible !important;
+}
+
+/* PDF review closeout: the canvas owns viewing/export controls, while workflow
+   transitions live only in the right review rail. */
+.workspace.review-immersive .viewer-panel {
+  grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+}
+
+.workspace.review-immersive .viewer-frame {
+  min-height: 0 !important;
+  overflow: auto !important;
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+.workspace.review-immersive .canvas-wrap {
+  box-sizing: border-box !important;
+  padding-bottom: 28px !important;
+}
+
+.workspace.review-immersive.review-fullscreen .canvas-wrap {
+  padding-bottom: 32px !important;
+}
+
+.workspace.review-immersive .review-footer {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  min-height: 0 !important;
+  padding: 8px 12px !important;
+  border-top: 1px solid var(--ds-hairline) !important;
+  background: var(--ds-paper) !important;
+  box-shadow: none !important;
+}
+
+.workspace.review-immersive .review-workflow-action-group,
+.workspace.review-immersive .review-workflow-action-note {
+  display: none !important;
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+}
+
+.workspace.review-immersive.review-fullscreen .review-footer {
+  display: none !important;
+}
+
+.workspace.review-immersive .review-footer-meta {
+  display: none !important;
+}
+
+.workspace.review-immersive .review-footer-actions {
+  gap: 6px !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 0 !important;
+  scrollbar-width: none !important;
+}
+
+.workspace.review-immersive .review-footer-actions::-webkit-scrollbar {
+  display: none !important;
+}
+
+.workspace.review-immersive .review-footer-actions .ghost-button,
+.workspace.review-immersive .review-footer-actions .primary-button,
+.workspace.review-immersive .review-footer-actions .danger-button,
+.workspace.review-immersive .review-footer-actions .export-link {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  border-radius: 2px !important;
+  font-size: 11px !important;
+  box-shadow: none !important;
+}
+
+.workspace.review-immersive.review-fullscreen .viewer-panel {
+  grid-template-rows: auto auto minmax(0, 1fr) !important;
+}
+
+.workspace.review-immersive.review-fullscreen .canvas-wrap {
+  padding-bottom: 32px !important;
+}
+
+.workspace.review-immersive .annotation-actions,
+.workspace.review-immersive .annotation-vector-chrome .annotation-actions {
+  z-index: 40 !important;
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.workspace.review-immersive .annotation-shape.pending .annotation-actions,
+.workspace.review-immersive .annotation-shape.selected .annotation-actions {
+  top: -36px !important;
+  right: -6px !important;
+}
+
+.workspace.review-immersive .annotation-action-button {
+  width: 28px !important;
+  height: 28px !important;
+  border: 1px solid var(--ds-hairline) !important;
+  border-radius: 2px !important;
+  background: var(--ds-paper) !important;
+  color: var(--ds-ink) !important;
+  box-shadow: 0 4px 10px rgba(40, 34, 25, 0.08) !important;
+  backdrop-filter: none !important;
+  font-size: 14px !important;
+}
+
+.workspace.review-immersive .annotation-action-button.save-action {
+  color: var(--ds-ok-ink) !important;
+}
+
+.workspace.review-immersive .annotation-action-button.delete-action {
+  color: var(--ds-red-ink) !important;
+}
+
+/* --------------------------------------------------------------------------
+   CDE UI closing pass 2026-05-06.
+   Scope this layer to non-review work pages: tighter reference header rhythm,
+   calmer metric rail, larger translucent row tools, and safer account/progress
+   stacking without touching business behavior.
+   -------------------------------------------------------------------------- */
+
+.workspace:not(.review-immersive) > .topbar {
+  min-height: 72px !important;
+  padding: 18px 44px !important;
+  gap: 20px !important;
+  border-bottom-color: color-mix(in srgb, var(--ds-hairline) 82%, var(--ds-ink) 18%) !important;
+}
+
+.workspace:not(.review-immersive) .topbar-copy .eyebrow {
+  font-size: 10px !important;
+  letter-spacing: 0.11em !important;
+}
+
+.workspace:not(.review-immersive) .project-switch-button {
+  min-height: 34px !important;
+  height: 34px !important;
+  gap: 8px !important;
+}
+
+.workspace:not(.review-immersive) .project-switch-current {
+  max-width: 260px !important;
+  min-height: 34px !important;
+  padding-inline: 13px 34px !important;
+  background: color-mix(in srgb, var(--ds-paper) 72%, var(--ds-bg) 28%) !important;
+  font-size: 12.5px !important;
+  line-height: 32px !important;
+}
+
+.workspace:not(.review-immersive) .header-tools {
+  gap: 18px !important;
+}
+
+.workspace:not(.review-immersive) .header-lang-toggle {
+  min-height: 34px !important;
+  height: 34px !important;
+  font-size: 10.5px !important;
+  letter-spacing: 0.12em !important;
+}
+
+.workspace:not(.review-immersive) .header-notify-button {
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  background: color-mix(in srgb, var(--ds-paper) 76%, transparent) !important;
+}
+
+.workspace:not(.review-immersive) .header-notify-button svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+@media (min-width: 861px) {
+  .workspace:not(.review-immersive) > .summary-strip,
+  .workspace:not(.review-immersive) > .content-grid.workflow-view,
+  .workspace:not(.review-immersive) > .content-grid.files-only {
+    width: min(calc(100% - 112px), 1600px) !important;
+    max-width: 1600px !important;
+  }
+}
+
+.workspace:not(.review-immersive) > .summary-strip {
+  margin-top: 22px !important;
+}
+
+.workspace:not(.review-immersive) > .content-grid.files-only,
+.workspace:not(.review-immersive) > .content-grid.workflow-view {
+  margin-top: 20px !important;
+}
+
+#fileSummaryStrip.summary-strip-panel,
+#workflowSummaryStrip.workflow-summary-strip {
+  border-color: color-mix(in srgb, var(--ds-hairline) 88%, var(--ds-ink) 12%) !important;
+}
+
+#fileSummaryStrip .summary-card,
+#workflowSummaryStrip .summary-card {
+  min-height: 94px !important;
+  padding: 15px 20px !important;
+}
+
+#fileSummaryStrip .summary-card span,
+#workflowSummaryStrip .summary-card span {
+  font-size: 11.5px !important;
+  color: var(--ds-ink-3) !important;
+}
+
+#fileSummaryStrip .summary-card strong,
+#workflowSummaryStrip .summary-card strong {
+  font-size: 30px !important;
+  line-height: 0.98 !important;
+}
+
+.content-grid.files-only .doc-manager-layout,
+.content-grid.files-only .doc-manager-layout.library-mode {
+  gap: 18px !important;
+}
+
+.content-grid.files-only .folder-tree-panel,
+.content-grid.files-only .doc-manager-main,
+.content-grid.workflow-view .workflow-board-section {
+  border-color: color-mix(in srgb, var(--ds-hairline) 88%, var(--ds-ink) 12%) !important;
+}
+
+.content-grid.files-only .table-head,
+.content-grid.files-only .file-row {
+  grid-template-columns:
+    minmax(300px, 2.36fr)
+    minmax(82px, 0.64fr)
+    minmax(92px, 0.72fr)
+    minmax(64px, 0.48fr)
+    minmax(58px, 0.42fr)
+    minmax(78px, 0.58fr)
+    minmax(72px, 0.54fr)
+    minmax(82px, 0.6fr)
+    minmax(78px, 0.58fr) !important;
+  min-width: 910px !important;
+}
+
+.content-grid.files-only .table-body {
+  min-width: 910px !important;
+}
+
+.content-grid.files-only .table-head {
+  min-height: 42px !important;
+}
+
+.content-grid.files-only .table-head > span {
+  padding: 12px 14px !important;
+}
+
+.content-grid.files-only .file-row {
+  min-height: 56px !important;
+}
+
+.content-grid.files-only .file-row > span,
+.content-grid.files-only .file-row > .file-name {
+  padding: 12px 14px !important;
+}
+
+.content-grid.workflow-view .workflow-board-table-head,
+.content-grid.workflow-view .workflow-board-row {
+  grid-template-columns:
+    minmax(360px, 3fr)
+    minmax(96px, 0.68fr)
+    minmax(112px, 0.76fr)
+    minmax(64px, 0.4fr)
+    minmax(130px, 0.88fr)
+    minmax(66px, 0.4fr)
+    minmax(66px, 0.4fr)
+    minmax(116px, 0.74fr)
+    minmax(102px, 0.64fr) !important;
+  min-width: 1112px !important;
+}
+
+.content-grid.workflow-view .workflow-board-table-head {
+  min-height: 42px !important;
+}
+
+.content-grid.workflow-view .workflow-board-table-head > span {
+  padding: 12px 18px !important;
+}
+
+.content-grid.workflow-view .workflow-board-row {
+  min-height: 62px !important;
+}
+
+.content-grid.workflow-view .workflow-row-primary,
+.content-grid.workflow-view .workflow-cell {
+  padding: 13px 18px !important;
+}
+
+.workspace:not(.review-immersive) .row-actions,
+.workspace:not(.review-immersive) .content-grid.files-only .row-actions,
+.workspace:not(.review-immersive) .content-grid.workflow-view .row-actions {
+  gap: 5px !important;
+}
+
+.workspace:not(.review-immersive) .row-action-button,
+.workspace:not(.review-immersive) .content-grid.files-only .row-action-button,
+.workspace:not(.review-immersive) .content-grid.workflow-view .row-action-button,
+.workspace:not(.review-immersive) .workflow-row-actions .row-action-button {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border-radius: 2px !important;
+  border-color: color-mix(in srgb, var(--ds-hairline) 72%, transparent) !important;
+  background: color-mix(in srgb, var(--ds-paper) 72%, transparent) !important;
+  color: color-mix(in srgb, var(--ds-ink) 70%, var(--ds-ink-3) 30%) !important;
+  box-shadow: none !important;
+}
+
+.workspace:not(.review-immersive) .row-action-button.row-action-button-more,
+.workspace:not(.review-immersive) .workflow-row-actions .row-action-button.row-action-button-more,
+.workspace:not(.review-immersive) .row-actions .row-action-button.row-action-button-more {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+}
+
+.workspace:not(.review-immersive) .row-action-button:hover,
+.workspace:not(.review-immersive) .row-action-button:focus-visible,
+.workspace:not(.review-immersive) .row-action-button.active,
+.workspace:not(.review-immersive) .row-action-button.primary:hover,
+.workspace:not(.review-immersive) .row-action-button.primary:focus-visible {
+  border-color: color-mix(in srgb, var(--ds-ink) 26%, var(--ds-hairline) 74%) !important;
+  background: color-mix(in srgb, var(--ds-paper) 88%, var(--ds-accent-bg) 12%) !important;
+  color: var(--ds-ink) !important;
+  transform: none !important;
+}
+
+.workspace:not(.review-immersive) .row-action-button.primary {
+  border-color: color-mix(in srgb, var(--ds-accent) 26%, var(--ds-hairline) 74%) !important;
+  background: color-mix(in srgb, var(--ds-accent-bg) 34%, var(--ds-paper) 66%) !important;
+  color: var(--ds-accent-ink) !important;
+}
+
+.workspace:not(.review-immersive) .row-action-button:disabled {
+  opacity: 0.46 !important;
+  filter: saturate(0.75) !important;
+}
+
+.workspace:not(.review-immersive) .row-action-icon,
+.workspace:not(.review-immersive) .row-menu-item .row-action-icon {
+  width: 16px !important;
+  height: 16px !important;
+  stroke-width: 1.45 !important;
+}
+
+.workspace:not(.review-immersive) .row-action-menu {
+  min-width: 204px !important;
+  max-width: 248px !important;
+  padding: 6px !important;
+  border-color: color-mix(in srgb, var(--ds-hairline) 82%, var(--ds-ink) 18%) !important;
+  border-radius: 2px !important;
+  background: color-mix(in srgb, var(--ds-paper) 96%, transparent) !important;
+  box-shadow: 0 14px 30px rgba(40, 34, 25, 0.11) !important;
+}
+
+.workspace:not(.review-immersive) .row-menu-item {
+  min-height: 34px !important;
+  padding: 8px 10px !important;
+  border-radius: 2px !important;
+}
+
+.workspace:not(.review-immersive) .row-menu-item span {
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+}
+
+.sidebar-user {
+  padding: 18px 24px 20px !important;
+}
+
+.sidebar-user-trigger {
+  min-height: 60px !important;
+  grid-template-columns: 40px minmax(0, 1fr) auto !important;
+  gap: 12px !important;
+}
+
+.sidebar-user-avatar {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 17px !important;
+}
+
+.sidebar-user-menu {
+  left: 24px !important;
+  right: 24px !important;
+  bottom: calc(100% + 10px) !important;
+  z-index: 4300 !important;
+}
+
+.sidebar-user-menu-item {
+  min-height: 36px !important;
+  padding: 0 11px !important;
+  font-size: 12px !important;
+}
+
+.upload-progress-dock {
+  z-index: 36 !important;
+  bottom: 112px !important;
+}
+
+@media (min-width: 1041px) {
+  .upload-progress-dock.is-collapsed {
+    left: 24px !important;
+    bottom: 112px !important;
+    width: 184px !important;
+    max-width: 184px !important;
+  }
+
+  .upload-progress-dock.is-collapsed .upload-progress-collapsed {
+    min-height: 38px !important;
+    padding: 6px 9px !important;
+    background: color-mix(in srgb, var(--ds-paper) 84%, transparent) !important;
+  }
+
+  .upload-progress-dock.is-collapsed .upload-progress-collapsed-icon {
+    width: 24px !important;
+    height: 24px !important;
+  }
+}
+
+.profile-center-dialog {
+  border-radius: 2px !important;
+  border-color: color-mix(in srgb, var(--ds-hairline) 82%, var(--ds-ink) 18%) !important;
+  box-shadow: 0 18px 48px rgba(40, 34, 25, 0.16) !important;
+}
+
+.profile-center-layout {
+  grid-template-columns: 150px minmax(0, 1fr) !important;
+  gap: 16px !important;
+}
+
+.profile-center-tab {
+  min-height: 38px !important;
+  padding: 0 11px !important;
+  border-radius: 2px !important;
+  background: var(--ds-paper) !important;
+  color: var(--ds-ink-2) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.profile-center-tab:hover,
+.profile-center-tab.active {
+  border-color: var(--ds-ink) !important;
+  background: var(--ds-bg) !important;
+  color: var(--ds-ink) !important;
+}
+
+@media (max-width: 980px) {
+  .workspace:not(.review-immersive) > .topbar {
+    padding: 16px 22px !important;
+  }
+
+  #fileSummaryStrip .summary-card,
+  #workflowSummaryStrip .summary-card {
+    min-height: 86px !important;
   }
 }

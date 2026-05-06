@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CDE文件管理系统</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles-critical.css?v=20260429-acc-custom-integration" />
+    <link rel="modulepreload" href="./auth-bootstrap.js?v=20260429-acc-custom-integration" />
   </head>
   <body>
     <div id="authShell" class="auth-shell">
@@ -144,7 +145,7 @@
             <div class="sidebar-user-copy">
               <strong id="sidebarUserName">管理员</strong>
               <span id="sidebarUserRole">超级管理员</span>
-              <span id="sidebarUserEmail" class="sidebar-user-email">admin@cde.local</span>
+              <span id="sidebarUserEmail" class="sidebar-user-email">--</span>
             </div>
             <span class="sidebar-user-caret" aria-hidden="true">⌄</span>
           </button>
@@ -325,6 +326,7 @@
                       <div class="upload-action-group">
                         <button id="uploadButton" class="upload-button" type="button">上传文件</button>
                         <button id="uploadFolderButton" class="ghost-button compact-button" type="button">上传文件夹</button>
+                        <button id="importAccButton" class="ghost-button compact-button" type="button">ACC 文件接入</button>
                         <input id="fileInput" class="hidden-file-input" type="file" multiple tabindex="-1" aria-hidden="true" hidden />
                         <input id="folderInput" class="hidden-file-input" type="file" multiple webkitdirectory directory tabindex="-1" aria-hidden="true" hidden />
                       </div>
@@ -408,220 +410,6 @@
               </div>
             </div>
 
-            <div id="reviewNavigator" class="review-navigator hidden">
-              <div id="reviewDocSummary" class="review-doc-summary"></div>
-
-              <div class="review-side-tabs">
-                <button class="review-side-tab active" data-review-tab="annotations">
-                  批注列表
-                  <span id="annotationTabBadge" class="tab-badge">0</span>
-                </button>
-                <button class="review-side-tab" data-review-tab="thumbnails">缩略图</button>
-              </div>
-
-              <section id="reviewAnnotationSidebar" class="review-annotation-sidebar">
-                <div class="review-filter-row">
-                  <select id="annotationFilter" class="text-input compact-select">
-                    <option value="all">全部批注</option>
-                    <option value="current_page">当前页</option>
-                    <option value="open">未解决</option>
-                    <option value="in_progress">进行中</option>
-                    <option value="resolved">已解决</option>
-                  </select>
-                </div>
-                <div id="reviewAnnotationSidebarList" class="review-comment-list"></div>
-              </section>
-
-              <div id="reviewThumbList" class="review-thumb-list hidden"></div>
-            </div>
-          </section>
-
-          <section id="viewerPanel" class="panel viewer-panel hidden">
-            <div class="review-document-header">
-              <div class="review-header-copy">
-                <p id="reviewProjectLine" class="review-project-line">CSD Project / Drawing Review Workspace</p>
-                <div class="review-headline">
-                  <h3 id="documentTitle">请选择一份图纸 PDF</h3>
-                  <span id="documentVersion" class="version-badge">V1</span>
-                  <span id="documentStatus" class="status-pill neutral">未选择</span>
-                </div>
-                <p id="documentMeta" class="document-meta">文件上传后，这里会显示图纸按页预览，并在审阅工作台中完成图面批注。</p>
-              </div>
-
-              <div class="review-header-side">
-                <div class="review-header-page-chip">
-                  <span class="page-chip-label">页码</span>
-                  <span id="documentPageSummary" class="mini-pill">1 / 1</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="viewer-toolbar review-toolbar">
-              <div class="tool-ribbon">
-                <div class="tool-cluster zoom-cluster">
-                  <button id="zoomOutButton" class="tool-chip toolbar-wide-chip icon-only-button" type="button" aria-label="缩小" title="缩小">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M5 12h14" />
-                    </svg>
-                  </button>
-                  <input
-                    id="zoomIndicator"
-                    class="tool-chip static-chip toolbar-wide-chip zoom-input"
-                    type="text"
-                    inputmode="decimal"
-                    value="100%"
-                    aria-label="缩放百分比"
-                    title="缩放百分比"
-                  />
-                  <button id="zoomInButton" class="tool-chip toolbar-wide-chip icon-only-button" type="button" aria-label="放大" title="放大">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M12 5v14m-7-7h14" />
-                    </svg>
-                  </button>
-                  <button id="fitViewButton" class="ghost-button compact-button toolbar-action toolbar-wide-chip icon-only-button" type="button" aria-label="进入全屏" title="进入全屏">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2" />
-                    </svg>
-                  </button>
-                </div>
-
-                <span class="tool-separator" aria-hidden="true"></span>
-
-                <div class="tool-cluster review-mode-cluster">
-                  <button id="annotationModeButton" class="ghost-button toolbar-action toolbar-wide-chip icon-only-button" type="button" aria-label="选择工具" title="选择工具">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M7.904 17.563a1.2 1.2 0 0 0 2.228.308l2.09-3.093l4.907 4.907a1.067 1.067 0 0 0 1.509 0l1.047-1.047a1.067 1.067 0 0 0 0-1.509l-4.907-4.907l3.113-2.09a1.2 1.2 0 0 0-.309-2.228L4 4z" />
-                    </svg>
-                  </button>
-                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="hand" type="button" aria-label="平移" title="平移">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M8 13V4.5a1.5 1.5 0 0 1 3 0V12m0-.5v-2a1.5 1.5 0 0 1 3 0V12m0-1.5a1.5 1.5 0 0 1 3 0V12" />
-                      <path d="M17 11.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2h.208a6 6 0 0 1-5.012-2.7L7 19q-.468-.718-3.286-5.728a1.5 1.5 0 0 1 .536-2.022a1.87 1.87 0 0 1 2.28.28L8 13M2.541 5.594a13.5 13.5 0 0 1 2.46-1.427M14 3.458a13.4 13.4 0 0 1 3.685 1.612" />
-                    </svg>
-                  </button>
-                  <button class="tool-button toolbar-wide-chip icon-only-button" data-tool="pen" type="button" aria-label="铅笔/手绘" title="铅笔/手绘">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4" />
-                    </svg>
-                  </button>
-                  <button class="tool-button toolbar-wide-chip icon-only-button" data-tool="note" type="button" aria-label="文本注释" title="文本注释">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M6 5h12" />
-                      <path d="M12 5v14" />
-                    </svg>
-                  </button>
-                  <button class="tool-button toolbar-wide-chip icon-only-button active" data-tool="circle" type="button" aria-label="点批注" title="点批注">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0" />
-                      <path d="M7 12a5 5 0 1 0 10 0a5 5 0 1 0-10 0" />
-                      <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0" />
-                    </svg>
-                  </button>
-                  <button class="tool-button toolbar-wide-chip icon-only-button has-caret" data-tool="line" type="button" aria-label="箭头/引线" title="箭头/引线">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M3 19a2 2 0 1 0 4 0a2 2 0 1 0-4 0m4 0h3a2 2 0 0 0 2-2V9a2 2 0 0 1 2-2h7" />
-                      <path d="m18 4l3 3l-3 3" />
-                    </svg>
-                    <span class="tool-mini-caret" aria-hidden="true"></span>
-                  </button>
-                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="comment" type="button" aria-label="批注卡片" title="批注卡片">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M6 5h9l3 3v11H6z" />
-                      <path d="M15 5v4h4" />
-                    </svg>
-                  </button>
-                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="clipboard" type="button" aria-label="剪贴板" title="剪贴板">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M9 4h6" />
-                      <path d="M9 6H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2" />
-                      <path d="M9 4a1 1 0 0 0-1 1v1h8V5a1 1 0 0 0-1-1z" />
-                    </svg>
-                  </button>
-                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="mention" type="button" aria-label="提及用户" title="提及用户">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0-8 0" />
-                      <path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-5.5 8.28" />
-                    </svg>
-                  </button>
-                </div>
-
-                <span class="tool-separator" aria-hidden="true"></span>
-
-                <div class="tool-cluster review-asset-cluster">
-                  <button class="tool-faux-button toolbar-wide-chip icon-only-button" data-faux-tool="attach" type="button" aria-label="附件" title="附件">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="m9 12.5 5.17-5.17a3 3 0 1 1 4.24 4.24l-7.07 7.07a5 5 0 0 1-7.07-7.07l7.78-7.78" />
-                    </svg>
-                  </button>
-                  <button class="tool-button toolbar-wide-chip icon-only-button" data-tool="mark" type="button" aria-label="矩形标记" title="矩形标记">
-                    <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M5 7h10" />
-                      <path d="M9 17h10" />
-                      <path d="M6 18L18 6" />
-                    </svg>
-                  </button>
-                </div>
-
-                <span class="tool-separator" aria-hidden="true"></span>
-
-                <div id="toolbarColorGroup" class="tool-cluster color-tools">
-                  <button class="color-swatch-button active" data-toolbar-color="red" type="button" aria-label="红色" title="红色">
-                    <span class="color-dot red" aria-hidden="true"></span>
-                    <span class="tool-mini-caret" aria-hidden="true"></span>
-                  </button>
-                  <button class="color-swatch-button" data-toolbar-color="amber" type="button" aria-label="琥珀" title="琥珀">
-                    <span class="color-dot amber" aria-hidden="true"></span>
-                    <span class="tool-mini-caret" aria-hidden="true"></span>
-                  </button>
-                  <button class="color-swatch-button" data-toolbar-color="blue" type="button" aria-label="蓝色" title="蓝色">
-                    <span class="color-dot blue" aria-hidden="true"></span>
-                    <span class="tool-mini-caret" aria-hidden="true"></span>
-                  </button>
-                </div>
-              </div>
-
-              <div class="toolbar-secondary-line">
-                <span id="draftHint" class="hint-pill">进入批注模式后，可落点、框选或添加文本。</span>
-                <span id="reviewPermissionHint" class="mini-pill review-permission-hint">待选中文件后显示当前节点权限。</span>
-                <div id="toolbarQuickActions" class="toolbar-quick-actions hidden" aria-live="polite"></div>
-                <span id="pageAnnotationSummary" class="mini-pill">本页 0 条</span>
-                <button id="cancelDraftButton" class="ghost-button compact-button toolbar-inline-action" type="button">清除草稿</button>
-              </div>
-            </div>
-
-            <div id="viewerFrame" class="viewer-frame">
-              <div id="reviewPageFloater" class="review-page-floater hidden">
-                <div class="page-controls">
-                  <button id="prevPageButton" class="ghost-button compact-button pager-button" type="button">‹</button>
-                  <span id="pageIndicator" class="page-indicator">0 / 0</span>
-                  <button id="nextPageButton" class="ghost-button compact-button pager-button" type="button">›</button>
-                </div>
-              </div>
-              <div id="viewerEmpty" class="viewer-empty">
-                <strong>选择一份图纸 PDF 开始审阅</strong>
-                <p>系统会按页渲染图纸 PDF，并保存批注、备注、回复和导出记录。</p>
-              </div>
-              <div id="canvasWrap" class="canvas-wrap hidden">
-                <div id="pdfPageStage" class="pdf-page-stage">
-                  <canvas id="pdfCanvas" class="pdf-canvas"></canvas>
-                  <div id="annotationLayer" class="annotation-layer"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="review-footer">
-              <div class="review-footer-meta">
-                <p id="reviewFooterNote" class="footer-note">支持点击已有批注查看属性，也支持在画布上拖拽新增批注区域。</p>
-              </div>
-              <div class="review-footer-actions">
-                <a id="exportLink" class="export-link hidden" target="_blank" rel="noreferrer">下载最新导出文件</a>
-                <button id="exportButton" class="ghost-button" type="button">导出批注</button>
-                <button id="commentReportButton" class="ghost-button" type="button">导出评论 Excel</button>
-                <button id="printButton" class="ghost-button" type="button">打印</button>
-                <button id="shareButton" class="ghost-button" type="button">分享</button>
-                <div id="reviewWorkflowActionGroup" class="review-workflow-action-group"></div>
-              </div>
-            </div>
           </section>
 
           <aside id="workflowPanel" class="panel workflow-panel hidden">
@@ -801,197 +589,7 @@
             </div>
           </aside>
 
-          <aside id="reviewPanel" class="panel review-panel hidden">
-            <section class="stack-section annotation-workbench-section">
-              <div class="panel-head annotation-workbench-head">
-                <div>
-                  <p class="panel-kicker">Annotation Workspace</p>
-                  <h3 id="annotationDetailHeading">No annotation selected</h3>
-                  <p id="annotationMetaLine" class="annotation-meta-line">Select a markup to review details, evidence, and discussion.</p>
-                </div>
-                <span id="annotationDetailBadge" class="mini-pill annotation-number-pill">--</span>
-              </div>
 
-              <div id="annotationEmptyCard" class="annotation-empty-state">
-                <strong>Select or create an annotation</strong>
-                <p>Click a markup on the drawing or use the tools to create one. Details, evidence, and discussion will appear here.</p>
-              </div>
-
-              <div id="annotationDetailBody" class="annotation-detail-body hidden">
-                <div class="annotation-status-row">
-                  <div>
-                    <span class="field-label">状态</span>
-                    <div id="annotationStatusGroup" class="status-toggle annotation-status-auto">
-                      <span class="mini-pill signal-pill open">未解决</span>
-                    </div>
-                  </div>
-                  <div id="annotationColorGroup" class="detail-color-row compact-color-row" aria-label="Markup color">
-                    <button class="detail-color-button active" data-detail-color="red" type="button">Red</button>
-                    <button class="detail-color-button" data-detail-color="amber" type="button">Amber</button>
-                    <button class="detail-color-button" data-detail-color="blue" type="button">Blue</button>
-                  </div>
-                </div>
-
-                <div class="annotation-meta-grid" aria-label="Annotation metadata">
-                  <div class="metadata-field">
-                    <span class="field-label">负责人</span>
-                    <span id="annotationActorInput" class="metadata-value">--</span>
-                  </div>
-                  <div class="metadata-field">
-                    <span class="field-label">创建时间</span>
-                    <span id="annotationCreatedInput" class="metadata-value">--</span>
-                  </div>
-                  <div class="metadata-field">
-                    <span class="field-label">页码</span>
-                    <span id="annotationPageInput" class="metadata-value">--</span>
-                  </div>
-                  <div class="metadata-field">
-                    <span class="field-label">类型</span>
-                    <span id="annotationTypeInput" class="metadata-value">--</span>
-                  </div>
-                </div>
-
-                <section class="annotation-workbench-card issue-details-card">
-                  <div class="annotation-section-head">
-                    <div>
-                      <p class="panel-kicker">问题详情</p>
-                      <h4>需要关注什么？</h4>
-                    </div>
-                  </div>
-                  <label class="field-label" for="annotationTitleInput">Title</label>
-                  <input id="annotationTitleInput" class="text-input annotation-title-input" type="text" placeholder="e.g. Add camera / adjust cable / verify equipment" />
-                  <label class="field-label" for="annotationDetailInput">Description</label>
-                  <textarea
-                    id="annotationDetailInput"
-                    class="text-area annotation-description-input"
-                    placeholder="Describe the issue, expected fix, or review decision."
-                  ></textarea>
-                </section>
-
-                <section id="attachmentBlock" class="annotation-workbench-card attachment-block evidence-card">
-                  <div class="attachment-block-head annotation-section-head">
-                    <div>
-                      <p class="panel-kicker">证据</p>
-                      <h4>图片、文件和链接</h4>
-                    </div>
-                    <span id="attachmentCountBadge" class="mini-pill">0 items</span>
-                  </div>
-
-                  <details id="annotationEvidenceDisclosure" class="evidence-disclosure">
-                    <summary>
-                      <span>添加证据</span>
-                      <span class="evidence-disclosure-hint">图片、文件或链接</span>
-                    </summary>
-                    <div id="annotationAttachmentToolbar" class="attachment-toolbar evidence-toolbar">
-                      <button id="attachImageButton" class="ghost-button attachment-action" type="button">Image</button>
-                      <button id="attachFileButton" class="ghost-button attachment-action" type="button">File</button>
-                      <button id="attachLinkButton" class="ghost-button attachment-action" type="button">Link</button>
-                      <input id="annotationImageInput" class="hidden-file-input" type="file" accept="image/*" multiple />
-                      <input
-                        id="annotationFileInput"
-                        class="hidden-file-input"
-                        type="file"
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.txt,.zip"
-                        multiple
-                      />
-                    </div>
-                  </details>
-
-                  <p id="attachmentHelperText" class="attachment-helper-text">
-                    Add supporting photos, reference files, or external links.
-                  </p>
-
-                  <div id="annotationAttachmentList" class="attachment-list evidence-list">
-                    <div class="empty-card">No evidence attached yet.</div>
-                  </div>
-                </section>
-
-                <div id="annotationActionGroup" class="workflow-actions annotation-sticky-actions">
-                  <button id="cancelAnnotationEditButton" class="ghost-button annotation-action-control" type="button">取消修改</button>
-                  <button id="deleteAnnotationButton" class="ghost-button danger-button" type="button">Delete</button>
-                  <button id="resolveQuickButton" class="ghost-button hidden" type="button">自动判断状态</button>
-                  <button id="saveAnnotationButton" class="primary-button" type="button">Update Annotation</button>
-                </div>
-              </div>
-            </section>
-
-            <section id="replySection" class="stack-section discussion-section">
-              <div class="panel-head compact-panel-head">
-                <div>
-                  <p class="panel-kicker">Discussion</p>
-                  <h3>Updates & resolution</h3>
-                </div>
-              </div>
-              <div id="replyList" class="card-list reply-list"></div>
-              <div id="replyComposer" class="reply-composer compact-reply-composer">
-                <textarea
-                  id="replyInput"
-                  class="text-area reply-input"
-                  placeholder="Add a decision, update, or remediation note."
-                ></textarea>
-                <div id="replyAttachmentBlock" class="attachment-block reply-attachment-block compact-attachment-block">
-                  <div class="attachment-block-head annotation-section-head">
-                    <div>
-                      <p class="panel-kicker">Reply Evidence</p>
-                      <h4>Optional attachments</h4>
-                    </div>
-                    <span id="replyAttachmentCountBadge" class="mini-pill">0 items</span>
-                  </div>
-
-                  <details id="replyEvidenceDisclosure" class="evidence-disclosure reply-evidence-disclosure">
-                    <summary>
-                      <span>Attach evidence</span>
-                      <span class="evidence-disclosure-hint">Optional</span>
-                    </summary>
-                    <div class="attachment-toolbar evidence-toolbar">
-                      <button id="replyAttachImageButton" class="ghost-button attachment-action" type="button">Image</button>
-                      <button id="replyAttachFileButton" class="ghost-button attachment-action" type="button">File</button>
-                      <button id="replyAttachLinkButton" class="ghost-button attachment-action" type="button">Link</button>
-                      <input id="replyImageInput" class="hidden-file-input" type="file" accept="image/*" multiple />
-                      <input
-                        id="replyFileInput"
-                        class="hidden-file-input"
-                        type="file"
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.txt,.zip"
-                        multiple
-                      />
-                    </div>
-                  </details>
-
-                  <p id="replyAttachmentHelperText" class="attachment-helper-text">
-                    Attach photos, references, or links before posting.
-                  </p>
-
-                  <div id="replyAttachmentList" class="attachment-list evidence-list">
-                    <div class="empty-card">No reply evidence attached.</div>
-                  </div>
-                </div>
-                <div class="workflow-actions reply-actions">
-                  <button id="replyButton" class="primary-button" type="button">Post Update</button>
-                </div>
-              </div>
-            </section>
-
-            <section id="remarksSection" class="stack-section document-remarks-section">
-              <details class="document-remarks-disclosure">
-                <summary>
-                  <span>
-                    <span class="panel-kicker">Document Remarks</span>
-                    <strong>File-level summary</strong>
-                  </span>
-                  <span class="mini-pill">Report</span>
-                </summary>
-                <textarea
-                  id="remarksInput"
-                  class="text-area remarks-area"
-                  placeholder="Add file-level review conclusions, archive notes, or follow-up requirements."
-                ></textarea>
-                <div id="remarksActionGroup" class="workflow-actions">
-                  <button id="saveRemarksButton" class="ghost-button" type="button">Save Remarks</button>
-                </div>
-              </details>
-            </section>
-          </aside>
 
           <section id="drawingAppsPanel" class="panel drawing-apps-panel hidden">
             <div class="panel-head drawing-apps-head">
@@ -2040,12 +1638,17 @@
                 <div class="access-subnav-group" data-access-scope="system">
                   <span class="access-subnav-label" data-access-nav-label="system">系统级设置</span>
                   <button class="access-subnav-item" data-access-menu="project_management" data-access-scope="system" type="button">项目库管理</button>
+                  <button class="access-subnav-item" data-access-menu="global_users" data-access-scope="system" type="button">全局用户管理</button>
+                  <button class="access-subnav-item" data-access-menu="cross_project_sharing" data-access-scope="system" type="button">跨项目共享</button>
+                  <button class="access-subnav-item" data-access-menu="lark_integration" data-access-scope="system" type="button">飞书组织</button>
                   <button class="access-subnav-item" data-access-menu="aps_configuration" data-access-scope="system" type="button">APS 配置</button>
-                  <button class="access-subnav-item" data-access-menu="ai_configuration" data-access-scope="system" type="button">AI 配置</button>
                   <button class="access-subnav-item" data-access-menu="email_channel" data-access-scope="system" type="button">邮件通道</button>
                 </div>
                 <div class="access-subnav-group" data-access-scope="project">
                   <span class="access-subnav-label" data-access-nav-label="project">当前项目设置</span>
+                  <button class="access-subnav-item" data-access-menu="acc_integration" data-access-scope="project" type="button">ACC 文件接入</button>
+                  <button class="access-subnav-item" data-access-menu="acc_custom_integration" data-access-scope="project" type="button">ACC Custom Integration</button>
+                  <button class="access-subnav-item" data-access-menu="ai_configuration" data-access-scope="project" type="button">AI 配置</button>
                   <button class="access-subnav-item" data-access-menu="guest_policy" data-access-scope="project" type="button">访客策略</button>
                   <button class="access-subnav-item" data-access-menu="project_notifications" data-access-scope="project" type="button">项目通知</button>
                   <button class="access-subnav-item" data-access-menu="members" data-access-scope="project" type="button">用户邀请</button>
@@ -2161,6 +1764,136 @@
                     <span id="projectManagementProjectCount" class="mini-pill">0 个项目</span>
                   </div>
                   <div id="projectManagementList" class="card-list project-management-list"></div>
+                </section>
+
+                <section id="accessGlobalUsersView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">系统级用户权限</p>
+                      <h3>Global Users</h3>
+                      <p id="globalUserScopeNote" class="access-scope-note">集中查看所有账号，并控制其在各项目中的成员关系和角色。</p>
+                    </div>
+                    <span id="globalUserCapabilityBadge" class="mini-pill">超级管理员</span>
+                  </div>
+                  <div id="globalUserSummary" class="module-stat-grid access-summary-grid"></div>
+                  <div class="access-toolbar-grid global-user-toolbar">
+                    <label class="detail-field">
+                      <span class="field-label">搜索用户</span>
+                      <input id="globalUserSearchInput" class="text-input" type="search" placeholder="姓名或邮箱" />
+                    </label>
+                    <label class="detail-field">
+                      <span class="field-label">项目筛选</span>
+                      <select id="globalUserProjectFilterSelect" class="text-input"></select>
+                    </label>
+                    <span id="globalUserHint" class="access-policy-summary">选择具体项目后可为所有用户批量维护该项目权限。</span>
+                  </div>
+                  <p id="globalUserMessage" class="access-inline-feedback hidden"></p>
+                  <div id="globalUserList" class="card-list access-global-user-list"></div>
+                </section>
+
+                <section id="accessCrossProjectSharingView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">平台级文件流转</p>
+                      <h3>跨项目共享</h3>
+                      <p id="crossProjectSharingScopeNote" class="access-scope-note">将源项目文件当前版本共享到目标项目，生成独立副本；审批状态、流程、批注、备注、签出和分享链接不会带过去。</p>
+                    </div>
+                    <span id="crossProjectSharingCapabilityBadge" class="mini-pill">--</span>
+                  </div>
+
+                  <div id="crossProjectSharingSummary" class="module-stat-grid access-summary-grid"></div>
+
+                  <div class="project-management-layout cross-project-sharing-layout">
+                    <section class="project-management-create-card cross-project-sharing-card">
+                      <div class="mini-section-head">
+                        <strong>共享配置</strong>
+                        <span class="mini-pill">独立副本</span>
+                      </div>
+
+                      <div class="project-management-form-grid">
+                        <label class="detail-field">
+                          <span class="field-label">源项目</span>
+                          <select id="crossProjectSourceProjectSelect" class="text-input"></select>
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">目标项目</span>
+                          <select id="crossProjectTargetProjectSelect" class="text-input"></select>
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">目标文件夹</span>
+                          <select id="crossProjectTargetFolderSelect" class="text-input"></select>
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">同名处理</span>
+                          <select id="crossProjectConflictModeSelect" class="text-input">
+                            <option value="rename">保留两者，自动重命名</option>
+                            <option value="skip">跳过同名文件</option>
+                          </select>
+                        </label>
+                        <label class="detail-field project-management-field-span">
+                          <span class="field-label">选择文件</span>
+                          <input id="crossProjectDocumentSearchInput" class="text-input" type="search" placeholder="搜索文件名、目录、版本或上传人" />
+                        </label>
+                      </div>
+
+                      <div class="mini-section-head access-subsection-head">
+                        <strong>源项目文件</strong>
+                        <span id="crossProjectSelectedCount" class="mini-pill">0 个已选</span>
+                      </div>
+                      <div id="crossProjectDocumentList" class="card-list compact-list cross-project-document-list"></div>
+
+                      <p id="crossProjectSharingMessage" class="access-inline-feedback hidden"></p>
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="crossProjectShareButton" class="primary-button" type="button">共享到目标项目</button>
+                        <span id="crossProjectSharingHint" class="access-policy-summary">目标项目会生成新的文件记录和 V1 版本，后续版本、审阅和权限独立维护。</span>
+                      </div>
+                    </section>
+
+                    <section class="project-management-preview-card cross-project-sharing-result-card">
+                      <div class="mini-section-head">
+                        <strong>执行结果</strong>
+                        <span class="mini-pill">结果</span>
+                      </div>
+                      <div id="crossProjectSharingResultList" class="card-list compact-list"></div>
+                    </section>
+                  </div>
+                </section>
+
+                <section id="accessLarkIntegrationView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">飞书集成</p>
+                      <h3>飞书组织同步</h3>
+                      <p class="access-scope-note">读取飞书通讯录部门，将生态环境工程院和国际公司成员同步到同名 CDE 项目。</p>
+                    </div>
+                    <span id="larkOrgSyncCapabilityBadge" class="mini-pill">--</span>
+                  </div>
+
+                  <div id="larkOrgSyncSummary" class="module-stat-grid access-summary-grid"></div>
+
+                  <div class="project-management-layout">
+                    <section class="project-management-create-card">
+                      <div class="mini-section-head">
+                        <strong>同步范围</strong>
+                        <span class="mini-pill">Lark Contact</span>
+                      </div>
+                      <div id="larkOrgSyncDepartmentList" class="card-list compact-list"></div>
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="previewLarkOrgSyncButton" class="ghost-button" type="button">预览组织架构</button>
+                        <button id="runLarkOrgSyncButton" class="primary-button" type="button">同步到项目成员</button>
+                        <span class="access-policy-summary">同步只新增或恢复成员，不会删除现有 CDE 成员。</span>
+                      </div>
+                      <p id="larkOrgSyncMessage" class="access-inline-feedback hidden"></p>
+                    </section>
+
+                    <section class="project-management-preview-card">
+                      <div class="mini-section-head">
+                        <strong>最近结果</strong>
+                        <span class="mini-pill">结果</span>
+                      </div>
+                      <div id="larkOrgSyncResult" class="card-list compact-list"></div>
+                    </section>
+                  </div>
                 </section>
 
                 <section id="accessHierarchyView" class="stack-section access-view-section hidden">
@@ -2352,6 +2085,22 @@
                         <input id="projectEmailEnabledToggle" type="checkbox" />
                       </label>
 
+                      <label class="toggle-card" for="projectLarkEnabledToggle">
+                        <div>
+                          <strong>启用当前项目飞书推送</strong>
+                          <p>打开后，项目事件可按下方规则发送飞书消息，仍受全局飞书应用配置和成员绑定影响。</p>
+                        </div>
+                        <input id="projectLarkEnabledToggle" type="checkbox" />
+                      </label>
+
+                      <label class="toggle-card" for="projectInAppInviteToggle">
+                        <div>
+                          <strong>启用站内邀请提示</strong>
+                          <p>成员邀请默认只提醒被邀请人；如需抄送邀请人或项目管理员，可在下方单独开启。</p>
+                        </div>
+                        <input id="projectInAppInviteToggle" type="checkbox" />
+                      </label>
+
                       <div class="access-toolbar-grid email-config-grid compact">
                         <label class="detail-field">
                           <span class="field-label">发送频率</span>
@@ -2371,6 +2120,12 @@
                         <span class="mini-pill">接收对象</span>
                       </div>
                       <div id="projectEmailRecipientGrid" class="access-policy-grid email-config-option-grid"></div>
+
+                      <div class="mini-section-head access-subsection-head">
+                        <strong>成员邀请通知对象</strong>
+                        <span class="mini-pill">邀请</span>
+                      </div>
+                      <div id="projectInviteRecipientGrid" class="access-policy-grid email-config-option-grid"></div>
 
                       <div class="mini-section-head access-subsection-head">
                         <strong>触发事件</strong>
@@ -2394,6 +2149,7 @@
                       <p class="panel-kicker">APS 配置</p>
                       <h3>APS Configuration</h3>
                     </div>
+                    <button id="showApsConfigHelpButton" class="ghost-button compact-button" type="button">填写说明</button>
                     <span id="apsConfigCapabilityBadge" class="mini-pill">--</span>
                   </div>
 
@@ -2478,12 +2234,262 @@
                   <p id="apsConfigMessage" class="access-inline-feedback hidden"></p>
                 </section>
 
+                <section id="accessAccIntegrationView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">ACC 文件接入</p>
+                      <h3>ACC File Intake</h3>
+                    </div>
+                    <button id="showAccConfigHelpButton" class="ghost-button compact-button" type="button">填写说明</button>
+                    <span id="accConfigCapabilityBadge" class="mini-pill">--</span>
+                  </div>
+
+                  <div id="accConfigSummary" class="module-stat-grid access-summary-grid"></div>
+
+                  <div class="acc-shared-auth-guide" aria-label="ACC 共享授权模式">
+                    <div>
+                      <span class="mini-pill">共享授权模式</span>
+                      <strong>管理员一次授权，项目成员复用 ACC 连接</strong>
+                      <p>超级管理员维护应用凭证，项目管理员连接可访问 ACC 的 Autodesk 账号；完成项目绑定后，文件管理页即可从 ACC 目录导入版本。</p>
+                    </div>
+                    <ol>
+                      <li>配置 Client ID / Secret 与 Callback</li>
+                      <li>连接管理员 Autodesk 账号</li>
+                      <li>绑定 Hub / Project / Top Folder</li>
+                    </ol>
+                  </div>
+
+                  <div class="project-management-layout ai-config-layout acc-integration-layout">
+                    <section class="project-management-create-card ai-config-card">
+                      <div class="mini-section-head">
+                        <strong>Autodesk Construction Cloud</strong>
+                        <span class="mini-pill">Data Management</span>
+                      </div>
+
+                      <label class="toggle-card" for="systemAccEnabledToggle">
+                        <div>
+                          <strong>启用 ACC 文件接入</strong>
+                          <p>启用后，项目可绑定 ACC Hub / Project，并从 ACC 目录拉取文件版本进入 CDE。</p>
+                        </div>
+                        <input id="systemAccEnabledToggle" type="checkbox" />
+                      </label>
+
+                      <div class="access-toolbar-grid ai-config-grid">
+                        <label class="detail-field">
+                          <span class="field-label">Client ID</span>
+                          <input id="systemAccClientIdInput" class="text-input" type="text" autocomplete="off" placeholder="ACC / APS Client ID" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Client Secret</span>
+                          <input id="systemAccClientSecretInput" class="text-input" type="password" autocomplete="new-password" placeholder="留空则保持已保存密钥" />
+                        </label>
+                        <label class="detail-field wide-field">
+                          <span class="field-label">OAuth Callback URL</span>
+                          <input id="systemAccCallbackUrlInput" class="text-input" type="url" placeholder="https://cde.example.com/api/integrations/acc/oauth/callback" />
+                        </label>
+                        <label class="detail-field wide-field">
+                          <span class="field-label">Scopes</span>
+                          <input id="systemAccScopesInput" class="text-input" type="text" placeholder="data:read viewables:read" />
+                        </label>
+                      </div>
+
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="saveSystemAccConfigButton" class="primary-button" type="button">保存 ACC 配置</button>
+                        <button id="connectAccAccountButton" class="ghost-button" type="button">连接管理员 Autodesk 账号</button>
+                        <span id="systemAccSummary" class="access-policy-summary">未完成管理员共享授权时，只能保存配置，不能浏览 ACC 项目文件。</span>
+                      </div>
+                    </section>
+
+                    <section class="project-management-preview-card ai-config-card">
+                      <div class="mini-section-head">
+                        <strong>当前项目绑定</strong>
+                        <span id="accBindingStatusBadge" class="mini-pill">未绑定</span>
+                      </div>
+
+                      <div class="access-toolbar-grid ai-config-grid compact">
+                        <label class="detail-field">
+                          <span class="field-label">Hub ID</span>
+                          <input id="accBindingHubIdInput" class="text-input" type="text" placeholder="b.xxxxx" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Hub Name</span>
+                          <input id="accBindingHubNameInput" class="text-input" type="text" placeholder="ACC Hub" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">ACC Project ID</span>
+                          <input id="accBindingProjectIdInput" class="text-input" type="text" placeholder="b.xxxxx" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">ACC Project Name</span>
+                          <input id="accBindingProjectNameInput" class="text-input" type="text" placeholder="ACC Project" />
+                        </label>
+                        <label class="detail-field wide-field">
+                          <span class="field-label">Top Folder ID</span>
+                          <input id="accBindingTopFolderIdInput" class="text-input" type="text" placeholder="urn:adsk.wipprod:fs.folder:..." />
+                        </label>
+                      </div>
+
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="saveAccProjectBindingButton" class="primary-button" type="button">保存项目绑定</button>
+                        <span id="accBindingSummary" class="access-policy-summary">绑定后，文件管理页会出现“从 ACC 导入”。</span>
+                      </div>
+                    </section>
+                  </div>
+
+                  <p id="accConfigMessage" class="access-inline-feedback hidden"></p>
+                </section>
+
+                <section id="accessAccCustomIntegrationView" class="stack-section access-view-section hidden">
+                  <div class="panel-head compact-panel-head">
+                    <div>
+                      <p class="panel-kicker">ACC Custom Integration</p>
+                      <h3>ACC Custom Integration</h3>
+                    </div>
+                    <button id="showAccCustomHelpButton" class="ghost-button compact-button" type="button">填写说明</button>
+                    <span id="accCustomCapabilityBadge" class="mini-pill">--</span>
+                  </div>
+
+                  <div id="accCustomSummary" class="module-stat-grid access-summary-grid"></div>
+
+                  <div class="acc-custom-admin-guide acc-custom-hero" aria-label="ACC Custom Integration 准入配置">
+                    <div>
+                      <span class="mini-pill">ACC Account Admin</span>
+                      <strong>在 ACC 后台添加 CDE 的 APS Client ID</strong>
+                      <p>这一步是 ACC 侧的准入治理：确认 CDE App 已在 Account Admin / Custom Integrations 中添加、启用，并具备对应项目访问权限。配置完成后，文件管理左侧会出现 ACC 共享文件夹，进入后自动同步绑定的 ACC Top Folder。</p>
+                    </div>
+                    <div class="workflow-actions">
+                      <button id="openAccCustomDocsButton" class="ghost-button compact-button" type="button">打开官方说明</button>
+                      <button id="openAccCustomAdminButton" class="ghost-button compact-button" type="button">打开 ACC 管理后台</button>
+                    </div>
+                  </div>
+
+                  <div class="project-management-layout ai-config-layout acc-integration-layout">
+                    <section class="project-management-create-card ai-config-card">
+                      <div class="mini-section-head">
+                        <strong>准入状态登记</strong>
+                        <span id="accCustomStatusBadge" class="mini-pill">未登记</span>
+                      </div>
+
+                      <label class="toggle-card" for="accCustomEnabledToggle">
+                        <div>
+                          <strong>启用 Custom Integration 准入记录</strong>
+                          <p>启用后，项目会明确追踪 ACC 后台 Custom Integration 的 Active 状态和访问范围。</p>
+                        </div>
+                        <input id="accCustomEnabledToggle" type="checkbox" />
+                      </label>
+
+                      <div class="access-toolbar-grid ai-config-grid">
+                        <label class="detail-field">
+                          <span class="field-label">ACC Account ID</span>
+                          <input id="accCustomAccountIdInput" class="text-input" type="text" placeholder="b.account..." />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Account Name</span>
+                          <input id="accCustomAccountNameInput" class="text-input" type="text" placeholder="Owner / ACC Account" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">Integration Name</span>
+                          <input id="accCustomNameInput" class="text-input" type="text" placeholder="CDE File Intake" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">APS Client ID</span>
+                          <input id="accCustomClientIdInput" class="text-input" type="text" placeholder="与 ACC API 凭证一致" />
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">ACC 状态</span>
+                          <select id="accCustomStatusSelect" class="text-input compact-select">
+                            <option value="not_configured">未登记</option>
+                            <option value="pending">待确认</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="error">异常</option>
+                          </select>
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">访问范围</span>
+                          <select id="accCustomAccessLevelSelect" class="text-input compact-select">
+                            <option value="project">当前项目</option>
+                            <option value="selected_projects">指定项目</option>
+                            <option value="account">整个账号</option>
+                            <option value="unknown">待确认</option>
+                          </select>
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">项目访问模式</span>
+                          <select id="accCustomProjectAccessModeSelect" class="text-input compact-select">
+                            <option value="full_project">完整项目目录</option>
+                            <option value="selected_folders">指定文件夹</option>
+                            <option value="unknown">待确认</option>
+                          </select>
+                        </label>
+                        <label class="detail-field">
+                          <span class="field-label">服务账号邮箱</span>
+                          <input id="accCustomServiceAccountInput" class="text-input" type="email" placeholder="可选：SSA / Service Account" />
+                        </label>
+                        <label class="detail-field wide-field">
+                          <span class="field-label">ACC 管理后台链接</span>
+                          <input id="accCustomAdminUrlInput" class="text-input" type="url" placeholder="https://acc.autodesk.com/..." />
+                        </label>
+                        <label class="detail-field wide-field">
+                          <span class="field-label">备注</span>
+                          <textarea id="accCustomNotesInput" class="text-area compact-textarea" rows="3" placeholder="记录 ACC 管理员、权限范围、确认时间等"></textarea>
+                        </label>
+                      </div>
+
+                      <label class="toggle-card" for="accCustomSsaToggle">
+                        <div>
+                          <strong>已使用 SSA / 服务账号</strong>
+                          <p>用于后续从共享 OAuth 过渡到服务账号模式；当前仍保留共享 OAuth 导入链路。</p>
+                        </div>
+                        <input id="accCustomSsaToggle" type="checkbox" />
+                      </label>
+
+                      <label class="toggle-card" for="accCustomEnforceToggle">
+                        <div>
+                          <strong>作为 ACC 导入前置条件</strong>
+                          <p>开启后，只有 Custom Integration 状态为 Active 时才允许浏览和导入 ACC 文件。</p>
+                        </div>
+                        <input id="accCustomEnforceToggle" type="checkbox" />
+                      </label>
+
+                      <div class="workflow-actions access-policy-actions">
+                        <button id="saveAccCustomIntegrationButton" class="primary-button" type="button">保存 Custom Integration</button>
+                        <span id="accCustomSummaryText" class="access-policy-summary">建议在生产 ACC 项目上线前完成这一步。</span>
+                      </div>
+                    </section>
+
+                    <section class="project-management-preview-card ai-config-card">
+                      <div class="mini-section-head">
+                        <strong>接入关系</strong>
+                        <span class="mini-pill">API + ACC 准入</span>
+                      </div>
+                      <div class="access-scope-grid acc-custom-checklist acc-custom-flow-grid">
+                        <div class="access-scope-card">
+                          <strong>1. APS App</strong>
+                          <p>由 ACC 文件接入页维护 Client ID / Secret / Callback / Scopes。</p>
+                        </div>
+                        <div class="access-scope-card">
+                          <strong>2. Custom Integration</strong>
+                          <p>由 ACC Account Admin 添加同一个 Client ID，并设置为 Active。同步到 CDE 目录时，会使用当前选中的 CDE 文件夹作为落点。</p>
+                        </div>
+                        <div class="access-scope-card">
+                          <strong>3. CDE 导入</strong>
+                          <p>共享 OAuth 或 SSA 获得 token 后，CDE 才能调用 Data Management API 拉取文件版本。</p>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+
+                  <p id="accCustomMessage" class="access-inline-feedback hidden"></p>
+                </section>
+
                 <section id="accessAiConfigurationView" class="stack-section access-view-section hidden">
                   <div class="panel-head compact-panel-head">
                     <div>
                       <p class="panel-kicker">AI 配置</p>
                       <h3>AI Configuration</h3>
                     </div>
+                    <button id="showAiConfigHelpButton" class="ghost-button compact-button" type="button">填写说明</button>
                     <span id="aiConfigCapabilityBadge" class="mini-pill">--</span>
                   </div>
 
@@ -3244,6 +3250,8 @@
               <div id="workflowTemplateStepsEditor" class="workflow-template-steps-editor"></div>
             </section>
 
+            <div id="workflowTemplateSaveFeedback" class="workflow-template-save-feedback hidden" role="status" aria-live="polite"></div>
+
             <div class="workflow-launch-footer">
               <div class="workflow-actions">
                 <button id="deleteWorkflowTemplateButton" class="ghost-button danger-button" type="button">删除模板</button>
@@ -3292,6 +3300,30 @@
           <strong id="attachmentPreviewTitle">附件预览</strong>
           <span id="attachmentPreviewCaption"></span>
         </div>
+      </div>
+    </div>
+
+    <div id="accImportModal" class="file-manager-modal hidden" aria-hidden="true">
+      <div class="file-manager-modal-backdrop"></div>
+      <div class="file-manager-modal-dialog acc-import-dialog" role="dialog" aria-modal="true" aria-labelledby="accImportTitle">
+        <div class="file-manager-modal-head">
+          <div>
+            <p class="panel-kicker">ACC 导入</p>
+            <h3 id="accImportTitle">从 Autodesk Construction Cloud 导入</h3>
+            <p id="accImportMeta" class="file-manager-modal-meta">浏览已绑定 ACC 项目的目录，选择文件版本后导入到当前 CDE 目录。</p>
+          </div>
+          <button id="closeAccImportModalButton" class="file-manager-modal-close" type="button" aria-label="关闭 ACC 导入">×</button>
+        </div>
+        <div class="acc-import-toolbar">
+          <label class="detail-field">
+            <span class="field-label">远端 Folder ID</span>
+            <input id="accImportFolderIdInput" class="text-input" type="text" placeholder="留空使用项目绑定的 Top Folder" />
+          </label>
+          <button id="accImportBrowseButton" class="ghost-button" type="button">浏览目录</button>
+          <button id="accImportSettingsButton" class="ghost-button" type="button">ACC 设置</button>
+        </div>
+        <div id="accImportList" class="card-list acc-import-list"></div>
+        <p id="accImportMessage" class="access-inline-feedback hidden"></p>
       </div>
     </div>
 
@@ -3383,6 +3415,6 @@
       </div>
     </div>
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./auth-bootstrap.js?v=20260429-acc-custom-integration"></script>
   </body>
 </html>
