@@ -3,11 +3,10 @@ import sys
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from pdf_font_utils import register_pdf_font
 
-FONT_PATH = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
 FONT_NAME = "WorkflowArialUnicode"
 PAGE_WIDTH, PAGE_HEIGHT = A4
 MARGIN_X = 46
@@ -133,28 +132,29 @@ def main():
 
 
 def register_font():
-    if FONT_NAME not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
+    return register_pdf_font(FONT_NAME)
 
 
 def draw_title(pdf, cursor_y, workflow):
-    pdf.setFont(FONT_NAME, 18)
+    font_name = register_font()
+    pdf.setFont(font_name, 18)
     pdf.drawString(MARGIN_X, cursor_y, "审批记录单")
     cursor_y -= 28
-    pdf.setFont(FONT_NAME, 11)
+    pdf.setFont(font_name, 11)
     pdf.drawString(MARGIN_X, cursor_y, f"流程编号：{workflow.get('id', '—')}")
     return cursor_y - 22
 
 
 def draw_section(pdf, cursor_y, title, lines):
+    font_name = register_font()
     cursor_y = ensure_space(pdf, cursor_y, 44)
-    pdf.setFont(FONT_NAME, 13)
+    pdf.setFont(font_name, 13)
     pdf.drawString(MARGIN_X, cursor_y, title)
     cursor_y -= 18
     pdf.setLineWidth(0.6)
     pdf.line(MARGIN_X, cursor_y, PAGE_WIDTH - MARGIN_X, cursor_y)
     cursor_y -= 14
-    pdf.setFont(FONT_NAME, 10.5)
+    pdf.setFont(font_name, 10.5)
     for line in lines:
         wrapped = wrap_text(str(line or "—"), PAGE_WIDTH - MARGIN_X * 2, 10.5)
         for item in wrapped:
@@ -168,18 +168,19 @@ def ensure_space(pdf, cursor_y, needed_height):
     if cursor_y - needed_height >= BOTTOM_Y:
         return cursor_y
     pdf.showPage()
-    pdf.setFont(FONT_NAME, 10.5)
+    pdf.setFont(register_font(), 10.5)
     return TOP_Y
 
 
 def wrap_text(text, max_width, font_size):
+    font_name = register_font()
     if not text:
         return [""]
     lines = []
     current = ""
     for char in text:
         candidate = f"{current}{char}"
-        if pdfmetrics.stringWidth(candidate, FONT_NAME, font_size) <= max_width:
+        if pdfmetrics.stringWidth(candidate, font_name, font_size) <= max_width:
             current = candidate
             continue
         if current:

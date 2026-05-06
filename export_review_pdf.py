@@ -8,11 +8,10 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from pdf_font_utils import register_pdf_font
 
-FONT_PATH = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
 FONT_NAME = "ReviewArialUnicode"
 
 
@@ -65,8 +64,7 @@ def main():
 
 
 def register_font():
-    if FONT_NAME not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
+    return register_pdf_font(FONT_NAME)
 
 
 def build_page_overlay(annotations, width, height):
@@ -165,13 +163,14 @@ def draw_annotation(pdf, annotation, number, page_width, page_height):
 
 
 def draw_label(pdf, x, anchor_y, note, stroke, fill):
+    font_name = register_font()
     label_y = min(pdf._pagesize[1] - 24, anchor_y + 18)
-    label_width = min(max(pdfmetrics.stringWidth(note[:24], FONT_NAME, 10) + 18, 88), 210)
+    label_width = min(max(pdfmetrics.stringWidth(note[:24], font_name, 10) + 18, 88), 210)
     pdf.setStrokeColor(stroke)
     pdf.setFillColor(fill)
     pdf.roundRect(x + 14, label_y - 12, label_width, 22, 6, stroke=1, fill=1)
     pdf.setFillColor(colors.HexColor("#17324d"))
-    pdf.setFont(FONT_NAME, 10)
+    pdf.setFont(font_name, 10)
     pdf.drawString(x + 22, label_y - 4, truncate_text(note, 22))
 
 
@@ -239,17 +238,19 @@ def status_fill_color(annotation_color, resolved):
 
 
 def draw_badge(pdf, center_x, center_y, number, color):
+    font_name = register_font()
     radius = 9
     pdf.setFillColor(color)
     pdf.setStrokeColor(color)
     pdf.circle(center_x, center_y, radius, stroke=1, fill=1)
     pdf.setFillColor(colors.white)
-    pdf.setFont(FONT_NAME, 10)
+    pdf.setFont(font_name, 10)
     text = str(number)
     pdf.drawCentredString(center_x, center_y - 3.5, text)
 
 
 def build_summary_pdf(document, annotations):
+    font_name = register_font()
     width, height = A4
     buffer = io.BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
@@ -278,12 +279,12 @@ def build_summary_pdf(document, annotations):
             y = height - 46
 
         pdf.setFillColor(colors.HexColor("#17324d"))
-        pdf.setFont(FONT_NAME, 16)
+        pdf.setFont(font_name, 16)
         pdf.drawString(42, y, title)
         y -= 20
 
         pdf.setFillColor(colors.HexColor("#6e8297"))
-        pdf.setFont(FONT_NAME, 11)
+        pdf.setFont(font_name, 11)
         for line in lines:
             wrapped = wrap_text(line, width - 84, 11)
             for piece in wrapped:
@@ -291,7 +292,7 @@ def build_summary_pdf(document, annotations):
                   pdf.showPage()
                   y = height - 46
                   pdf.setFillColor(colors.HexColor("#6e8297"))
-                  pdf.setFont(FONT_NAME, 11)
+                  pdf.setFont(font_name, 11)
                 pdf.drawString(42, y, piece)
                 y -= 16
         y -= 18
@@ -360,6 +361,7 @@ def split_block(text):
 
 
 def wrap_text(text, max_width, font_size):
+    font_name = register_font()
     lines = []
     current = ""
     for char in text:
@@ -368,7 +370,7 @@ def wrap_text(text, max_width, font_size):
             current = ""
             continue
         candidate = current + char
-        if pdfmetrics.stringWidth(candidate, FONT_NAME, font_size) <= max_width:
+        if pdfmetrics.stringWidth(candidate, font_name, font_size) <= max_width:
             current = candidate
         else:
             if current:
@@ -380,7 +382,7 @@ def wrap_text(text, max_width, font_size):
 
 
 def draw_wrapped_text(pdf, text, x, y, width, font_size, leading):
-    pdf.setFont(FONT_NAME, font_size)
+    pdf.setFont(register_font(), font_size)
     current_y = y
     for line in wrap_text(text, width, font_size):
         pdf.drawString(x, current_y, line)
