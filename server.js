@@ -103,6 +103,7 @@ const PYTHON_BIN =
 const PDFJS_DIR =
   "/Users/zhiyuan/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/pdfjs-dist/build";
 const PORT = Number(process.env.PORT || 8080);
+const HOST = String(process.env.HOST || process.env.CDE_HOST || "0.0.0.0").trim() || "0.0.0.0";
 const MAX_BODY_BYTES = 100 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = positiveEnvNumber("CDE_MAX_UPLOAD_BYTES", 2 * 1024 * 1024 * 1024);
 const MAX_ATTACHMENT_BYTES = positiveEnvNumber("CDE_MAX_ATTACHMENT_BYTES", 25 * 1024 * 1024);
@@ -2270,6 +2271,59 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    const workflowReportExportMatch = pathname.match(/^\/api\/workflows\/([^/]+)\/report-export$/);
+    if (workflowReportExportMatch && req.method === "POST") {
+      const workflow = requireWorkflow(workflowReportExportMatch[1], userContext);
+      const permissions = workflowPermissionsForInstance(workflow, userContext);
+      if (!permissions.visible) {
+        throw permissionDeniedError("你没有导出该流程报告的权限。");
+      }
+      const exportBaseName = buildWorkflowAutoExportBaseName(workflow, workflow.autoExport?.namingRule);
+      const { targetFolderId, targetPath } = resolveWorkflowExportDestination(workflow, ["流程报告"]);
+      const exportFileName = `workflow-report-${workflow.id}-${Date.now()}.pdf`;
+      const outputPath = path.join(EXPORTS_DIR, exportFileName);
+      await runWorkflowReportExportScript(workflow, outputPath);
+      const createdReport = await createWorkflowAutoExportDocument(outputPath, {
+        workflow,
+        projectId: workflow.projectId,
+        parentId: targetFolderId || null,
+        kind: "workflow_report",
+        name: `${exportBaseName}_流程报告.pdf`,
+        note: `流程 ${workflow.workflowName} 手动导出流程报告`,
+      });
+      const exportedFile = {
+        id: crypto.randomUUID(),
+        name: createdReport.name,
+        url: signedUploadUrl(createdReport.storedFileName),
+        type: "pdf",
+        kind: "workflow_report",
+        documentId: createdReport.id,
+        targetFolderId: targetFolderId || "",
+        targetPath,
+        sourceDocId: "",
+      };
+      prependWorkflowExportFile(workflow, exportedFile);
+      workflow.autoExport.lastRunAt = new Date().toISOString();
+      workflow.autoExport.status = "success";
+      workflow.autoExport.error = "";
+      workflow.updatedAt = new Date().toISOString();
+      workflow.activity.unshift(
+        normalizeWorkflowActivityItem({
+          actor: actorDisplayName(userContext),
+          label: "导出流程报告",
+          note: `已导出流程报告 ${createdReport.name}`,
+          timestamp: workflow.updatedAt,
+        }),
+      );
+      persistStore();
+      appendAuditLog(userContext, "workflow.report_export", "workflow", workflow.id, { exportFileName, documentId: createdReport.id }, req);
+      sendJson(res, 200, {
+        workflow: toPublicWorkflow(workflow, userContext),
+        downloadUrl: exportedFile.url,
+      });
+      return;
+    }
+
     const workflowCommentReportMatch = pathname.match(/^\/api\/workflows\/([^/]+)\/comment-report$/);
     if (workflowCommentReportMatch && req.method === "POST") {
       const workflow = requireWorkflow(workflowCommentReportMatch[1], userContext);
@@ -3183,6 +3237,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (pathname === "/auth-bootstrap.js") {
+      serveFile(res, path.join(ROOT, "auth-bootstrap.js"));
+      return;
+    }
+
     if (pathname === "/apsviewer.js") {
       serveFile(res, path.join(ROOT, "apsviewer.js"));
       return;
@@ -3195,6 +3254,11 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/styles.css") {
       serveFile(res, path.join(ROOT, "styles.css"));
+      return;
+    }
+
+    if (pathname === "/styles-critical.css") {
+      serveFile(res, path.join(ROOT, "styles-critical.css"));
       return;
     }
 
@@ -3213,8 +3277,8 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`CDE docs service listening on http://127.0.0.1:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`CDE docs service listening on http://${HOST}:${PORT}`);
   resumePendingApsTranslations();
   resumeRecoverableBackgroundJobs();
 });
@@ -6241,6 +6305,33 @@ function ensureWorkflowAutoExportTargetFolder(config) {
   return ensureFolderPathByLabel(config?.targetPath, safeText(config?.projectId, DEFAULT_PROJECT_ID));
 }
 
+function resolveWorkflowExportDestination(workflow, fallbackSegments = []) {
+  const projectId = safeText(workflow?.projectId, DEFAULT_PROJECT_ID);
+  const project = projectById(projectId) || seedDefaultProject();
+  let targetFolderId = ensureWorkflowAutoExportTargetFolder({
+    ...workflow?.autoExport,
+    projectId,
+  });
+
+  if (!targetFolderId) {
+    const primaryDocId = safeText(workflow?.fileRefs?.[0]?.docId, "");
+    const primaryDoc = primaryDocId ? documents.find((item) => item.id === primaryDocId) : null;
+    if (primaryDoc?.parentId) {
+      targetFolderId = primaryDoc.parentId;
+    }
+  }
+
+  if (!targetFolderId) {
+    const fallbackPath = `/${[project.name, ...fallbackSegments].filter(Boolean).join("/")}`;
+    targetFolderId = ensureFolderPathByLabel(fallbackPath, projectId);
+  }
+
+  return {
+    targetFolderId: targetFolderId || "",
+    targetPath: workflowAutoExportTargetPath(targetFolderId, workflow?.autoExport?.targetPath, projectId),
+  };
+}
+
 async function createWorkflowAutoExportDocument(outputPath, options = {}) {
   const buffer = fs.readFileSync(outputPath);
   const workflow = options.workflow;
@@ -6283,6 +6374,18 @@ async function createWorkflowAutoExportDocument(outputPath, options = {}) {
   );
   persistStore();
   return created;
+}
+
+function prependWorkflowExportFile(workflow, file) {
+  const normalized = file && typeof file === "object" ? file : null;
+  if (!normalized?.url) {
+    return;
+  }
+  const existing = Array.isArray(workflow?.autoExport?.files) ? workflow.autoExport.files : [];
+  workflow.autoExport.files = [
+    normalized,
+    ...existing.filter((item) => safeText(item?.id, "") !== safeText(normalized.id, "")),
+  ];
 }
 
 async function runWorkflowAutoExportJob(workflow, job = null) {
