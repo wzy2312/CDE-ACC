@@ -296,6 +296,7 @@ const dynamicDisplayLabels = createLocalizedLookup({
     "完成归档": "Archived",
     "当前还没有导出文件。": "No export file is available yet.",
     "当前还没有导出文件，先执行一次导出。": "No export file is available yet. Run an export first.",
+    "流程报告已导出。": "Workflow report exported.",
     "流程摘要已复制。": "Workflow summary copied.",
     "审阅摘要已复制，可以直接粘贴发送。": "Review summary copied and ready to paste.",
     "报告摘要已复制，可以直接粘贴到邮件、IM 或归档记录里。": "Report summary copied. You can paste it into email, IM, or archive records.",
@@ -2466,6 +2467,69 @@ const elements = {
   profileLarkBindingMessage: document.querySelector("#profileLarkBindingMessage"),
 };
 
+function createMissingElementStub(name) {
+  const element = document.createElement("div");
+  element.dataset.stubElement = name;
+  element.hidden = true;
+  element.setAttribute("aria-hidden", "true");
+  element.value = "";
+  element.checked = false;
+  element.disabled = false;
+  element.open = false;
+  element.showModal = () => {
+    element.open = true;
+  };
+  element.close = () => {
+    element.open = false;
+  };
+  element.select = () => {};
+  element.focus = () => {};
+  element.blur = () => {};
+  element.click = () => {};
+  element.scrollTo = () => {};
+  element.scrollIntoView = () => {};
+  element.reportValidity = () => true;
+  element.querySelector = () => null;
+  element.querySelectorAll = () => [];
+  element.options = [];
+  element.selectedOptions = [];
+  element.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    right: 0,
+    bottom: 0,
+  });
+  if (name === "pdfCanvas") {
+    element.getContext = () => ({
+      setTransform() {},
+      clearRect() {},
+      save() {},
+      restore() {},
+      scale() {},
+      translate() {},
+      beginPath() {},
+      moveTo() {},
+      lineTo() {},
+      stroke() {},
+      fillRect() {},
+      fillText() {},
+      measureText() {
+        return { width: 0 };
+      },
+      canvas: element,
+    });
+  }
+  return element;
+}
+
+Object.keys(elements).forEach((key) => {
+  if (elements[key] === null) {
+    elements[key] = createMissingElementStub(key);
+  }
+});
+
 let startupLarkRedirectResult = null;
 
 function setElementText(element, value) {
@@ -2669,6 +2733,7 @@ const STATIC_EN_TEXT = {
   "流程": "Workflow",
   "查看当前节点、责任人、流转动作和最近活动。": "View the current step, owners, transition actions, and recent activity.",
   "报告": "Report",
+  "导出流程报告": "Export Workflow Report",
   "当前可执行操作": "Available Actions",
   "打开文档": "Open Document",
   "撤回流程": "Withdraw Workflow",
@@ -4079,8 +4144,18 @@ function applyStaticTranslations() {
 const toolbarAuxPanelTools = new Set(["comment", "clipboard", "mention", "attach", "line"]);
 const reviewToolbarSuspendedPanels = new Set(["comment", "clipboard", "mention", "attach"]);
 
-const canvasContext = elements.pdfCanvas.getContext("2d");
 let pdfJsModulePromise = null;
+
+function pdfCanvasContext() {
+  if (!elements.pdfCanvas) {
+    throw new Error(text("PDF 画布未初始化。", "The PDF canvas is not initialized."));
+  }
+  const context = elements.pdfCanvas.getContext("2d");
+  if (!context) {
+    throw new Error(text("无法初始化 PDF 画布。", "Unable to initialize the PDF canvas."));
+  }
+  return context;
+}
 
 async function loadPdfJsModule() {
   if (!pdfJsModulePromise) {
@@ -21368,7 +21443,7 @@ function renderWorkflowReportDetail(workflow) {
   const issues = workflowInstanceIssueStats(workflow);
   const reportState = workflowInstanceReportMeta(workflow, issues);
   const reportEvents = (workflow.activity || []).filter((item) =>
-    ["发起流程", "提交终审", "批准归档", "驳回修改", "自动导出", "撤回流程", "推进流程", "生成 CRS 草稿", "更新 CRS 草稿", "确认 CRS 草稿", "生成 CRS 草稿失败"].includes(item.label),
+    ["发起流程", "提交终审", "批准归档", "驳回修改", "自动导出", "撤回流程", "推进流程", "生成 CRS 草稿", "更新 CRS 草稿", "确认 CRS 草稿", "生成 CRS 草稿失败", "导出流程报告"].includes(item.label),
   );
   const exportFiles = workflow.autoExport?.files || [];
   const primaryDoc = workflowReviewableDocument(workflow);
@@ -21376,7 +21451,8 @@ function renderWorkflowReportDetail(workflow) {
   return `
     ${renderWorkflowDetailHero(workflow, issues)}
     <div class="workflow-actions workflow-detail-toolbar">
-      <button class="primary-button" data-workflow-modal-report-action="export" type="button" ${primaryDoc && canExportReview(primaryDoc) ? "" : "disabled"}>${text("导出主文件审阅版", "Export Reviewed File")}</button>
+      <button class="primary-button" data-workflow-modal-report-action="export-report" type="button">${text("导出流程报告", "Export Workflow Report")}</button>
+      <button class="ghost-button" data-workflow-modal-report-action="export" type="button" ${primaryDoc && canExportReview(primaryDoc) ? "" : "disabled"}>${text("导出主文件审阅版", "Export Reviewed File")}</button>
       <button class="ghost-button" data-workflow-modal-report-action="copy" type="button">${text("复制报告摘要", "Copy Report Summary")}</button>
       <button class="ghost-button" data-workflow-modal-report-action="open" type="button" ${exportFiles.length ? "" : "disabled"}>${text("打开最新导出", "Open Latest Export")}</button>
     </div>
@@ -21417,7 +21493,13 @@ function renderWorkflowReportDetail(workflow) {
                     <article class="item-card">
                       <div class="item-meta">
                         <strong>${escapeHtml(file.name)}</strong>
-                        <span class="mini-pill">${escapeHtml(file.kind === "approval_record" ? text("审批记录单", "Approval Record") : text("自动导出", "Auto Export"))}</span>
+                        <span class="mini-pill">${escapeHtml(
+                          file.kind === "approval_record"
+                            ? text("审批记录单", "Approval Record")
+                            : file.kind === "workflow_report"
+                              ? text("流程报告", "Workflow Report")
+                              : text("自动导出", "Auto Export"),
+                        )}</span>
                       </div>
                       <p>${escapeHtml(file.targetPath || file.url)}</p>
                       <div class="workflow-actions">
@@ -21562,6 +21644,10 @@ function bindWorkflowDetailModalInteractions(workflow, mode) {
 
   Array.from(elements.workflowDetailModalBody.querySelectorAll("[data-workflow-modal-report-action]")).forEach((button) => {
     button.addEventListener("click", async () => {
+      if (button.dataset.workflowModalReportAction === "export-report") {
+        await exportWorkflowReport(workflow.id, button);
+        return;
+      }
       if (button.dataset.workflowModalReportAction === "export") {
         const primaryDoc = workflowReviewableDocument(workflow);
         if (!primaryDoc) {
@@ -31497,6 +31583,9 @@ async function renderCurrentPdfPage() {
   if (!doc || !state.pdfDoc) {
     return;
   }
+  if (!elements.pdfCanvas || !elements.viewerFrame || !elements.annotationLayer) {
+    return;
+  }
 
   const token = ++state.renderToken;
   const page = await state.pdfDoc.getPage(state.currentPage);
@@ -31515,6 +31604,7 @@ async function renderCurrentPdfPage() {
   elements.pdfCanvas.height = Math.floor(viewport.height * outputScale);
   elements.pdfCanvas.style.width = `${viewport.width}px`;
   elements.pdfCanvas.style.height = `${viewport.height}px`;
+  const canvasContext = pdfCanvasContext();
   canvasContext.setTransform(outputScale, 0, 0, outputScale, 0, 0);
 
   await page.render({
@@ -32783,6 +32873,44 @@ async function exportWorkflowCommentReport(workflowId, triggerButton = null) {
   }
 }
 
+async function exportWorkflowReport(workflowId, triggerButton = null) {
+  const workflow = workflowById(workflowId);
+  if (!workflow) {
+    return;
+  }
+
+  const originalLabel = triggerButton?.textContent || "";
+  if (triggerButton) {
+    triggerButton.disabled = true;
+    triggerButton.textContent = text("导出中...", "Exporting...");
+  }
+
+  const pendingWindow = window.open("about:blank", "_blank");
+  if (pendingWindow) {
+    pendingWindow.opener = null;
+  }
+
+  try {
+    const response = await postJson(`/api/workflows/${workflow.id}/report-export`, {});
+    await refreshDocuments();
+    if (elements.workflowDetailModal?.open) {
+      renderWorkflowDetailModal();
+    }
+    openResolvedUrl(response.downloadUrl, pendingWindow);
+    showAlert(text("流程报告已导出。", "Workflow report exported."));
+  } catch (error) {
+    if (pendingWindow && !pendingWindow.closed) {
+      pendingWindow.close();
+    }
+    throw error;
+  } finally {
+    if (triggerButton && triggerButton.isConnected) {
+      triggerButton.disabled = false;
+      triggerButton.textContent = originalLabel || text("导出流程报告", "Export Workflow Report");
+    }
+  }
+}
+
 function printReview() {
   if (!currentDocument()) {
     return;
@@ -33859,6 +33987,9 @@ function setExportButtonsBusy(isBusy) {
 
 function readPointerPosition(event, options = {}) {
   syncAnnotationLayerBounds();
+  if (!elements.pdfCanvas) {
+    return { x: 0, y: 0 };
+  }
   const rect = elements.pdfCanvas.getBoundingClientRect();
   const width = Math.max(1, rect.width);
   const height = Math.max(1, rect.height);
@@ -35027,6 +35158,9 @@ function debounce(fn, delay) {
 }
 
 function syncAnnotationLayerBounds() {
+  if (!elements.pdfCanvas || !elements.annotationLayer) {
+    return;
+  }
   const canvasRect = elements.pdfCanvas.getBoundingClientRect();
   elements.annotationLayer.style.left = "0px";
   elements.annotationLayer.style.top = "0px";
