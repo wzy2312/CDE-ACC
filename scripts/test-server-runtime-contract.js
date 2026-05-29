@@ -43,6 +43,16 @@ assert(
   "package.json must declare pdfjs-dist because /vendor/pdfjs serves it from node_modules",
 );
 assert(
+  source.includes("function storageBucketHealthOk(") && source.includes("bucketHealth.exists !== false"),
+  "server.js must accept S3 storage health objects without an exists field",
+);
+assert(
+  source.includes("storageBucketHealthOk(data.uploadsDir)") &&
+    source.includes("storageBucketHealthOk(data.exportsDir)") &&
+    source.includes("storageBucketHealthOk(data.attachmentsDir)"),
+  "server.js health summary must use storageBucketHealthOk() for all storage buckets",
+);
+assert(
   source.includes('pathname.match(/^\\/api\\/workflows\\/([^/]+)\\/report-export$/)'),
   "server.js must expose the workflow report export route",
 );

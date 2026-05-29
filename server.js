@@ -26814,6 +26814,15 @@ function fileHealthStatus(filePath) {
   return result;
 }
 
+function storageBucketHealthOk(bucketHealth) {
+  return Boolean(
+    bucketHealth &&
+      bucketHealth.configured !== false &&
+      bucketHealth.writable &&
+      bucketHealth.exists !== false,
+  );
+}
+
 async function buildHealthPayload() {
   const audit = verifyAuditLogChain();
   const data = {
@@ -26872,9 +26881,9 @@ async function buildHealthPayload() {
   const requiredDataOk = [
     data.store.exists,
     data.dataDir.exists && data.dataDir.writable,
-    data.uploadsDir.exists && data.uploadsDir.writable,
-    data.exportsDir.exists && data.exportsDir.writable,
-    data.attachmentsDir.exists && data.attachmentsDir.writable,
+    storageBucketHealthOk(data.uploadsDir),
+    storageBucketHealthOk(data.exportsDir),
+    storageBucketHealthOk(data.attachmentsDir),
     data.exportScript.exists,
     data.commentReportExportScript.exists,
     data.workflowCommentReportExportScript.exists,
