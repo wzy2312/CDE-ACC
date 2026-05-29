@@ -5,32 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PDF审阅 - CDE文件管理系统</title>
     <link rel="modulepreload" href="/pdf-runtime.js" />
+    <link rel="modulepreload" href="/vendor/embedpdf/embedpdf.js" />
     <style>
       :root {
-        --pdf-bg: #fafaf7;
-        --pdf-paper: #fdfdfa;
-        --pdf-panel: #f6f5f1;
-        --pdf-panel-soft: #f8f7f3;
-        --pdf-line: #dddcd4;
-        --pdf-line-soft: #ebeae4;
-        --pdf-line-strong: #888680;
-        --pdf-text: #2e2d2a;
-        --pdf-body: #5a5854;
-        --pdf-muted: #888680;
-        --pdf-faint: #b7b5ae;
-        --pdf-accent: #c46a3f;
-        --pdf-accent-ink: #7e4527;
-        --pdf-accent-tint: #f8efe8;
-        --pdf-ok: #60735f;
-        --pdf-ok-tint: #f2f6f0;
-        --pdf-info: #687184;
-        --pdf-info-tint: #f1f3f7;
-        --pdf-warn: #796f62;
-        --pdf-warn-tint: #f5f1ea;
-        --pdf-serif: "Noto Serif SC", "Songti SC", "STSong", "Source Han Serif SC", serif;
-        --pdf-sans: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
-        --pdf-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
-        --pdf-shadow: none;
+        --pdf-toolbar-height: 66px;
+        --cde-dock-width: 320px;
+        --bg: #f4f6f5;
+        --surface: #ffffff;
+        --surface-soft: #f7f9f8;
+        --line: #d9dfdd;
+        --line-strong: #b5c0bc;
+        --text: #17211e;
+        --body: #4f5d58;
+        --muted: #7b8984;
+        --accent: #0f766e;
+        --accent-ink: #0b4f4a;
+        --accent-soft: #e6f3f1;
+        --warn: #a16207;
+        --warn-soft: #fff6db;
+        --danger: #b3403c;
+        --danger-soft: #fff0ef;
+        --ok: #3f7a4b;
+        --ok-soft: #edf7ef;
+        --shadow: 0 16px 40px rgba(23, 33, 30, 0.08);
+        --sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+        --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
         color-scheme: light;
       }
 
@@ -44,9 +43,9 @@
         height: 100%;
         margin: 0;
         overflow: hidden;
-        background: var(--pdf-bg);
-        color: var(--pdf-text);
-        font-family: var(--pdf-sans);
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
         font-size: 13px;
       }
 
@@ -73,269 +72,181 @@
         display: none !important;
       }
 
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-      }
-
-      .pdf-shell {
+      .pdf-app {
         display: grid;
-        grid-template-rows: 60px minmax(0, 1fr);
+        grid-template-rows: 56px minmax(0, 1fr);
         width: 100%;
         height: 100%;
       }
 
-      .pdf-topbar {
+      .topbar {
         display: grid;
-        grid-template-columns: minmax(260px, 1fr) auto auto;
+        grid-template-columns: minmax(240px, 1fr) auto;
         align-items: center;
-        gap: 16px;
-        padding: 8px 20px;
-        border-bottom: 1px solid var(--pdf-line);
-        background: var(--pdf-paper);
+        gap: 14px;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
       }
 
-      .pdf-brand {
+      .brand {
         display: flex;
         min-width: 0;
         align-items: center;
         gap: 12px;
       }
 
-      .pdf-brand-mark {
+      .brand-mark {
         display: grid;
-        width: 38px;
-        height: 38px;
-        flex: 0 0 auto;
+        width: 34px;
+        height: 34px;
         place-items: center;
-        border-radius: 4px;
-        background: var(--pdf-text);
-        color: var(--pdf-paper);
-        font-size: 11px;
-        font-family: var(--pdf-mono);
-        font-weight: 500;
-        letter-spacing: 0.12em;
+        border-radius: 5px;
+        background: var(--text);
+        color: #fff;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
       }
 
+      .brand small,
       .panel-kicker,
-      .pdf-brand small,
-      .side-kicker {
+      .field-label {
         display: block;
         margin: 0;
-        color: var(--pdf-muted);
-        font-family: var(--pdf-mono);
+        color: var(--muted);
+        font-family: var(--mono);
         font-size: 10px;
-        font-weight: 400;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
       }
 
-      .pdf-brand strong {
+      .brand strong {
         display: block;
         overflow: hidden;
-        max-width: 48vw;
+        max-width: 54vw;
         margin-top: 2px;
-        font-family: var(--pdf-serif);
-        font-size: 17px;
-        font-weight: 500;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-size: 15px;
+        font-weight: 650;
       }
 
-      .review-header-side,
-      .review-header-page-chip {
-        display: grid;
-        justify-items: end;
-        gap: 6px;
-      }
-
-      .page-chip-label {
-        color: var(--pdf-muted);
-        font-family: var(--pdf-mono);
-        font-size: 9px;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-      }
-
-      .pdf-header-meta {
-        display: flex;
-        min-width: 0;
-        justify-content: center;
-        gap: 8px;
-        overflow: hidden;
-      }
-
-      .pdf-header-meta .mini-pill,
-      .pdf-header-meta .status-pill,
-      .pdf-header-meta .version-badge {
-        min-height: 28px;
-      }
-
-      #documentPageSummary,
-      .review-header-page-chip {
-        display: none;
-      }
-
-      .pdf-actions,
-      .pdf-tool-strip,
-      .pdf-color-strip,
-      .pdf-status-strip,
-      .review-footer-actions,
-      .workflow-actions,
-      .annotation-action-row,
-      .review-filter-row,
-      .annotation-list-action-bar,
-      .page-controls {
+      .meta-strip,
+      .top-actions,
+      .tab-row,
+      .button-row,
+      .status-row,
+      .attachment-actions {
         display: flex;
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
       }
 
-      .annotation-list-action-bar {
-        display: grid;
-      }
-
-      .annotation-create-button {
-        width: 100%;
-        justify-content: center;
-      }
-
-      .annotation-create-button.active {
-        border-color: var(--pdf-accent);
-        background: #e9f0fb;
-        color: var(--pdf-accent-ink);
-      }
-
-      .pdf-actions {
-        justify-content: flex-end;
+      .topbar-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         flex-wrap: nowrap;
-        gap: 6px;
+      }
+
+      .topbar-actions .ghost-button,
+      .topbar-actions .primary-button {
+        min-height: 30px;
+        padding: 0 10px;
+      }
+
+      .pill,
+      .status-pill,
+      .tab-badge {
+        display: inline-flex;
+        min-height: 26px;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: var(--surface-soft);
+        color: var(--body);
+        font-family: var(--mono);
+        font-size: 10px;
+        padding: 0 8px;
+        white-space: nowrap;
+      }
+
+      .status-pill.approved,
+      .signal-pill.success {
+        background: var(--ok-soft);
+        color: var(--ok);
+      }
+
+      .status-pill.in_review,
+      .status-pill.final_review,
+      .signal-pill.open {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+
+      .status-pill.rejected,
+      .signal-pill.danger {
+        background: var(--danger-soft);
+        color: var(--danger);
       }
 
       .primary-button,
       .ghost-button,
-      .tool-chip,
-      .tool-button,
-      .tool-faux-button,
-      .color-swatch-button,
-      .pdf-chip-button,
-      .review-side-tab,
-      .pager-button,
-      .export-link {
-        min-height: 34px;
-        border: 1px solid var(--pdf-line);
-        border-radius: 2px;
-        background: var(--pdf-paper);
-        color: var(--pdf-text);
+      .tab-button,
+      .icon-button,
+      .link-button {
+        min-height: 32px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--text);
         font-size: 12px;
-        font-weight: 500;
+        font-weight: 620;
         text-decoration: none;
         transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
       }
 
       .primary-button,
       .ghost-button,
-      .pdf-chip-button,
-      .export-link {
+      .link-button {
         padding: 0 12px;
       }
 
       .primary-button,
-      .tool-button.active,
-      .tool-faux-button.active,
-      .pdf-chip-button.active,
-      .color-swatch-button.active,
-      .review-side-tab.active {
+      .tab-button.active,
+      .icon-button.active {
         border-color: transparent;
-        background: var(--pdf-text);
-        color: var(--pdf-paper);
-      }
-
-      .danger-button {
-        border-color: var(--pdf-accent);
-        color: var(--pdf-accent-ink);
+        background: var(--accent);
+        color: #fff;
       }
 
       .ghost-button:hover:not(:disabled),
-      .primary-button:hover:not(:disabled),
-      .tool-chip:hover:not(:disabled),
-      .tool-button:hover:not(:disabled),
-      .tool-faux-button:hover:not(:disabled),
-      .color-swatch-button:hover:not(:disabled),
-      .pdf-chip-button:hover:not(:disabled),
-      .review-side-tab:hover:not(:disabled) {
-        border-color: var(--pdf-text);
+      .tab-button:hover:not(:disabled),
+      .icon-button:hover:not(:disabled),
+      .link-button:hover:not(:disabled) {
+        border-color: var(--accent);
       }
 
-      .tool-chip,
-      .tool-button,
-      .tool-faux-button,
-      .color-swatch-button,
-      .pager-button {
+      .danger-button {
+        border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+        color: var(--danger);
+      }
+
+      .icon-button {
         display: inline-grid;
-        width: 36px;
-        min-width: 36px;
-        place-items: center;
-        padding: 0;
-      }
-
-      .toolbar-action,
-      .compact-button.icon-tool {
-        display: inline-grid;
-        width: 36px;
-        min-width: 36px;
-        place-items: center;
-        padding: 0;
-      }
-
-      .pdf-actions .export-action-button {
-        min-width: max-content;
-        white-space: nowrap;
-      }
-
-      .pdf-actions .export-action-button.is-busy {
-        opacity: 0.72;
-      }
-
-      @keyframes pdf-spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      .tool-button:disabled,
-      .tool-faux-button:disabled,
-      .color-swatch-button:disabled {
-        background: var(--pdf-panel-soft);
-        color: var(--pdf-faint);
-        border-color: var(--pdf-line-soft);
-        opacity: 1;
-      }
-
-      .tool-button.active:disabled,
-      .color-swatch-button.active:disabled {
-        background: var(--pdf-panel-soft);
-        color: var(--pdf-muted);
-        border-color: var(--pdf-line-soft);
-      }
-
-      .color-swatch-button {
         width: 34px;
         min-width: 34px;
+        place-items: center;
         padding: 0;
       }
 
-      .tool-icon {
-        width: 17px;
-        height: 17px;
+      .icon {
+        width: 16px;
+        height: 16px;
         fill: none;
         stroke: currentColor;
         stroke-width: 1.9;
@@ -343,916 +254,239 @@
         stroke-linejoin: round;
       }
 
-      .color-dot,
-      .pdf-color-dot {
-        display: inline-block;
-        width: 11px;
-        height: 11px;
-        margin-right: 0;
-        border-radius: 50%;
-        vertical-align: middle;
-      }
-
-      .red,
-      .color-dot.red,
-      .pdf-color-dot.red {
-        background: var(--pdf-accent);
-      }
-
-      .amber,
-      .color-dot.amber,
-      .pdf-color-dot.amber {
-        background: var(--pdf-warn);
-      }
-
-      .blue,
-      .color-dot.blue,
-      .pdf-color-dot.blue {
-        background: var(--pdf-info);
-      }
-
-      .mini-pill,
-      .status-pill,
-      .version-badge,
-      .tab-badge {
-        display: inline-flex;
-        min-height: 26px;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        border: 1px solid var(--pdf-line);
-        border-radius: 2px;
-        background: var(--pdf-paper);
-        color: var(--pdf-muted);
-        font-family: var(--pdf-mono);
-        font-size: 10px;
-        font-weight: 400;
-        letter-spacing: 0.08em;
-        padding: 0 7px;
-        white-space: nowrap;
-      }
-
-      .status-pill.uploaded,
-      .status-pill.neutral,
-      .signal-pill.neutral,
-      .signal-pill.info,
-      .module-stat-card.info {
-        background: var(--pdf-info-tint);
-        color: var(--pdf-info);
-      }
-
-      .status-pill.in_review,
-      .status-pill.final_review,
-      .signal-pill.open,
-      .signal-pill.alert,
-      .module-stat-card.alert {
-        background: var(--pdf-warn-tint);
-        color: var(--pdf-warn);
-      }
-
-      .status-pill.approved,
-      .signal-pill.success,
-      .module-stat-card.success {
-        background: var(--pdf-ok-tint);
-        color: var(--pdf-ok);
-      }
-
-      .status-pill.rejected,
-      .signal-pill.danger {
-        background: var(--pdf-accent-tint);
-        border-color: var(--pdf-accent);
-        color: var(--pdf-accent-ink);
-      }
-
-      .pdf-main {
-        display: grid;
-        grid-template-columns: clamp(260px, 16vw, 300px) minmax(0, 1fr) clamp(340px, 22vw, 390px);
-        height: 100%;
-        min-height: 0;
-        overflow: hidden;
-        padding: 12px 18px;
-        gap: 12px;
-      }
-
-      .panel,
-      .pdf-viewer-card,
-      .stack-section,
-      .workflow-board-section,
-      .annotation-workbench-card {
-        min-height: 0;
-        border: 1px solid var(--pdf-line);
-        border-radius: 4px;
-        background: var(--pdf-paper);
-        box-shadow: none;
-      }
-
-      .review-navigator,
-      .workflow-panel,
-      .review-panel {
-        display: grid;
-        min-height: 0;
-        align-content: start;
-        gap: 12px;
-        overflow: auto;
-      }
-
-      .review-panel {
-        display: flex;
-        flex-direction: column;
-        align-content: stretch;
-        gap: 0;
-        height: 100%;
-        max-height: 100%;
-        padding-right: 0;
-        border-radius: 2px;
-        overflow-x: hidden;
-        overflow-y: auto;
-        scrollbar-gutter: stable;
-      }
-
-      .review-doc-summary,
-      .workflow-board-section {
-        padding: 14px;
-      }
-
-      .stack-section {
+      .workspace {
         position: relative;
-        flex: 0 0 auto;
-        width: 100%;
-        padding: 12px;
-        border: 0;
-        border-bottom: 1px solid var(--pdf-line);
-        border-radius: 0;
-        box-shadow: none;
-        isolation: isolate;
-      }
-
-      .review-panel > .stack-section:last-child {
-        border-bottom: 0;
-      }
-
-      .review-panel > .stack-section + .stack-section {
-        margin-top: 0;
-      }
-
-      .annotation-workbench-section {
-        padding-bottom: 14px;
-      }
-
-      .review-support-section {
-        padding-top: 14px;
-      }
-
-      .workflow-panel-section,
-      .annotation-workbench-section,
-      .remarks-section,
-      .reply-section,
-      .review-support-section {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-      }
-
-      .review-doc-summary {
-        border: 1px solid var(--pdf-line);
-        border-radius: 4px;
-        background: var(--pdf-paper);
-      }
-
-      .review-doc-summary strong {
-        display: block;
-        overflow: hidden;
-        display: -webkit-box;
-        line-height: 1.45;
-        text-overflow: ellipsis;
-        white-space: normal;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-      }
-
-      .review-doc-summary p,
-      .section-text,
-      .empty-card,
-      .workflow-stat-card p,
-      .module-stat-card p,
-      .item-card p,
-      .step-card p,
-      .annotation-meta-line {
-        margin: 3px 0 0;
-        color: var(--pdf-muted);
-        font-size: 11.5px;
-        line-height: 1.42;
-      }
-
-      .review-side-tabs {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-
-      .review-side-tab {
-        width: 100%;
-        padding: 0 10px;
-      }
-
-      .review-annotation-sidebar,
-      .review-thumb-list,
-      .card-list,
-      .review-comment-list {
-        display: grid;
-        gap: 8px;
-      }
-
-      .module-subsection {
-        display: grid;
-        gap: 8px;
-      }
-
-      .text-input,
-      .text-area,
-      .zoom-input {
-        width: 100%;
-        border: 1px solid var(--pdf-line);
-        border-radius: 2px;
-        background: var(--pdf-paper);
-        color: var(--pdf-text);
-        outline: none;
-      }
-
-      .text-input,
-      .zoom-input {
-        min-height: 36px;
-        padding: 0 11px;
-      }
-
-      .text-area {
-        min-height: 96px;
-        resize: vertical;
-        padding: 11px 12px;
-      }
-
-      .remarks-section .text-area,
-      .reply-composer .text-area {
-        min-height: 66px;
-      }
-
-      .compact-select {
-        min-height: 34px;
-      }
-
-      .pdf-viewer-card {
-        position: relative;
-        display: grid;
-        grid-template-rows: auto auto minmax(0, 1fr);
-        height: 100%;
-        overflow: hidden;
-      }
-
-      .review-document-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px 16px 11px;
-        border-bottom: 1px solid var(--pdf-line);
-      }
-
-      .review-header-copy {
-        min-width: 0;
-      }
-
-      .review-project-line,
-      .document-meta {
-        margin: 0;
-        color: var(--pdf-muted);
-        font-size: 12px;
-        line-height: 1.5;
-      }
-
-      .review-headline {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 8px;
-        margin: 4px 0;
-      }
-
-      .review-headline h3 {
-        overflow: hidden;
-        margin: 0;
-        font-family: var(--pdf-serif);
-        font-size: 18px;
-        font-weight: 500;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .viewer-toolbar {
-        border-bottom: 1px solid var(--pdf-line);
-        background: var(--pdf-panel);
-      }
-
-      .tool-ribbon,
-      .toolbar-secondary-line {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding: 6px 10px;
-        flex-wrap: wrap;
-      }
-
-      .tool-ribbon {
-        justify-content: flex-start;
-        gap: 6px;
-        flex-wrap: nowrap;
-        overflow: visible;
-      }
-
-      .toolbar-secondary-line {
-        display: none;
-        justify-content: flex-start;
-        gap: 8px;
-        border-top: 1px solid var(--pdf-line-soft);
-        background: var(--pdf-paper);
-      }
-
-      .toolbar-secondary-line .mini-pill {
-        min-height: 24px;
-        background: transparent;
-      }
-
-      .toolbar-secondary-line .hint-pill {
-        max-width: 280px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .tool-cluster {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        flex-wrap: nowrap;
-        min-width: 0;
-      }
-
-      .tool-cluster.compact-cluster {
-        gap: 4px;
-        padding: 3px;
-        border: 1px solid var(--pdf-line-soft);
-        border-radius: 3px;
-        background: var(--pdf-paper);
-      }
-
-      .zoom-cluster {
-        flex: 0 0 auto;
-      }
-
-      .review-mode-cluster,
-      .pdf-color-strip {
-        flex: 0 0 auto;
-      }
-
-      .tool-ribbon .zoom-input {
-        width: 64px;
-        flex: 0 0 64px;
-        text-align: center;
-      }
-
-      .canvas-page-controls {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 24;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 50px;
-        padding: 0 12px;
-        pointer-events: none;
-      }
-
-      .canvas-page-controls .page-controls {
-        min-height: 30px;
-        padding: 0 4px;
-        border: 1px solid rgba(216, 211, 201, 0.48);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.54);
-        gap: 2px;
-        flex-wrap: nowrap;
-        pointer-events: auto;
-        backdrop-filter: blur(12px) saturate(112%);
-        box-shadow: 0 7px 20px rgba(38, 32, 24, 0.045);
-      }
-
-      .canvas-page-controls .zoom-input {
-        width: 34px;
-        flex: 0 0 34px;
-        min-height: 26px;
-        font-family: var(--pdf-mono);
-        padding-inline: 4px;
-      }
-
-      .canvas-page-controls .page-indicator {
-        display: inline-flex;
-        align-items: center;
-        min-width: 28px;
-        padding-inline: 3px 6px;
-        color: rgba(55, 52, 47, 0.72);
-        font-family: var(--pdf-mono);
-        font-size: 13px;
-        font-weight: 600;
-        white-space: nowrap;
-      }
-
-      .canvas-page-controls .pager-button {
-        width: 30px;
-        min-width: 30px;
-        min-height: 28px;
-        border: 0;
-        background: transparent;
-        box-shadow: none;
+        min-height: 0;
         padding: 0;
-        font-size: 16px;
-        color: rgba(55, 52, 47, 0.58);
-      }
-
-      .canvas-page-controls .pager-button:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.6);
-        color: rgba(42, 40, 36, 0.82);
-      }
-
-      .tool-separator {
-        flex: 0 0 1px;
-        width: 1px;
-        height: 20px;
-        background: var(--pdf-line-soft);
       }
 
       .viewer-frame {
         position: relative;
-        display: grid;
-        grid-template: "viewer" minmax(0, 1fr) / minmax(0, 1fr);
-        min-height: 0;
-        height: 100%;
-        overflow: hidden;
-        background: var(--pdf-panel);
-      }
-
-      .viewer-frame > * {
-        grid-area: viewer;
-      }
-
-      .canvas-wrap {
-        position: relative;
-        z-index: 1;
-        box-sizing: border-box;
         width: 100%;
         height: 100%;
-        max-width: 100%;
-        max-height: 100%;
-        min-height: 0;
         min-width: 0;
-        overflow: auto;
-        padding: 50px 26px 26px;
-        overscroll-behavior: contain;
-        scrollbar-gutter: stable both-edges;
-        touch-action: pan-x pan-y;
-      }
-
-      .canvas-wrap.pan-mode {
-        cursor: grab;
-        user-select: none;
-        touch-action: none;
-      }
-
-      .canvas-wrap.panning {
-        cursor: grabbing;
-      }
-
-      .canvas-wrap.pan-mode .pdf-page-stage,
-      .canvas-wrap.pan-mode #pdfCanvas {
-        cursor: grab;
-      }
-
-      .canvas-wrap.panning .pdf-page-stage,
-      .canvas-wrap.panning #pdfCanvas {
-        cursor: grabbing;
-      }
-
-      .canvas-wrap.pan-mode #annotationLayer,
-      .canvas-wrap.pan-mode .pdf-annotation-shape {
-        pointer-events: none !important;
-      }
-
-      .pdf-page-stage {
-        position: relative;
-        width: max-content;
-        margin: 0 auto;
-        border: 1px solid var(--pdf-line);
-        border-radius: 4px;
-        background: var(--pdf-paper);
-        box-shadow: none;
-      }
-
-      #pdfCanvas {
-        display: block;
-        border-radius: 4px;
-      }
-
-      #annotationLayer {
-        position: absolute;
-        inset: 0;
-        z-index: 4;
-        pointer-events: none;
-      }
-
-      #annotationLayer.interactive {
-        pointer-events: auto;
-      }
-
-      #annotationLayer[data-tool="pen"],
-      #annotationLayer[data-tool="line"],
-      #annotationLayer[data-tool="mark"],
-      #annotationLayer[data-tool="circle"],
-      #annotationLayer[data-tool="note"] {
-        cursor: crosshair;
-      }
-
-      .viewer-empty,
-      .empty-card,
-      .compact-empty {
-        padding: 16px;
-        border: 1px dashed var(--pdf-line);
-        border-radius: 4px;
-        background: var(--pdf-panel-soft);
-        color: var(--pdf-muted);
-      }
-
-      .viewer-empty {
-        position: absolute;
-        inset: 22px;
-        display: grid;
-        place-items: center;
-        text-align: center;
-      }
-
-      .review-page-floater {
-        display: none;
-      }
-
-      .page-controls {
-        border: 1px solid var(--pdf-line);
-        border-radius: 4px;
-        background: var(--pdf-paper);
-        padding: 6px;
-        box-shadow: none;
-      }
-
-      .page-controls .zoom-input {
-        width: 58px;
-        flex: 0 0 58px;
-      }
-
-      .canvas-page-controls #pageInput.zoom-input {
-        width: 20px;
-        flex: 0 0 20px;
-        min-width: 20px;
-        max-width: 20px;
-        min-height: 28px;
-        padding: 0;
+        min-height: 0;
+        overflow: hidden;
         border: 0;
         border-radius: 0;
-        border-bottom: 1px solid rgba(55, 52, 47, 0.26);
-        background: transparent;
+        background: #eef2f1;
         box-shadow: none;
-        color: rgba(39, 37, 34, 0.88);
-        font-size: 13px;
-        font-weight: 700;
-        text-align: center;
       }
 
-      .canvas-page-controls #pageInput.zoom-input:focus {
-        border-bottom-color: rgba(55, 52, 47, 0.62);
-        background: rgba(255, 255, 255, 0.36);
+      #embedPdfViewer,
+      #embedPdfViewer embedpdf-container {
+        display: block;
+        width: 100%;
+        height: 100%;
       }
 
-      .review-footer {
-        position: absolute;
-        right: 14px;
-        bottom: 14px;
-        z-index: 11;
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        padding: 6px;
-        border: 1px solid var(--pdf-line);
-        border-radius: 4px;
-        background: var(--pdf-paper);
+      .cde-sidebar-shell {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+        background: var(--surface);
+        color: var(--text);
+        font-family: var(--sans);
       }
 
-      .review-footer.hidden {
-        display: none;
-      }
-
-      .review-workflow-action-group {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
-      .review-workflow-action-note {
-        max-width: 240px;
+      .cde-annotation-sidebar {
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+        gap: 12px;
         overflow: hidden;
-        color: var(--pdf-muted);
+        padding: 14px;
+      }
+
+      .cde-annotation-sidebar .item-list {
+        align-content: start;
+        grid-auto-rows: max-content;
+        min-height: 0;
+        overflow: auto;
+        padding-bottom: 12px;
+      }
+
+      .rail-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .rail-head h2 {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .cde-review-panel {
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        background: var(--surface);
+      }
+
+      .panel-shell {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        height: 100%;
+        min-height: 0;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 14px 10px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel-head h2,
+      .section-head h3,
+      .empty-state strong {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .panel-head p,
+      .section-text,
+      .empty-state p,
+      .item-card p {
+        margin: 4px 0 0;
+        color: var(--body);
         font-size: 12px;
-        text-overflow: ellipsis;
+        line-height: 1.55;
+      }
+
+      .tab-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        padding: 10px 10px 0;
+      }
+
+      .tab-button {
+        display: inline-flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 8px;
         white-space: nowrap;
       }
 
-      .pdf-progress,
-      .pdf-load-progress {
-        position: absolute;
-        inset: 0;
-        z-index: 20;
+      .panel-scroll {
+        min-height: 0;
+        overflow: auto;
+        padding: 12px 14px 16px;
+      }
+
+      .panel-section {
         display: grid;
-        place-items: center;
-        padding: 24px;
-        background: rgba(250, 250, 247, 0.92);
+        gap: 12px;
       }
 
-      .pdf-progress-card,
-      .pdf-load-progress-card,
-      .pdf-login-panel {
-        width: min(420px, 100%);
-        padding: 20px;
-        border: 1px solid var(--pdf-line);
-        border-radius: 4px;
-        background: var(--pdf-paper);
-        box-shadow: none;
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
       }
 
-      .pdf-progress-card strong,
-      .pdf-load-progress-card strong {
-        display: block;
-        margin-bottom: 8px;
-      }
-
-      .pdf-progress-track,
-      .pdf-load-progress-track {
-        height: 8px;
-        overflow: hidden;
-        border-radius: 2px;
-        background: var(--pdf-line-soft);
-      }
-
-      .pdf-progress-bar,
-      .pdf-load-progress-track i {
-        display: block;
-        width: 0%;
-        height: 100%;
-        border-radius: inherit;
-        background: var(--pdf-accent);
-        transition: width 0.18s ease;
-      }
-
-      .pdf-annotation-shape {
-        position: absolute;
-        min-width: 12px;
-        min-height: 12px;
-        border: 2px solid currentColor;
-        pointer-events: auto;
-      }
-
-      .pdf-annotation-shape.color-red {
-        color: var(--pdf-accent);
-      }
-
-      .pdf-annotation-shape.color-amber {
-        color: var(--pdf-warn);
-      }
-
-      .pdf-annotation-shape.color-blue {
-        color: var(--pdf-info);
-      }
-
-      .pdf-annotation-shape.circle {
-        border-radius: 50%;
-      }
-
-      .pdf-annotation-shape.mark {
-        background: rgba(196, 106, 63, 0.08);
-      }
-
-      .pdf-annotation-shape.note {
-        border-radius: 4px;
-        background: var(--pdf-accent-tint);
-      }
-
-      .pdf-annotation-shape.note.selected {
-        z-index: 12;
-      }
-
-      .pdf-annotation-shape.selected {
-        outline: 2px solid var(--pdf-accent);
-        outline-offset: 2px;
-      }
-
-      .pdf-annotation-shape.movable {
-        cursor: move;
-      }
-
-      .pdf-annotation-badge,
-      .comment-index {
-        position: absolute;
-        top: -13px;
-        left: -13px;
+      .native-tool-grid,
+      .summary-grid,
+      .annotation-meta-grid {
         display: grid;
-        min-width: 24px;
-        height: 24px;
-        place-items: center;
-        border-radius: 50%;
-        background: #9f352b;
-        color: var(--pdf-paper);
-        box-shadow: 0 0 0 2px var(--pdf-paper), 0 2px 7px rgba(40, 34, 25, 0.34);
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.42);
-        font-size: 11px;
-        font-family: var(--pdf-mono);
-        font-weight: 800;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
       }
 
-      .pdf-annotation-badge.status-open {
-        background: #9f352b;
+      .native-tool-grid {
+        display: none;
       }
 
-      .pdf-annotation-badge.status-in_progress {
-        background: #75510f;
-      }
-
-      .pdf-annotation-badge.status-resolved {
-        background: #2f6f50;
-      }
-
-      .pdf-annotation-badge.status-draft {
-        background: #4b5563;
-      }
-
-      .pdf-note-text {
-        display: block;
-        padding: 14px 10px 8px;
-        color: var(--pdf-text);
-        font-size: 12px;
-        font-weight: 500;
-      }
-
-      .pdf-note-editor {
-        display: block;
-        width: 100%;
-        height: 100%;
-        min-height: 42px;
-        padding: 12px 10px 8px;
-        border: 0;
-        background: rgba(255, 255, 255, 0.62);
-        color: var(--pdf-text);
-        font: inherit;
-        font-size: 12px;
-        font-weight: 500;
-        line-height: 1.35;
-        outline: 0;
-        resize: none;
-        pointer-events: auto;
-      }
-
-      .pdf-note-editor:focus {
-        background: rgba(255, 255, 255, 0.9);
-        box-shadow: inset 0 0 0 1px currentColor;
-      }
-
-      .pdf-vector,
-      .annotation-vector {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        overflow: visible;
-      }
-
-      .pdf-vector polyline,
-      .pdf-vector path,
-      .annotation-vector polyline,
-      .annotation-vector path {
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 3.2;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        vector-effect: non-scaling-stroke;
-      }
-
-      .pdf-thumb,
-      .pdf-annotation-item,
+      .summary-card,
       .item-card,
-      .step-card,
-      .module-stat-card,
-      .issue-card,
-      .report-check,
-      .attachment-file-card,
-      .reply-card {
-        position: relative;
+      .field-card,
+      .empty-state,
+      .attachment-card {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--surface-soft);
+      }
+
+      .summary-card {
+        padding: 10px;
+      }
+
+      .summary-card span,
+      .field-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .summary-card strong,
+      .field-card strong {
+        display: block;
+        overflow: hidden;
+        margin-top: 4px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+      }
+
+      .filter-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      .text-input,
+      .text-area {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        font-size: 12px;
+        outline: none;
+      }
+
+      .text-input {
+        min-height: 34px;
+        padding: 0 10px;
+      }
+
+      .text-area {
+        min-height: 86px;
+        resize: vertical;
+        padding: 9px 10px;
+        line-height: 1.55;
+      }
+
+      .item-list,
+      .card-list,
+      .attachment-list,
+      .reply-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .item-card {
         width: 100%;
         padding: 10px;
-        border: 1px solid var(--pdf-line);
-        border-radius: 4px;
-        background: var(--pdf-paper);
-        color: var(--pdf-text);
         text-align: left;
       }
 
-      .pdf-annotation-item,
-      .item-card,
-      .step-card,
-      .reply-card {
-        padding: 9px 10px;
+      button.item-card {
+        cursor: pointer;
       }
 
-      .module-stat-card,
-      .item-card,
-      .step-card,
-      .reply-card {
-        overflow: visible;
-      }
-
-      .pdf-thumb {
-        display: grid;
-        grid-template-columns: 58px minmax(0, 1fr);
-        align-items: center;
-        gap: 10px;
-      }
-
-      .pdf-thumb.active,
-      .pdf-annotation-item.active,
-      .step-card.current {
-        border-color: var(--pdf-line);
-      }
-
-      .pdf-thumb.active::before,
-      .pdf-annotation-item.active::before,
-      .step-card.current::before {
-        content: "";
-        position: absolute;
-        left: -1px;
-        top: 12px;
-        width: 2px;
-        height: 18px;
-        background: var(--pdf-accent);
-      }
-
-      .step-card.done {
-        border-color: var(--pdf-line);
-      }
-
-      .step-card.rejected,
-      .step-card.alert {
-        border-color: var(--pdf-accent);
-      }
-
-      .pdf-thumb-preview {
-        display: grid;
-        width: 58px;
-        height: 74px;
-        place-items: center;
-        border: 1px solid var(--pdf-line-soft);
-        border-radius: 2px;
-        background: var(--pdf-panel);
-        color: var(--pdf-info);
-        font-family: var(--pdf-mono);
-        font-weight: 500;
-        overflow: hidden;
-      }
-
-      .pdf-thumb-preview img {
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        background: var(--pdf-paper);
-      }
-
-      .pdf-thumb-preview.ready {
-        background: var(--pdf-paper);
-      }
-
-      .pdf-thumb strong,
-      .pdf-annotation-item strong,
-      .item-card strong,
-      .step-card strong,
-      .module-stat-card strong {
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      button.item-card.active {
+        border-color: var(--accent);
+        background: var(--accent-soft);
       }
 
       .item-meta {
@@ -1263,1188 +497,368 @@
       }
 
       .item-meta strong {
-        min-width: 0;
-      }
-
-      .pdf-thumb span,
-      .pdf-annotation-item span {
-        display: block;
-        margin-top: 3px;
-        color: var(--pdf-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-size: 12px;
       }
 
-      .panel-head,
-      .mini-section-head,
-      .annotation-section-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 8px;
-      }
-
-      .annotation-workbench-head {
-        margin-bottom: 4px;
-      }
-
-      .panel-head h3,
-      .annotation-section-head h4 {
-        margin: 3px 0 0;
-        font-family: var(--pdf-serif);
-        font-weight: 500;
-      }
-
-      .module-stat-grid,
-      .annotation-meta-grid {
+      .annotation-detail {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
+        gap: 10px;
+        padding-top: 4px;
       }
 
       .annotation-meta-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: 1fr 1fr;
       }
 
-      .module-stat-grid.compact-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0;
-        border: 1px solid var(--pdf-line);
-        border-radius: 4px;
-        overflow: hidden;
-      }
-
-      .module-stat-grid.compact-grid .module-stat-card {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 3px;
-        align-items: center;
-        min-height: 50px;
-        padding: 8px 9px;
-        border: 0;
-        border-radius: 0;
-        border-right: 1px solid var(--pdf-line-soft);
-        border-bottom: 1px solid var(--pdf-line-soft);
-        overflow: hidden;
-      }
-
-      .module-stat-grid.compact-grid .module-stat-card span {
-        margin: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .module-stat-grid.compact-grid .module-stat-card:nth-child(even) {
-        border-right: 0;
-      }
-
-      .module-stat-grid.compact-grid .module-stat-card:nth-last-child(-n + 2) {
-        border-bottom: 0;
-      }
-
-      .module-stat-grid.compact-grid .module-stat-card:last-child {
-        border-right: 0;
-      }
-
-      .module-stat-grid.compact-grid .module-stat-card p {
-        display: none;
-      }
-
-      .module-stat-grid.compact-grid .module-stat-card strong {
-        overflow: hidden;
-        font-size: 12px;
-        line-height: 1.35;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .module-stat-card p,
-      .item-card p,
-      .step-card p,
-      .reply-card p {
-        overflow-wrap: anywhere;
-      }
-
-      .module-stat-card span,
-      .metadata-field .field-label,
-      .field-label {
-        display: block;
-        margin-bottom: 5px;
-        color: var(--pdf-muted);
-        font-family: var(--pdf-mono);
-        font-size: 9px;
-        font-weight: 400;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-      }
-
-      .workflow-field-grid,
-      .annotation-detail-body {
-        display: grid;
-        gap: 8px;
-      }
-
-      .workflow-panel-section {
-        gap: 9px;
-      }
-
-      .workflow-panel-section .workflow-board-head {
-        margin-bottom: 4px;
-      }
-
-      .workflow-panel-section .workflow-board-head .panel-kicker {
-        margin-bottom: 4px;
-      }
-
-      .workflow-panel-section .workflow-board-head h3,
-      .annotation-workbench-head h3 {
-        font-size: 15px;
-        line-height: 1.2;
-      }
-
-      .workflow-panel-section .workflow-actions {
-        gap: 6px;
-        flex-wrap: nowrap;
-        min-width: 0;
-      }
-
-      .workflow-panel-section .workflow-actions .primary-button,
-      .workflow-panel-section .workflow-actions .ghost-button,
-      .workflow-panel-section .workflow-actions .danger-button {
-        flex: 1 1 auto;
-        min-width: 0;
-        min-height: 28px;
-        overflow: hidden;
-        padding: 0 8px;
-        font-size: 10.5px;
-        letter-spacing: 0;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .workflow-panel-section .workflow-actions [data-workflow-action="submitToApprover"],
-      .workflow-panel-section .workflow-actions [data-workflow-action="approveFlow"],
-      .workflow-panel-section .workflow-actions [data-workflow-action="startFlow"] {
-        flex-grow: 1.35;
-      }
-
-      .workflow-panel-section .module-subsection {
-        min-width: 0;
-        padding-top: 0;
-        border-top: 0;
-      }
-
-      .workflow-panel-section .module-subsection .mini-section-head {
-        margin-bottom: 8px;
-      }
-
-      .workflow-panel-section #activityList {
-        padding-right: 2px;
-      }
-
-      .workflow-panel-section #activityList .item-card:nth-child(n + 4) {
-        display: block;
-      }
-
-      .workflow-panel-section .item-meta .mini-pill {
-        min-height: auto;
-        padding: 0;
-        border: 0;
-        background: transparent;
-        color: var(--pdf-muted);
-      }
-
-      .workflow-panel-section #workflowSteps,
-      .workflow-panel-section #activityList {
-        gap: 0;
-        border: 1px solid var(--pdf-line);
-        border-radius: 2px;
-        overflow: visible;
-      }
-
-      .workflow-panel-section #workflowSteps .step-card,
-      .workflow-panel-section #activityList .item-card {
-        padding: 8px 9px;
-        border: 0;
-        border-bottom: 1px solid var(--pdf-line-soft);
-        border-radius: 0;
-      }
-
-      .workflow-panel-section #workflowSteps .step-card p,
-      .workflow-panel-section #activityList .item-card p {
-        margin-top: 2px;
-        line-height: 1.42;
-      }
-
-      .workflow-panel-section #workflowSteps .step-card:last-child,
-      .workflow-panel-section #activityList .item-card:last-child {
-        border-bottom: 0;
-      }
-
-      .workflow-launch-controls {
-        padding: 9px;
-        border: 1px solid var(--pdf-line);
-        border-radius: 2px;
-        background: var(--pdf-panel-soft);
-      }
-
-      .review-rail-disclosure {
-        display: block;
-        position: relative;
-        z-index: 0;
-        clear: both;
-        min-width: 0;
-        border: 1px solid var(--pdf-line);
-        border-radius: 2px;
-        background: var(--pdf-paper);
-        overflow: visible;
-      }
-
-      .review-rail-disclosure summary {
-        display: flex;
-        min-height: 50px;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 8px 9px;
-        cursor: pointer;
-        list-style: none;
-      }
-
-      .review-rail-disclosure summary > span:first-child {
-        display: grid;
-        min-width: 0;
-        gap: 2px;
-      }
-
-      .review-rail-disclosure summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .review-rail-disclosure summary strong {
-        display: block;
-        margin-top: 0;
-        color: var(--pdf-text);
-        font-size: 11.5px;
-        font-weight: 600;
-        line-height: 1.2;
-        white-space: normal;
-      }
-
-      .review-rail-disclosure summary .mini-pill {
-        flex: 0 0 auto;
-        align-self: center;
-      }
-
-      .review-rail-disclosure[open] .rail-state-collapsed,
-      .review-rail-disclosure:not([open]) .rail-state-open {
-        display: none;
-      }
-
-      .review-rail-body {
-        display: grid;
-        gap: 8px;
-        padding: 0 9px 9px;
-        min-height: 0;
-        max-height: none;
-        overflow: visible;
-      }
-
-      .review-rail-disclosure:not([open]) > .review-rail-body {
-        display: none;
-      }
-
-      .review-rail-disclosure[open] > .review-rail-body {
-        display: grid;
-      }
-
-      .workflow-trace-grid {
-        display: grid;
-        gap: 10px;
-      }
-
-      .review-support-section {
-        background: var(--pdf-paper);
-      }
-
-      .review-support-section .remarks-section,
-      .review-support-section .reply-section {
-        padding: 0;
-      }
-
-      .review-support-section .remarks-section .text-area {
-        min-height: 58px;
-      }
-
-      .review-support-section .mini-section-head {
-        margin-bottom: 6px;
-      }
-
-      .review-support-section .reply-list:not(:empty) {
-        padding-right: 2px;
-      }
-
-      .review-support-section .reply-attachment-actions,
-      .review-support-section .annotation-action-row {
-        gap: 6px;
-      }
-
-      .review-support-section .ghost-button,
-      .review-support-section .primary-button {
-        min-height: 28px;
-        padding: 0 9px;
-        font-size: 11px;
-      }
-
-      .review-support-section .reply-composer {
-        gap: 8px;
-      }
-
-      .review-support-section .review-rail-disclosure[open] .review-rail-body,
-      .attachment-block.review-rail-disclosure[open] .review-rail-body {
-        max-height: none;
-        overflow: visible;
-        overscroll-behavior: contain;
-      }
-
-      .review-support-section .reply-section.review-rail-disclosure[open] .review-rail-body {
-        max-height: none;
-      }
-
-      .review-support-section .reply-section.review-rail-disclosure[open] .compact-attachment-disclosure[open] .review-rail-body {
-        max-height: none;
-      }
-
-      .review-support-section #replyButton {
-        width: 100%;
-        min-height: 32px;
-      }
-
-      .review-support-section .reply-attachment-toolbar,
-      .annotation-attachment-toolbar {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 6px;
-      }
-
-      .review-support-section .reply-attachment-toolbar .ghost-button,
-      .annotation-attachment-toolbar .ghost-button {
-        min-width: 0;
-        width: 100%;
-        padding-inline: 6px;
-        white-space: nowrap;
-      }
-
-      .compact-attachment-disclosure summary,
-      .remarks-section.review-rail-disclosure summary {
-        min-height: 50px;
-      }
-
-      .detail-field,
-      .pdf-field {
-        display: grid;
-        gap: 6px;
-      }
-
-      .annotation-workbench-card {
+      .field-card {
         padding: 8px;
-        box-shadow: none;
       }
 
-      .issue-details-card {
+      .status-row {
+        align-items: stretch;
+      }
+
+      .status-row .ghost-button {
+        flex: 1 1 0;
+        padding-inline: 8px;
+      }
+
+      .status-row .active {
+        border-color: transparent;
+        background: var(--accent-soft);
+        color: var(--accent-ink);
+      }
+
+      .empty-state {
+        padding: 14px;
+      }
+
+      .attachment-card {
         display: grid;
-        gap: 5px;
-        border-radius: 2px;
-        background: var(--pdf-panel-soft);
-      }
-
-      .issue-details-card .annotation-section-head {
-        display: none;
-      }
-
-      .issue-details-card .field-label[for="annotationDetailInput"],
-      .issue-details-card .annotation-description-input {
-        display: none;
-      }
-
-      .annotation-description-input {
-        min-height: 48px;
-      }
-
-      .annotation-summary-note {
-        margin: 0;
-        padding: 8px 9px;
-        border: 1px solid var(--pdf-line-soft);
-        border-radius: 2px;
-        background: var(--pdf-panel-soft);
-        color: var(--pdf-body);
-        font-size: 12px;
-        line-height: 1.45;
-        overflow-wrap: anywhere;
-      }
-
-      .annotation-action-group {
-        display: none;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 6px;
-      }
-
-      .annotation-detail-body.is-draft .annotation-action-group,
-      .annotation-detail-body.is-editing .annotation-action-group {
-        display: grid;
-      }
-
-      .annotation-action-group .primary-button,
-      .annotation-action-group .ghost-button {
-        width: 100%;
-        min-width: 0;
-        min-height: 30px;
-        padding-inline: 6px;
-        font-size: 11px;
-        white-space: nowrap;
-      }
-
-      .annotation-readonly-note {
-        padding: 10px 12px;
-        border: 1px solid var(--pdf-line-soft);
-        border-radius: 4px;
-        background: var(--pdf-panel-soft);
-        color: var(--pdf-muted);
-        font-size: 12px;
-        line-height: 1.55;
-      }
-
-      .annotation-status-row {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, max-content));
-        gap: 6px;
-        align-items: start;
-      }
-
-      .annotation-status-row > div:first-child {
-        display: flex;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
-        gap: 6px;
-        min-height: 28px;
+        gap: 8px;
+        padding: 8px;
       }
 
-      .annotation-status-row > div:first-child .field-label {
-        margin: 0;
-      }
-
-      .detail-color-row {
-        display: inline-flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 5px;
-        flex-wrap: wrap;
-      }
-
-      .annotation-color-readout {
-        display: inline-flex;
-        min-height: 28px;
-        align-items: center;
-        gap: 6px;
-        padding: 0 8px;
-        border: 1px solid var(--pdf-line);
-        border-radius: 2px;
-        background: var(--pdf-paper);
-        color: var(--pdf-body);
-        font-size: 11.5px;
-        font-weight: 500;
-        white-space: nowrap;
-      }
-
-      .detail-color-button {
-        min-height: 26px;
-        border: 1px solid var(--pdf-line);
-        border-radius: 2px;
-        background: var(--pdf-paper);
-        padding: 0 7px;
-        font-size: 10.5px;
-        font-weight: 500;
-      }
-
-      .detail-color-button.active {
-        background: var(--pdf-text);
-        color: var(--pdf-paper);
-      }
-
-      .metadata-field {
-        border: 1px solid var(--pdf-line);
-        border-radius: 2px;
-        background: var(--pdf-paper);
-        padding: 6px 7px;
-      }
-
-      .metadata-value {
+      .attachment-card strong,
+      .attachment-card span {
         display: block;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-size: 11.5px;
-        font-weight: 500;
       }
 
-      .attachment-block,
-      .reply-composer,
-      .annotation-toolbar-row {
-        display: grid;
-        gap: 8px;
+      .attachment-card span {
+        color: var(--muted);
+        font-size: 11px;
       }
 
-      .reply-section {
-        min-width: 0;
+      .divider {
+        height: 1px;
+        background: var(--line);
       }
 
-      .reply-section .mini-section-head {
-        margin-bottom: 0;
-      }
-
-      .reply-composer .text-area {
-        min-height: 54px;
-      }
-
-      .attachment-actions,
-      .reply-attachment-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
-      .attachment-block.review-rail-disclosure {
-        display: block;
-        min-height: 0;
-        margin-bottom: 4px;
-      }
-
-      .attachment-block.review-rail-disclosure .review-rail-body {
-        padding-top: 0;
-      }
-
-      #reviewPanel .card-list,
-      #reviewPanel .review-rail-body,
-      #reviewPanel .reply-list,
-      #reviewPanel .attachment-list,
-      #reviewPanel .annotation-detail-body {
-        max-height: none;
-        overflow: visible;
-      }
-
-      #reviewPanel .stack-section,
-      #reviewPanel .annotation-detail-body,
-      #reviewPanel .review-support-section {
-        min-height: max-content;
-      }
-
-      #reviewPanel .review-rail-disclosure[open] {
-        overflow: visible;
-      }
-
-      .reply-list,
-      .attachment-list {
-        display: grid;
-        gap: 8px;
-      }
-
-      .reply-section.readonly .reply-composer,
-      .remarks-section.readonly .remarks-action-group,
-      .annotation-workbench-section.readonly .annotation-action-group,
-      .annotation-workbench-section.readonly .annotation-attachment-toolbar {
-        display: none;
-      }
-
-      .annotation-workbench-section.readonly .text-input,
-      .annotation-workbench-section.readonly .text-area,
-      .remarks-section.readonly .text-area {
-        color: var(--pdf-body);
-        background: var(--pdf-panel-soft);
-      }
-
-      .remarks-section.empty-readonly,
-      .reply-section.empty-readonly {
-        display: none;
-      }
-
-      .reply-composer {
-        padding-top: 0;
-      }
-
-      .pdf-login-card {
-        position: fixed;
+      .progress-overlay,
+      .login-card {
+        position: absolute;
         inset: 0;
-        z-index: 40;
-        display: none;
+        z-index: 20;
+        display: grid;
         place-items: center;
-        padding: 24px;
-        background: rgba(250, 250, 247, 0.92);
+        background: rgba(244, 246, 245, 0.78);
+        backdrop-filter: blur(8px);
       }
 
-      .pdf-login-card.visible {
+      .progress-card,
+      .login-panel {
+        width: min(360px, calc(100vw - 40px));
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+
+      .progress-track {
+        height: 6px;
+        margin-top: 12px;
+        overflow: hidden;
+        border-radius: 99px;
+        background: var(--line);
+      }
+
+      .progress-bar {
+        width: 20%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--accent);
+        transition: width 0.2s ease;
+      }
+
+      .login-card {
+        position: fixed;
+        display: none;
+      }
+
+      .login-card.visible {
         display: grid;
       }
 
-      .pdf-login-panel h1 {
-        margin: 0 0 8px;
-        font-size: 22px;
-      }
-
-      .pdf-login-panel p {
-        margin: 0 0 18px;
-        color: var(--pdf-muted);
-        line-height: 1.6;
-      }
-
-      .pdf-toast-region {
+      .toast-region {
         position: fixed;
         right: 18px;
         bottom: 18px;
         z-index: 50;
         display: grid;
-        gap: 10px;
+        gap: 8px;
       }
 
-      .pdf-toast {
-        width: min(360px, calc(100vw - 36px));
-        padding: 12px 14px;
-        border: 1px solid var(--pdf-line);
-        border-radius: 4px;
-        background: var(--pdf-paper);
-        box-shadow: none;
-        color: var(--pdf-text);
-        font-size: 13px;
-        font-weight: 500;
+      .toast {
+        max-width: 360px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        padding: 10px 12px;
+        color: var(--text);
+        font-size: 12px;
       }
 
-      .pdf-toast.alert {
-        border-color: var(--pdf-accent);
-        color: var(--pdf-accent-ink);
+      .toast.success {
+        border-color: color-mix(in srgb, var(--ok) 35%, var(--line));
       }
 
-      @media (max-width: 1260px) {
-        .pdf-main {
-          grid-template-columns: minmax(0, 1fr) minmax(360px, 40vw);
-        }
+      .toast.alert {
+        border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+        color: var(--danger);
+      }
 
-        .review-navigator {
+      @media (max-width: 1120px) {
+        .meta-strip {
           display: none;
         }
       }
 
-      @media (max-width: 1440px) {
-        .pdf-main {
-          grid-template-columns: minmax(0, 1fr) clamp(308px, 25vw, 336px);
-          padding-inline: 12px;
-          gap: 12px;
+      @media (max-width: 720px) {
+        .topbar {
+          grid-template-columns: minmax(0, 1fr);
         }
 
-        .review-navigator {
-          display: none;
+        .brand strong {
+          max-width: 52vw;
         }
 
-        .tool-ribbon {
-          padding-inline: 8px;
-          gap: 4px;
-        }
-
-        .tool-cluster {
-          gap: 3px;
-        }
-
-        .primary-button,
-        .ghost-button,
-        .tool-chip,
-        .tool-button,
-        .tool-faux-button,
-        .color-swatch-button,
-        .pdf-chip-button,
-        .review-side-tab,
-        .pager-button,
-        .export-link {
-          min-height: 32px;
-          font-size: 11px;
-        }
-
-        .primary-button,
-        .ghost-button,
-        .pdf-chip-button,
-        .export-link {
-          padding-inline: 8px;
-        }
-
-        .tool-chip,
-        .tool-button,
-        .tool-faux-button,
-        .color-swatch-button,
-        .pager-button {
-          width: 30px;
-          min-width: 30px;
-          padding-inline: 0;
-        }
-
-        .toolbar-action,
-        .compact-button.icon-tool {
-          width: 30px;
-          min-width: 30px;
+        .workspace {
           padding: 0;
         }
 
-        .tool-ribbon .zoom-input {
-          width: 56px;
-          flex-basis: 56px;
-          min-height: 32px;
-        }
-
-        .canvas-page-controls .zoom-input {
-          width: 32px;
-          flex-basis: 32px;
-        }
-
-        .canvas-page-controls .page-controls {
-          gap: 3px;
-        }
-
-        .canvas-page-controls .page-indicator {
-          min-width: 18px;
-          font-size: 10px;
-        }
-
-        .tool-separator {
-          margin-inline: 1px;
-        }
-
-        .review-mode-cluster .ghost-button,
-        .review-mode-cluster .tool-button,
-        .review-mode-cluster .tool-faux-button {
-          width: 30px;
-          min-width: 30px;
-          padding-inline: 0;
-        }
-
-        .zoom-cluster .ghost-button {
-          width: 30px;
-          min-width: 30px;
-          padding-inline: 0;
-        }
-      }
-
-      @media (max-width: 900px) {
-        body {
-          overflow: auto;
-        }
-
-        .pdf-shell {
-          min-height: 100vh;
-          height: auto;
-        }
-
-        .pdf-topbar,
-        .pdf-main {
-          grid-template-columns: 1fr;
-        }
-
-        .pdf-actions,
-        .pdf-header-meta {
-          justify-content: flex-start;
-          flex-wrap: wrap;
-        }
-
-        .pdf-main {
-          min-height: 100vh;
-        }
-
-        .tool-ribbon {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          overflow: visible;
-          padding: 8px;
-          row-gap: 6px;
-        }
-
-        .tool-separator {
-          display: none;
-        }
-
-        .zoom-cluster,
-        .review-mode-cluster,
-        .pdf-color-strip {
-          flex: 0 0 auto;
-          margin-left: 0;
-        }
-
-        .canvas-page-controls .page-controls {
-          gap: 4px;
-        }
-
-        .module-stat-grid,
-        .annotation-meta-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .tool-ribbon .zoom-input {
-          flex: 0 0 auto;
-        }
-
-        .zoom-cluster .zoom-input {
-          width: 58px;
-          flex-basis: 58px;
-        }
-
-        .canvas-page-controls .zoom-input {
-          width: 32px;
-          flex-basis: 32px;
-        }
       }
     </style>
   </head>
-  <body class="pdf-standalone-page">
-    <main class="pdf-shell" id="pdfStandaloneApp">
-      <header class="pdf-topbar">
-        <section class="pdf-brand">
-          <span class="pdf-brand-mark">PDF</span>
+  <body>
+    <main class="pdf-app" id="pdfStandaloneApp">
+      <header class="topbar">
+        <section class="brand">
+          <span class="brand-mark">PDF</span>
           <div>
-            <small>CDE / PDF 审阅工作台</small>
+            <small>CDE / Native PDF Review</small>
             <strong id="documentTitle">正在打开 PDF 审阅页</strong>
           </div>
         </section>
-        <section class="pdf-header-meta">
-          <span id="documentVersion" class="version-badge">V1</span>
+        <section class="meta-strip">
+          <span id="documentVersion" class="pill">V1</span>
           <span id="documentStatus" class="status-pill neutral">加载中</span>
-          <span id="documentPageSummary" class="mini-pill">0 / 0</span>
-        </section>
-        <section class="pdf-actions">
-          <button class="ghost-button export-action-button" id="commentReportButton" type="button" aria-label="导出评论 Excel" title="导出评论 Excel">
-            <span data-button-label>导出评论 Excel</span>
-          </button>
-          <button class="primary-button export-action-button" id="exportButton" type="button" aria-label="导出批注版" title="导出批注版">
-            <span data-button-label>导出批注版</span>
-          </button>
+          <span id="documentPageSummary" class="pill">--</span>
+          <span class="topbar-actions">
+            <button id="commentReportButton" class="ghost-button" type="button" disabled>导出评论</button>
+            <button id="exportButton" class="primary-button" type="button" disabled>导出批注版</button>
+          </span>
         </section>
       </header>
 
-      <section class="pdf-main">
-        <aside id="reviewNavigator" class="panel review-navigator">
-          <div id="reviewDocSummary" class="review-doc-summary"></div>
-
-          <div class="review-side-tabs">
-            <button class="review-side-tab active" data-review-tab="annotations" type="button">
-              批注列表
-              <span id="annotationTabBadge" class="tab-badge">0</span>
-            </button>
-            <button class="review-side-tab" data-review-tab="thumbnails" type="button">缩略图</button>
+      <section id="workspace" class="workspace">
+        <section class="viewer-frame" id="viewerFrame">
+          <div id="embedPdfViewer" aria-label="PDF 原生审阅器"></div>
+          <div id="progressOverlay" class="progress-overlay" aria-live="polite">
+            <div class="progress-card">
+              <strong id="progressTitle">正在加载 PDF</strong>
+              <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+              <p id="progressText" class="section-text">正在准备文档流...</p>
+            </div>
           </div>
+        </section>
 
-          <section id="reviewAnnotationSidebar" class="review-annotation-sidebar">
-            <div class="review-filter-row">
-              <select id="annotationFilter" class="text-input compact-select">
+        <section id="cdeNativePanels" class="hidden" aria-hidden="true">
+          <section id="cdeAnnotationSidebarShell" class="cde-sidebar-shell cde-annotation-sidebar" data-cde-native-shell="left" aria-label="CDE 批注列表">
+            <header class="rail-head">
+              <div>
+                <p class="panel-kicker">CDE Annotations</p>
+                <h2>批注列表</h2>
+              </div>
+              <span id="annotationTabBadge" class="tab-badge">0</span>
+            </header>
+            <div class="summary-grid" id="reviewDocSummary"></div>
+            <div class="filter-row">
+              <select id="annotationFilter" class="text-input">
                 <option value="all">全部批注</option>
-                <option value="current_page">当前页</option>
                 <option value="open">未解决</option>
                 <option value="in_progress">进行中</option>
                 <option value="resolved">已解决</option>
               </select>
             </div>
-            <div id="reviewAnnotationSidebarList" class="review-comment-list"></div>
+            <div id="reviewAnnotationSidebarList" class="item-list"></div>
           </section>
 
-          <div id="reviewThumbList" class="review-thumb-list hidden"></div>
-        </aside>
-
-        <section id="viewerPanel" class="pdf-viewer-card">
-          <div class="review-document-header">
-            <div class="review-header-copy">
-              <p id="reviewProjectLine" class="review-project-line">CDE 文件管理系统 / PDF 审阅工作台</p>
-              <div class="review-headline">
-                <h3 id="documentTitleMirror">请选择一份图纸 PDF</h3>
-                <span id="documentVersionMirror" class="version-badge">V1</span>
-                <span id="documentStatusMirror" class="status-pill neutral">未选择</span>
-              </div>
-              <p id="documentMeta" class="document-meta">正在校验会话并加载图纸数据…</p>
-            </div>
-
-            <div class="review-header-side">
-              <div class="review-header-page-chip">
-                <span class="page-chip-label">页码</span>
-                <span id="documentPageSummaryMirror" class="mini-pill">0 / 0</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="viewer-toolbar review-toolbar">
-            <div class="tool-ribbon">
-              <div class="tool-cluster zoom-cluster compact-cluster" aria-label="缩放工具">
-                <button id="zoomOutButton" class="tool-chip icon-only-button" type="button" aria-label="缩小" title="缩小">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
-                </button>
-                <input id="zoomIndicator" class="zoom-input" type="text" inputmode="decimal" value="100%" aria-label="缩放百分比" title="缩放百分比" />
-                <button id="zoomInButton" class="tool-chip icon-only-button" type="button" aria-label="放大" title="放大">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
-                </button>
-                <button id="fitViewButton" class="ghost-button compact-button icon-tool" type="button" aria-label="适合宽度" title="适合宽度">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16" /><path d="M4 17h16" /><path d="M7 4 4 7l3 3" /><path d="M17 4l3 3-3 3" /><path d="M7 14l-3 3 3 3" /><path d="M17 14l3 3-3 3" /></svg>
-                </button>
-                <button id="fullscreenButton" class="ghost-button compact-button icon-tool" type="button" aria-label="全屏" title="全屏">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H4v4" /><path d="M16 3h4v4" /><path d="M8 21H4v-4" /><path d="M16 21h4v-4" /></svg>
-                  <span class="sr-only" data-fullscreen-label>全屏</span>
-                </button>
-              </div>
-
-              <span class="tool-separator" aria-hidden="true"></span>
-
-              <div class="tool-cluster review-mode-cluster compact-cluster" id="toolStrip" aria-label="批注工具">
-                <button id="annotationModeButton" class="ghost-button toolbar-action" type="button" aria-label="选择工具" title="选择工具">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 4 6 16 2-7 7-2Z" /></svg>
-                </button>
-                <button class="tool-faux-button" data-faux-tool="hand" type="button" aria-label="平移" title="平移">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6a2 2 0 0 1 4 0v5" /><path d="M12 11V5a2 2 0 0 1 4 0v7" /><path d="M16 12V7a2 2 0 0 1 4 0v7c0 4-3 7-7 7h-1c-3 0-5-2-5-5v-4" /><path d="M8 12 6.5 10.5a2 2 0 0 0-3 2.6L7 17" /></svg>
-                </button>
-                <button class="tool-button active" data-tool="circle" type="button" aria-label="点批注" title="点批注">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" /><path d="M12 3v4" /><path d="M12 17v4" /><path d="M3 12h4" /><path d="M17 12h4" /></svg>
-                </button>
-                <button class="tool-button" data-tool="mark" type="button" aria-label="矩形" title="矩形">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="6" width="14" height="12" rx="1.5" /></svg>
-                </button>
-                <button class="tool-button" data-tool="line" type="button" aria-label="箭头/引线" title="箭头/引线">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5" /><path d="M13 5h6v6" /></svg>
-                </button>
-                <button class="tool-button" data-tool="pen" type="button" aria-label="铅笔/手绘" title="铅笔/手绘">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.5-1 10-10a2.2 2.2 0 0 0-3.1-3.1l-10 10Z" /><path d="m14 7 3 3" /></svg>
-                </button>
-                <button class="tool-button" data-tool="note" type="button" aria-label="文本注释" title="文本注释">
-                  <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14" /><path d="M12 6v12" /><path d="M9 18h6" /></svg>
-                </button>
-              </div>
-
-              <span class="tool-separator" aria-hidden="true"></span>
-
-              <div id="toolbarColorGroup" class="tool-cluster color-tools pdf-color-strip compact-cluster" aria-label="批注颜色">
-                <button class="color-swatch-button active" data-color="red" data-toolbar-color="red" type="button" aria-label="红色" title="红色"><span class="color-dot red" aria-hidden="true"></span></button>
-                <button class="color-swatch-button" data-color="amber" data-toolbar-color="amber" type="button" aria-label="琥珀" title="琥珀"><span class="color-dot amber" aria-hidden="true"></span></button>
-                <button class="color-swatch-button" data-color="blue" data-toolbar-color="blue" type="button" aria-label="蓝色" title="蓝色"><span class="color-dot blue" aria-hidden="true"></span></button>
-              </div>
-
-            </div>
-
-            <div class="toolbar-secondary-line">
-              <span id="draftHint" class="hint-pill mini-pill">进入批注模式后，可落点、框选或添加文本。</span>
-              <span id="reviewPermissionHint" class="mini-pill review-permission-hint">待选中文件后显示当前节点权限。</span>
-              <span id="pageAnnotationSummary" class="mini-pill">本页 0 条</span>
-              <button id="cancelDraftButton" class="ghost-button compact-button toolbar-inline-action" type="button">清除草稿</button>
-            </div>
-          </div>
-
-          <div id="viewerFrame" class="viewer-frame">
-            <div id="canvasPageControls" class="canvas-page-controls hidden" aria-label="页面导航">
-              <div class="page-controls">
-                <button id="prevPageButton" class="ghost-button compact-button pager-button" type="button">‹</button>
-                <input id="pageInput" class="zoom-input" value="1" inputmode="numeric" aria-label="页码" />
-                <span id="pageIndicator" class="page-indicator">/ 0</span>
-                <span id="pageTotal" class="hidden">/ 0</span>
-                <button id="nextPageButton" class="ghost-button compact-button pager-button" type="button">›</button>
-              </div>
-            </div>
-            <div id="viewerEmpty" class="viewer-empty">
-              <div>
-                <strong>选择一份图纸 PDF 开始审阅</strong>
-                <p>系统会按页渲染图纸 PDF，并保存批注、备注、回复和导出记录。</p>
-              </div>
-            </div>
-            <div id="progressOverlay" class="pdf-progress" aria-live="polite">
-              <div class="pdf-progress-card">
-                <strong id="progressTitle">正在加载 PDF</strong>
-                <div class="pdf-progress-track">
-                  <div class="pdf-progress-bar" id="progressBar"></div>
-                </div>
-                <p id="progressText">正在准备文档流…</p>
-              </div>
-            </div>
-            <div id="canvasWrap" class="canvas-wrap hidden">
-              <div id="pageStage" class="pdf-page-stage">
-                <canvas id="pdfCanvas" class="pdf-canvas"></canvas>
-                <div id="annotationLayer" class="annotation-layer"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="review-footer hidden">
-            <div class="review-footer-actions">
-              <a id="exportLink" class="export-link hidden" target="_blank" rel="noreferrer">下载最新导出文件</a>
-              <button id="printButton" class="ghost-button hidden" type="button">打印</button>
-              <button id="shareButton" class="ghost-button hidden" type="button">分享</button>
-              <div id="reviewWorkflowActionGroup" class="review-workflow-action-group"></div>
-            </div>
-          </div>
-        </section>
-
-        <aside id="reviewPanel" class="panel review-panel">
-          <section id="workflowPanel" class="stack-section workflow-panel-section">
-            <div class="panel-head workflow-board-head">
-              <div>
-                <p class="panel-kicker">流程中心</p>
-                <h3>当前流程</h3>
-              </div>
-              <span id="workflowHealthBadge" class="mini-pill signal-pill neutral">待发起</span>
-            </div>
-            <div id="workflowSummaryGrid" class="module-stat-grid compact-grid"></div>
-            <div id="workflowLaunchControls" class="workflow-field-grid workflow-launch-controls">
-              <label class="detail-field">
-                <span class="field-label">流程名称</span>
-                <input id="workflowNameInput" class="text-input" type="text" placeholder="请输入流程名称" />
-              </label>
-              <label class="detail-field">
-                <span class="field-label">流程模板</span>
-                <select id="workflowTemplateSelect" class="text-input"></select>
-              </label>
-              <p id="workflowLaunchHint" class="section-text"></p>
-            </div>
-            <div id="workflowLaunchActions" class="workflow-actions">
-              <button id="startFlowButton" class="primary-button" type="button">发起流程</button>
-            </div>
-            <div id="workflowActions" class="workflow-actions"></div>
-            <div id="workflowSteps" class="card-list hidden"></div>
-            <div id="activityList" class="card-list hidden"></div>
-          </section>
-
-          <section class="stack-section annotation-workbench-section">
-            <div class="panel-head annotation-workbench-head">
-              <div>
-                <p class="panel-kicker">批注详情</p>
-                <h3 id="annotationDetailHeading">未选中批注</h3>
-                <p id="annotationMetaLine" class="annotation-meta-line">选择图面批注后查看说明、证据和处理记录。</p>
-              </div>
-              <span id="annotationDetailBadge" class="mini-pill annotation-number-pill">--</span>
-            </div>
-
-            <div id="annotationEmptyCard" class="annotation-empty-state empty-card">
-              <strong>选择或新建批注</strong>
-              <p>点击图面批注查看详情；有权限时可使用工具新建批注。</p>
-            </div>
-
-            <div id="annotationReadonlyNote" class="annotation-readonly-note hidden">
-              当前文件已归档，批注、附件和回复已锁定。你仍可查看历史记录并导出归档版本。
-            </div>
-
-            <div id="annotationDetailBody" class="annotation-detail-body hidden">
-              <div class="annotation-status-row">
+          <section id="cdeReviewPanelShell" class="cde-sidebar-shell cde-review-panel" data-cde-native-shell="right" aria-label="CDE 审阅面板">
+            <div class="panel-shell">
+              <header class="panel-head">
                 <div>
-                  <span class="field-label">状态</span>
-                  <div id="annotationStatusGroup" class="status-toggle annotation-status-auto">
-                    <span class="mini-pill signal-pill open">未解决</span>
+                  <p class="panel-kicker">CDE Review Dock</p>
+                  <h2 id="cdePanelTitle">批注与流程</h2>
+                  <p id="documentMeta">正在校验会话并加载图纸数据...</p>
+                </div>
+              </header>
+
+              <nav class="tab-row" aria-label="CDE PDF 审阅面板">
+                <button class="tab-button active" data-cde-panel-tab="annotations" type="button">批注</button>
+                <button class="tab-button" data-cde-panel-tab="comments" type="button">评论</button>
+                <button class="tab-button" data-cde-panel-tab="workflow" type="button">流程</button>
+              </nav>
+
+              <div class="panel-scroll">
+                <section id="annotationsPanel" class="panel-section" data-panel-name="annotations">
+                  <div class="native-tool-grid">
+                    <button class="ghost-button" data-native-tool="highlight" type="button">高亮</button>
+                    <button class="ghost-button" data-native-tool="ink" type="button">手绘</button>
+                    <button class="ghost-button" data-native-tool="square" type="button">矩形</button>
+                    <button class="ghost-button" data-native-tool="text" type="button">便签</button>
                   </div>
-                </div>
-                <div id="annotationColorGroup" class="detail-color-row compact-color-row" aria-label="批注颜色">
-                  <span class="field-label">颜色</span>
-                  <span id="annotationColorReadout" class="annotation-color-readout"><span class="color-dot red" aria-hidden="true"></span><span>红</span></span>
-                </div>
-              </div>
-
-              <div class="annotation-meta-grid" aria-label="批注元数据">
-                <div class="metadata-field"><span class="field-label">发起人</span><span id="annotationActorInput" class="metadata-value">--</span></div>
-                <div class="metadata-field"><span class="field-label">创建时间</span><span id="annotationCreatedInput" class="metadata-value">--</span></div>
-                <div class="metadata-field"><span class="field-label">页码</span><span id="annotationPageInput" class="metadata-value">--</span></div>
-                <div class="metadata-field"><span class="field-label">类型</span><span id="annotationTypeInput" class="metadata-value">--</span></div>
-              </div>
-
-              <p id="annotationSummaryNote" class="annotation-summary-note">未填写说明</p>
-
-              <div id="annotationViewActions" class="annotation-view-actions hidden">
-                <button id="editAnnotationButton" class="ghost-button compact-button" type="button">修改批注</button>
-              </div>
-
-              <section id="annotationEditCard" class="annotation-workbench-card issue-details-card hidden">
-                <div class="annotation-section-head"><div><p class="panel-kicker">问题说明</p><h4>处理要点</h4></div></div>
-                <label class="field-label" for="annotationTitleInput">标题</label>
-                <input id="annotationTitleInput" class="text-input annotation-title-input" type="text" placeholder="例如：补充摄像头 / 调整线缆 / 核查设备" />
-                <label class="field-label" for="annotationDetailInput">说明</label>
-                <textarea id="annotationDetailInput" class="text-area annotation-description-input" placeholder="描述问题、预期修复方式或审阅结论。"></textarea>
-              </section>
-
-              <details id="attachmentBlock" class="annotation-workbench-card attachment-block evidence-card review-rail-disclosure compact-attachment-disclosure">
-                <summary>
-                  <span>
-                    <span class="panel-kicker">证据附件</span>
-                    <strong>图片 / 文件 / 链接</strong>
-                  </span>
-                  <span id="attachmentCountBadge" class="mini-pill">0 项</span>
-                </summary>
-                <div class="review-rail-body">
-                  <div class="attachment-actions annotation-attachment-toolbar">
-                    <button id="attachImageButton" class="ghost-button compact-button" type="button">图片</button>
-                    <button id="attachFileButton" class="ghost-button compact-button" type="button">文件</button>
-                    <button id="attachLinkButton" class="ghost-button compact-button" type="button">链接</button>
+                  <div class="section-head">
+                    <div>
+                      <p class="panel-kicker">批注详情</p>
+                      <h3 id="annotationDetailHeading">未选中批注</h3>
+                    </div>
+                    <span id="annotationDetailBadge" class="pill">--</span>
                   </div>
-                  <p id="attachmentHelperText" class="section-text">选择批注后可添加证据附件。</p>
-                  <div id="annotationAttachmentList" class="attachment-list"></div>
-                </div>
-              </details>
+                  <p id="annotationMetaLine" class="section-text">选择图面批注后查看说明、证据和处理记录。</p>
+                  <div id="annotationEmptyCard" class="empty-state">
+                    <strong>选择或新建批注</strong>
+                    <p>可使用 EmbedPDF 原生工具在图面上创建批注；创建后会同步到 CDE 批注列表。</p>
+                  </div>
+                  <div id="annotationDetailBody" class="annotation-detail hidden">
+                    <div id="annotationStatusGroup" class="status-row">
+                      <button class="ghost-button" data-annotation-status="open" type="button">未解决</button>
+                      <button class="ghost-button" data-annotation-status="in_progress" type="button">进行中</button>
+                      <button class="ghost-button" data-annotation-status="resolved" type="button">已解决</button>
+                    </div>
+                    <div class="annotation-meta-grid">
+                      <div class="field-card"><span>发起人</span><strong id="annotationActorInput">--</strong></div>
+                      <div class="field-card"><span>页码</span><strong id="annotationPageInput">--</strong></div>
+                      <div class="field-card"><span>类型</span><strong id="annotationTypeInput">--</strong></div>
+                      <div class="field-card"><span>创建时间</span><strong id="annotationCreatedInput">--</strong></div>
+                    </div>
+                    <label>
+                      <span class="field-label">标题</span>
+                      <input id="annotationTitleInput" class="text-input" type="text" placeholder="输入批注标题" />
+                    </label>
+                    <label>
+                      <span class="field-label">说明</span>
+                      <textarea id="annotationDetailInput" class="text-area" placeholder="描述问题、审阅结论或处理要求。"></textarea>
+                    </label>
+                    <div>
+                      <div class="section-head">
+                        <span class="field-label">证据附件</span>
+                        <span id="attachmentCountBadge" class="pill">0 项</span>
+                      </div>
+                      <div class="attachment-actions">
+                        <button id="attachImageButton" class="ghost-button" type="button">图片</button>
+                        <button id="attachFileButton" class="ghost-button" type="button">文件</button>
+                        <button id="attachLinkButton" class="ghost-button" type="button">链接</button>
+                      </div>
+                      <div id="annotationAttachmentList" class="attachment-list"></div>
+                    </div>
+                    <div class="button-row">
+                      <button id="saveAnnotationButton" class="primary-button" type="button">保存批注</button>
+                      <button id="deleteAnnotationButton" class="ghost-button danger-button" type="button">删除</button>
+                    </div>
+                  </div>
+                </section>
 
-              <div class="annotation-action-row annotation-action-group">
-                <button id="cancelAnnotationEditButton" class="ghost-button" type="button">取消</button>
-                <button id="saveAnnotationButton" class="primary-button" type="button">提交批注</button>
-                <button id="resolveQuickButton" class="ghost-button hidden" type="button">自动判断状态</button>
-                <button id="deleteAnnotationButton" class="ghost-button danger-button" type="button">删除批注</button>
+                <section id="commentsPanel" class="panel-section hidden" data-panel-name="comments">
+                  <div class="section-head">
+                    <div>
+                      <p class="panel-kicker">处理讨论</p>
+                      <h3>回复与结论</h3>
+                    </div>
+                    <span id="replyAttachmentCountBadge" class="pill">0 项</span>
+                  </div>
+                  <div id="replyList" class="reply-list"></div>
+                  <textarea id="replyInput" class="text-area" placeholder="选中批注后，可以在这里补充处理记录或结论。"></textarea>
+                  <div class="attachment-actions">
+                    <button id="replyAttachImageButton" class="ghost-button" type="button">图片</button>
+                    <button id="replyAttachFileButton" class="ghost-button" type="button">文件</button>
+                    <button id="replyAttachLinkButton" class="ghost-button" type="button">链接</button>
+                  </div>
+                  <div id="replyAttachmentList" class="attachment-list"></div>
+                  <button id="replyButton" class="primary-button" type="button">发布更新</button>
+                  <div class="divider"></div>
+                  <div class="section-head">
+                    <div>
+                      <p class="panel-kicker">整文备注</p>
+                      <h3>报告摘要</h3>
+                    </div>
+                  </div>
+                  <textarea id="remarksInput" class="text-area" placeholder="记录整份文件的审阅结论、补充说明或执行要求。"></textarea>
+                  <button id="saveRemarksButton" class="ghost-button" type="button">保存备注</button>
+                </section>
+
+                <section id="workflowPanel" class="panel-section hidden" data-panel-name="workflow">
+                  <div class="section-head">
+                    <div>
+                      <p class="panel-kicker">流程中心</p>
+                      <h3>当前流程</h3>
+                    </div>
+                    <span id="workflowHealthBadge" class="pill signal-pill open">待发起</span>
+                  </div>
+                  <div id="workflowSummaryGrid" class="summary-grid"></div>
+                  <div id="workflowLaunchControls" class="panel-section">
+                    <label>
+                      <span class="field-label">流程名称</span>
+                      <input id="workflowNameInput" class="text-input" type="text" placeholder="请输入流程名称" />
+                    </label>
+                    <label>
+                      <span class="field-label">流程模板</span>
+                      <select id="workflowTemplateSelect" class="text-input"></select>
+                    </label>
+                    <p id="workflowLaunchHint" class="section-text"></p>
+                    <div id="workflowLaunchActions" class="button-row">
+                      <button id="startFlowButton" class="primary-button" type="button">发起流程</button>
+                    </div>
+                  </div>
+                  <div id="workflowActions" class="button-row"></div>
+                  <div id="workflowSteps" class="card-list"></div>
+                  <div id="activityList" class="card-list"></div>
+                </section>
               </div>
             </div>
           </section>
-
-          <section class="stack-section review-support-section">
-            <details class="reply-section review-rail-disclosure">
-              <summary>
-                <span><span class="panel-kicker">处理讨论</span><strong>回复与结论</strong></span>
-                <span class="mini-pill"><span class="rail-state-collapsed">展开</span><span class="rail-state-open">收起</span></span>
-              </summary>
-              <div class="review-rail-body">
-                <div id="replyList" class="reply-list"></div>
-                <div class="reply-composer">
-                  <textarea id="replyInput" class="text-area" placeholder="选中批注后，可以在这里补充处理记录或结论。"></textarea>
-                  <details class="review-rail-disclosure compact-attachment-disclosure">
-                    <summary>
-                      <span><span class="panel-kicker">回复附件</span><strong>图片 / 文件 / 链接</strong></span>
-                      <span id="replyAttachmentCountBadge" class="mini-pill">0 项</span>
-                    </summary>
-                    <div class="review-rail-body">
-                      <div class="reply-attachment-actions reply-attachment-toolbar">
-                        <button id="replyAttachImageButton" class="ghost-button compact-button" type="button">图片</button>
-                        <button id="replyAttachFileButton" class="ghost-button compact-button" type="button">文件</button>
-                        <button id="replyAttachLinkButton" class="ghost-button compact-button" type="button">链接</button>
-                      </div>
-                      <p id="replyAttachmentHelperText" class="section-text">选中批注后，可在回复中附加证据。</p>
-                      <div id="replyAttachmentList" class="attachment-list"></div>
-                    </div>
-                  </details>
-                  <button id="replyButton" class="primary-button" type="button">发布更新</button>
-                </div>
-              </div>
-            </details>
-
-            <details class="remarks-section review-rail-disclosure">
-              <summary>
-                <span><span class="panel-kicker">整文备注</span><strong>报告摘要</strong></span>
-                <span class="mini-pill">编辑</span>
-              </summary>
-              <div class="review-rail-body">
-                <textarea id="remarksInput" class="text-area" placeholder="记录整份文件的审阅结论、补充说明或执行要求。"></textarea>
-                <div class="annotation-action-row remarks-action-group">
-                  <button id="saveRemarksButton" class="ghost-button" type="button">保存备注</button>
-                </div>
-              </div>
-            </details>
-          </section>
-        </aside>
+        </section>
       </section>
     </main>
 
-    <section class="pdf-login-card" id="loginCard">
-      <div class="pdf-login-panel">
+    <section class="login-card" id="loginCard">
+      <div class="login-panel">
         <h1>需要重新登录</h1>
-        <p>当前 PDF 审阅页没有有效会话。请回到系统登录后再打开该页面。</p>
+        <p class="section-text">当前 PDF 审阅页没有有效会话。请回到系统登录后再打开该页面。</p>
         <button class="primary-button" id="loginButton" type="button">返回登录页</button>
       </div>
     </section>
 
-    <div class="pdf-toast-region" id="toastRegion" aria-live="polite"></div>
+    <div class="toast-region" id="toastRegion" aria-live="polite"></div>
     <script type="module" src="/pdf-runtime.js"></script>
   </body>
 </html>

@@ -11,6 +11,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
 
 from pdf_font_utils import register_pdf_font
+from report_i18n import localize_text
 
 FONT_NAME = "ReviewArialUnicode"
 
@@ -164,6 +165,7 @@ def draw_annotation(pdf, annotation, number, page_width, page_height):
 
 def draw_label(pdf, x, anchor_y, note, stroke, fill):
     font_name = register_font()
+    note = localize_text(note)
     label_y = min(pdf._pagesize[1] - 24, anchor_y + 18)
     label_width = min(max(pdfmetrics.stringWidth(note[:24], font_name, 10) + 18, 88), 210)
     pdf.setStrokeColor(stroke)
@@ -280,7 +282,7 @@ def build_summary_pdf(document, annotations):
 
         pdf.setFillColor(colors.HexColor("#17324d"))
         pdf.setFont(font_name, 16)
-        pdf.drawString(42, y, title)
+        pdf.drawString(42, y, localize_text(title))
         y -= 20
 
         pdf.setFillColor(colors.HexColor("#6e8297"))
@@ -362,6 +364,7 @@ def split_block(text):
 
 def wrap_text(text, max_width, font_size):
     font_name = register_font()
+    text = localize_text(text)
     lines = []
     current = ""
     for char in text:
@@ -382,6 +385,7 @@ def wrap_text(text, max_width, font_size):
 
 
 def draw_wrapped_text(pdf, text, x, y, width, font_size, leading):
+    text = localize_text(text)
     pdf.setFont(register_font(), font_size)
     current_y = y
     for line in wrap_text(text, width, font_size):

@@ -150,6 +150,7 @@ const DRAWING_REGISTER_EXPORT_SCRIPT = path.join(ROOT, "export_drawing_register.
 const MODEL_CLASH_HEATMAP_EXPORT_SCRIPT = path.join(ROOT, "export_model_clash_heatmap.py");
 const PYTHON_BIN = resolvePythonBin();
 const PDFJS_DIR = resolvePdfjsDir();
+const EMBEDPDF_DIST_DIR = path.join(ROOT, "node_modules", "@embedpdf", "snippet", "dist");
 const PORT = Number(process.env.PORT || 8080);
 const HOST = String(process.env.HOST || process.env.CDE_HOST || "0.0.0.0").trim() || "0.0.0.0";
 const MAX_BODY_BYTES = 100 * 1024 * 1024;
@@ -887,7 +888,8 @@ const server = http.createServer(async (req, res) => {
 
     const drawingRedlineTaskExportMatch = pathname.match(/^\/api\/drawing-apps\/redline\/tasks\/([^/]+)\/export$/);
     if (drawingRedlineTaskExportMatch && req.method === "POST") {
-      const result = await exportDrawingRedlineReport(drawingRedlineTaskExportMatch[1], userContext, req);
+      const body = await readJsonBody(req).catch(() => ({}));
+      const result = await exportDrawingRedlineReport(drawingRedlineTaskExportMatch[1], userContext, req, body);
       appendAuditLog(userContext, "drawing_redline.report.export", "drawing_redline_task", result.task.id, {
         exportFileName: result.exportFileName,
       }, req);
@@ -1056,7 +1058,8 @@ const server = http.createServer(async (req, res) => {
 
     const drawingPrecheckReportExportMatch = pathname.match(/^\/api\/drawing-apps\/smart-review\/tasks\/([^/]+)\/export$/);
     if (drawingPrecheckReportExportMatch && req.method === "POST") {
-      const result = await exportDrawingPrecheckReport(drawingPrecheckReportExportMatch[1], userContext, req);
+      const body = await readJsonBody(req).catch(() => ({}));
+      const result = await exportDrawingPrecheckReport(drawingPrecheckReportExportMatch[1], userContext, req, body);
       appendAuditLog(userContext, "drawing_precheck.report.export", "drawing_precheck_task", result.task.id, {
         exportFileName: result.exportFileName,
       }, req);
@@ -1730,7 +1733,7 @@ const server = http.createServer(async (req, res) => {
     if (scheduleExportMatch && req.method === "POST") {
       requireAuthenticatedUser(userContext);
       const body = await readJsonBody(req).catch(() => ({}));
-      const result = await exportConstructionSchedule(scheduleExportMatch[1], body, userContext);
+      const result = await exportConstructionSchedule(scheduleExportMatch[1], { ...body, language: requestLanguage(req, body) }, userContext);
       appendAuditLog(userContext, "construction_schedule.export", "construction_schedule", result.schedule.id, {
         kind: result.kind,
         exportFileName: result.fileName,
@@ -1840,7 +1843,7 @@ const server = http.createServer(async (req, res) => {
         throw error;
       }
       const body = await readJsonBody(req).catch(() => ({}));
-      const exportResult = await exportModelClashHeatmap(heatmap, body, userContext);
+      const exportResult = await exportModelClashHeatmap(heatmap, { ...body, language: requestLanguage(req, body) }, userContext);
       appendAuditLog(userContext, "model_clash.heatmap.export", "model_clash_heatmap", heatmap.id, {
         kind: exportResult.kind,
         fileName: exportResult.fileName,
@@ -2169,7 +2172,7 @@ const server = http.createServer(async (req, res) => {
       }
       const exportFileName = `${doc.id}-quantity-${Date.now()}.xlsx`;
       const outputPath = path.join(EXPORTS_DIR, exportFileName);
-      await runQuantityTakeoffExportScript(task, outputPath);
+      await runQuantityTakeoffExportScript(task, outputPath, { language: requestLanguage(req, body) });
       registerProtectedExportFile(exportFileName, {
         kind: "quantity_takeoff_export",
         docIds: [doc.id],
@@ -2324,6 +2327,7 @@ const server = http.createServer(async (req, res) => {
     const workflowReportExportMatch = pathname.match(/^\/api\/workflows\/([^/]+)\/report-export$/);
     if (workflowReportExportMatch && req.method === "POST") {
       const workflow = requireWorkflow(workflowReportExportMatch[1], userContext);
+      const body = await readJsonBody(req).catch(() => ({}));
       const permissions = workflowPermissionsForInstance(workflow, userContext);
       if (!permissions.visible) {
         throw permissionDeniedError("你没有导出该流程报告的权限。");
@@ -2332,7 +2336,7 @@ const server = http.createServer(async (req, res) => {
       const { targetFolderId, targetPath } = resolveWorkflowExportDestination(workflow, ["流程报告"]);
       const exportFileName = `workflow-report-${workflow.id}-${Date.now()}.pdf`;
       const outputPath = path.join(EXPORTS_DIR, exportFileName);
-      await runWorkflowReportExportScript(workflow, outputPath);
+      await runWorkflowReportExportScript(workflow, outputPath, { language: requestLanguage(req, body) });
       const createdReport = await createWorkflowAutoExportDocument(outputPath, {
         workflow,
         projectId: workflow.projectId,
@@ -2377,6 +2381,7 @@ const server = http.createServer(async (req, res) => {
     const workflowCommentReportMatch = pathname.match(/^\/api\/workflows\/([^/]+)\/comment-report$/);
     if (workflowCommentReportMatch && req.method === "POST") {
       const workflow = requireWorkflow(workflowCommentReportMatch[1], userContext);
+      const body = await readJsonBody(req).catch(() => ({}));
       const permissions = workflowPermissionsForInstance(workflow, userContext);
       if (!permissions.visible) {
         throw permissionDeniedError("你没有查看该流程的权限。");
@@ -2392,7 +2397,7 @@ const server = http.createServer(async (req, res) => {
       });
       const exportFileName = `${workflow.id}-comments-${Date.now()}.xlsx`;
       const outputPath = path.join(EXPORTS_DIR, exportFileName);
-      await runWorkflowCommentReportExportScript(workflow, workflowDocs, outputPath);
+      await runWorkflowCommentReportExportScript(workflow, workflowDocs, outputPath, { language: requestLanguage(req, body) });
       registerProtectedExportFile(exportFileName, {
         kind: "workflow_comment_report_export",
         docIds: workflowDocs.map((doc) => doc.id),
@@ -2956,6 +2961,8 @@ const server = http.createServer(async (req, res) => {
         hasOwn(body, "color") ||
         hasOwn(body, "points") ||
         hasOwn(body, "strokes") ||
+        hasOwn(body, "nativeAnnotation") ||
+        hasOwn(body, "nativeAnnotationId") ||
         hasOwn(body, "attachments") ||
         touchesIssueLocationFields(body);
       const isOwner = isAnnotationOwner(annotation, userContext);
@@ -3000,6 +3007,12 @@ const server = http.createServer(async (req, res) => {
         annotation.strokes = Array.isArray(body.strokes)
           ? body.strokes.map((stroke) => normalizeAnnotationPoints(stroke, [])).filter((stroke) => stroke.length)
           : [];
+      }
+      if (hasOwn(body, "nativeAnnotation")) {
+        annotation.nativeAnnotation = sanitizeNativeAnnotation(body.nativeAnnotation);
+      }
+      if (hasOwn(body, "nativeAnnotationId")) {
+        annotation.nativeAnnotationId = safeText(body.nativeAnnotationId, annotation.nativeAnnotationId || "");
       }
       if (hasOwn(body, "status")) {
         annotation.status = normalizeAnnotationStatus(body.status, annotation.status);
@@ -3172,10 +3185,11 @@ const server = http.createServer(async (req, res) => {
     const exportMatch = pathname.match(/^\/api\/documents\/([^/]+)\/export$/);
     if (exportMatch && req.method === "POST") {
       const doc = requireDocument(exportMatch[1], userContext);
+      const body = await readJsonBody(req).catch(() => ({}));
       assertDocumentCapability(doc, "annotations.export", userContext, "你没有导出带批注版本的权限。");
       const exportFileName = `${doc.id}-${Date.now()}.pdf`;
       const outputPath = path.join(EXPORTS_DIR, exportFileName);
-      await runExportScript(doc, outputPath);
+      await runExportScript(doc, outputPath, { language: requestLanguage(req, body) });
       doc.lastExportFileName = exportFileName;
       registerProtectedExportFile(exportFileName, {
         kind: "review_export",
@@ -3204,10 +3218,11 @@ const server = http.createServer(async (req, res) => {
     const commentReportMatch = pathname.match(/^\/api\/documents\/([^/]+)\/comment-report$/);
     if (commentReportMatch && req.method === "POST") {
       const doc = requireDocument(commentReportMatch[1], userContext);
+      const body = await readJsonBody(req).catch(() => ({}));
       assertDocumentCapability(doc, "annotations.export", userContext, "你没有导出评论清单的权限。");
       const exportFileName = `${doc.id}-comments-${Date.now()}.xlsx`;
       const outputPath = path.join(EXPORTS_DIR, exportFileName);
-      await runCommentReportExportScript(doc, outputPath);
+      await runCommentReportExportScript(doc, outputPath, { language: requestLanguage(req, body) });
       registerProtectedExportFile(exportFileName, {
         kind: "comment_report_export",
         docIds: [doc.id],
@@ -3249,6 +3264,12 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith("/vendor/pdfjs/")) {
       const fileName = path.basename(pathname);
       serveFile(res, path.join(PDFJS_DIR, fileName), req);
+      return;
+    }
+
+    if (pathname.startsWith("/vendor/embedpdf/")) {
+      const fileName = path.basename(pathname);
+      serveFile(res, path.join(EMBEDPDF_DIST_DIR, fileName), req);
       return;
     }
 
@@ -8081,7 +8102,7 @@ function runConstructionScheduleExportScript(schedule, kind, outputPath, options
       outputPath,
       safeText(options.weekStart, ""),
       safeText(options.weekEnd, ""),
-    ]);
+    ], exportSpawnOptions(options.language));
     let stderr = "";
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString("utf8");
@@ -8117,6 +8138,7 @@ async function exportConstructionSchedule(scheduleId, body = {}, userContext = S
   await runConstructionScheduleExportScript(schedule, kind, outputPath, {
     weekStart: body.weekStart,
     weekEnd: body.weekEnd,
+    language: body.language,
   });
   registerProtectedExportFile(fileName, {
     kind: `construction_schedule_${kind}`,
@@ -13090,7 +13112,7 @@ async function exportDrawingRegister(body, userContext, req = null) {
   const registerPayload = buildDrawingRegisterPayload(userContext, { format });
   const exportFileName = `${registerPayload.projectId}-drawing-register-${format}-${Date.now()}.xlsx`;
   const outputPath = path.join(EXPORTS_DIR, exportFileName);
-  await runDrawingRegisterExportScript(registerPayload, outputPath, { format });
+  await runDrawingRegisterExportScript(registerPayload, outputPath, { format, language: requestLanguage(req, body) });
   const exportDocIds = Array.from(new Set((registerPayload.entries || []).flatMap((entry) => (entry.versions || []).flatMap((version) => [
     version.formats?.pdf?.fileId,
     version.formats?.dwg?.fileId,
@@ -13649,7 +13671,7 @@ async function createDrawingPrecheckIssue(resultId, body, userContext) {
   };
 }
 
-async function exportDrawingPrecheckReport(taskId, userContext, req = null) {
+async function exportDrawingPrecheckReport(taskId, userContext, req = null, body = null) {
   const task = drawingPrecheckTasks.find((item) => item.id === taskId);
   if (!task) {
     const error = new Error("预审任务不存在或已不在当前项目，请刷新图纸智能审查工作台后重试。");
@@ -13663,7 +13685,7 @@ async function exportDrawingPrecheckReport(taskId, userContext, req = null) {
   }
   const exportFileName = `${task.id}-drawing-precheck-${Date.now()}.xlsx`;
   const outputPath = path.join(EXPORTS_DIR, exportFileName);
-  await runDrawingPrecheckReportExportScript(task, outputPath);
+  await runDrawingPrecheckReportExportScript(task, outputPath, { language: requestLanguage(req, body) });
   registerProtectedExportFile(exportFileName, {
     kind: "drawing_precheck_report_export",
     docIds: [doc.id],
@@ -14449,7 +14471,7 @@ async function createIssueFromDrawingRedlineRecord(recordId, body = {}, userCont
   };
 }
 
-async function exportDrawingRedlineReport(taskId, userContext, req = null) {
+async function exportDrawingRedlineReport(taskId, userContext, req = null, body = null) {
   const task = drawingRedlineTaskById(taskId);
   if (!task) {
     const error = new Error("红线对比任务不存在或已不在当前项目。");
@@ -14468,7 +14490,7 @@ async function exportDrawingRedlineReport(taskId, userContext, req = null) {
   }
   const exportFileName = `${task.id}-drawing-redline-${Date.now()}.pdf`;
   const outputPath = path.join(EXPORTS_DIR, exportFileName);
-  await runDrawingRedlineReportExportScript(task, outputPath);
+  await runDrawingRedlineReportExportScript(task, outputPath, { language: requestLanguage(req, body) });
   task.exportFileName = exportFileName;
   task.updatedAt = new Date().toISOString();
   registerProtectedExportFile(exportFileName, {
@@ -17031,6 +17053,31 @@ function publicFoldersForUser(userContext) {
 
 function requestIp(req) {
   return safeText(req.headers["x-forwarded-for"], "").split(",")[0].trim() || safeText(req.socket?.remoteAddress, "");
+}
+
+function normalizeUiLanguage(value) {
+  const raw = safeText(value, "").toLowerCase();
+  return raw.startsWith("en") ? "en" : "zh";
+}
+
+function requestLanguage(req, body = null) {
+  const explicit =
+    safeText(body?.language, "") ||
+    safeText(body?.locale, "") ||
+    safeText(req?.headers?.["x-cde-language"], "");
+  if (explicit) {
+    return normalizeUiLanguage(explicit);
+  }
+  return normalizeUiLanguage(String(req?.headers?.["accept-language"] || "").split(",")[0]);
+}
+
+function exportSpawnOptions(language) {
+  return {
+    env: {
+      ...process.env,
+      CDE_REPORT_LANGUAGE: normalizeUiLanguage(language),
+    },
+  };
 }
 
 function requestUserContext(req) {
@@ -20692,6 +20739,21 @@ function clampApsColorChannel(value) {
   return Math.max(0, Math.min(1, numeric));
 }
 
+function sanitizeNativeAnnotation(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  try {
+    const json = JSON.stringify(value);
+    if (!json || json.length > 100000) {
+      return null;
+    }
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 function normalizeAnnotation(annotation, fallbackVersionId = "") {
   const status = normalizeAnnotationStatus(
     annotation.status !== undefined ? annotation.status : annotation.resolved ? "resolved" : "open",
@@ -20717,6 +20779,8 @@ function normalizeAnnotation(annotation, fallbackVersionId = "") {
     height,
     points: normalizeAnnotationPoints(annotation.points, fallbackPointsForAnnotation(type, x, y, width, height)),
     strokes: normalizeAnnotationStrokes(annotation.strokes, type === "pen" ? [normalizeAnnotationPoints(annotation.points, fallbackPointsForAnnotation(type, x, y, width, height))] : []),
+    nativeAnnotationId: safeText(annotation.nativeAnnotationId || annotation.nativeAnnotation?.id, ""),
+    nativeAnnotation: sanitizeNativeAnnotation(annotation.nativeAnnotation),
     pageAnchored: Boolean(annotation.pageAnchored || annotation.page_anchored),
     title: safeText(annotation.title, defaultAnnotationTitle(type, page, annotation.variant)),
     note: safeText(annotation.note, ""),
@@ -24005,7 +24069,7 @@ function heatmapExportFileName(heatmap, kind) {
   return `${heatmap.id}-heatmap-package-${timestamp}-${suffix}.zip`;
 }
 
-async function runModelClashHeatmapExportScript(heatmap, kind, outputPath) {
+async function runModelClashHeatmapExportScript(heatmap, kind, outputPath, options = {}) {
   persistStore();
   return new Promise((resolve, reject) => {
     const child = spawn(PYTHON_BIN, [
@@ -24014,7 +24078,7 @@ async function runModelClashHeatmapExportScript(heatmap, kind, outputPath) {
       safeText(heatmap?.id, ""),
       kind,
       outputPath,
-    ]);
+    ], exportSpawnOptions(options.language));
 
     let stderr = "";
     child.stderr.on("data", (chunk) => {
@@ -24039,15 +24103,16 @@ async function exportModelClashHeatmap(heatmap, body, userContext) {
   const normalized = normalizeHeatmapTask(heatmap);
   assertModelClashHeatmapExportAccess(normalized, userContext);
   const kind = normalizeHeatmapExportKind(body?.kind);
+  const language = normalizeUiLanguage(body?.language);
 
   if (kind === "package") {
     const exportFileName = heatmapExportFileName(normalized, "package");
     const archivePath = path.join(EXPORTS_DIR, exportFileName);
     const stagingDir = fs.mkdtempSync(path.join(EXPORTS_DIR, `heatmap-${normalized.id}-`));
     try {
-      await runModelClashHeatmapExportScript(normalized, "snapshot", path.join(stagingDir, "heatmap-snapshot.svg"));
-      await runModelClashHeatmapExportScript(normalized, "matrix", path.join(stagingDir, "discipline-matrix.xlsx"));
-      await runModelClashHeatmapExportScript(normalized, "hotspots", path.join(stagingDir, "hotspot-report.pdf"));
+      await runModelClashHeatmapExportScript(normalized, "snapshot", path.join(stagingDir, "heatmap-snapshot.svg"), { language });
+      await runModelClashHeatmapExportScript(normalized, "matrix", path.join(stagingDir, "discipline-matrix.xlsx"), { language });
+      await runModelClashHeatmapExportScript(normalized, "hotspots", path.join(stagingDir, "hotspot-report.pdf"), { language });
       await zipDirectory(stagingDir, archivePath);
     } finally {
       fs.rmSync(stagingDir, { recursive: true, force: true });
@@ -24062,7 +24127,7 @@ async function exportModelClashHeatmap(heatmap, body, userContext) {
   }
 
   const exportFileName = heatmapExportFileName(normalized, kind);
-  await runModelClashHeatmapExportScript(normalized, kind, path.join(EXPORTS_DIR, exportFileName));
+  await runModelClashHeatmapExportScript(normalized, kind, path.join(EXPORTS_DIR, exportFileName), { language });
   registerProtectedExportFile(exportFileName, {
     kind: `model_clash_heatmap_${kind}`,
     heatmapId: normalized.id,
@@ -24349,6 +24414,8 @@ async function createAnnotation(body, versionId = "", defaults = {}) {
     height,
     points: normalizeAnnotationPoints(body.points, fallbackPointsForAnnotation(type, x, y, width, height)),
     strokes: normalizeAnnotationStrokes(body.strokes, type === "pen" ? [normalizeAnnotationPoints(body.points, fallbackPointsForAnnotation(type, x, y, width, height))] : []),
+    nativeAnnotationId: safeText(body.nativeAnnotationId || body.nativeAnnotation?.id, ""),
+    nativeAnnotation: sanitizeNativeAnnotation(body.nativeAnnotation),
     pageAnchored: Boolean(body.pageAnchored || body.page_anchored),
     title: safeText(body.title, defaultAnnotationTitle(type, page, body.variant)),
     note: String(body.note ?? "").trim(),
@@ -24598,6 +24665,7 @@ function inferDocumentMimeType(name, mimeType = "") {
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ".txt": "text/plain; charset=utf-8",
     ".zip": "application/zip",
+    ".wasm": "application/wasm",
     ".dwg": "application/acad",
     ".dxf": "application/octet-stream",
     ".dgn": "application/octet-stream",
@@ -27487,7 +27555,7 @@ function cancelResumableUploadSession(id, userContext) {
   return session;
 }
 
-async function runExportScript(doc, outputPath) {
+async function runExportScript(doc, outputPath, options = {}) {
   persistStore();
   const sourcePath = await storageService.uploads.materializeToTempPath(doc.storedFileName);
 
@@ -27498,7 +27566,7 @@ async function runExportScript(doc, outputPath) {
       doc.id,
       sourcePath,
       outputPath,
-    ]);
+    ], exportSpawnOptions(options.language));
 
     let stderr = "";
     child.stderr.on("data", (chunk) => {
@@ -27523,7 +27591,7 @@ async function runExportScript(doc, outputPath) {
   });
 }
 
-async function runCommentReportExportScript(doc, outputPath) {
+async function runCommentReportExportScript(doc, outputPath, options = {}) {
   persistStore();
   const sourcePath = await storageService.uploads.materializeToTempPath(doc.storedFileName);
 
@@ -27534,7 +27602,7 @@ async function runCommentReportExportScript(doc, outputPath) {
       doc.id,
       sourcePath,
       outputPath,
-    ]);
+    ], exportSpawnOptions(options.language));
 
     let stderr = "";
     child.stderr.on("data", (chunk) => {
@@ -27559,7 +27627,7 @@ async function runCommentReportExportScript(doc, outputPath) {
   });
 }
 
-function runQuantityTakeoffExportScript(task, outputPath) {
+function runQuantityTakeoffExportScript(task, outputPath, options = {}) {
   persistStore();
 
   return new Promise((resolve, reject) => {
@@ -27568,7 +27636,7 @@ function runQuantityTakeoffExportScript(task, outputPath) {
       STORE_PATH,
       safeText(task?.id, ""),
       outputPath,
-    ]);
+    ], exportSpawnOptions(options.language));
 
     let stderr = "";
     child.stderr.on("data", (chunk) => {
@@ -27589,7 +27657,7 @@ function runQuantityTakeoffExportScript(task, outputPath) {
   });
 }
 
-function runDrawingPrecheckReportExportScript(task, outputPath) {
+function runDrawingPrecheckReportExportScript(task, outputPath, options = {}) {
   persistStore();
 
   return new Promise((resolve, reject) => {
@@ -27598,7 +27666,7 @@ function runDrawingPrecheckReportExportScript(task, outputPath) {
       STORE_PATH,
       safeText(task?.id, ""),
       outputPath,
-    ]);
+    ], exportSpawnOptions(options.language));
 
     let stderr = "";
     child.stderr.on("data", (chunk) => {
@@ -27619,7 +27687,7 @@ function runDrawingPrecheckReportExportScript(task, outputPath) {
   });
 }
 
-function runDrawingRedlineReportExportScript(task, outputPath) {
+function runDrawingRedlineReportExportScript(task, outputPath, options = {}) {
   persistStore();
 
   return new Promise((resolve, reject) => {
@@ -27628,7 +27696,7 @@ function runDrawingRedlineReportExportScript(task, outputPath) {
       STORE_PATH,
       safeText(task?.id, ""),
       outputPath,
-    ]);
+    ], exportSpawnOptions(options.language));
 
     let stderr = "";
     child.stderr.on("data", (chunk) => {
@@ -27702,7 +27770,7 @@ function runDrawingRegisterExportScript(registerPayload, outputPath, options = {
       DRAWING_REGISTER_EXPORT_SCRIPT,
       manifestPath,
       outputPath,
-    ]);
+    ], exportSpawnOptions(options.language));
 
     let stderr = "";
     child.stderr.on("data", (chunk) => {
@@ -27727,7 +27795,7 @@ function runDrawingRegisterExportScript(registerPayload, outputPath, options = {
   });
 }
 
-async function runWorkflowCommentReportExportScript(workflow, docs, outputPath) {
+async function runWorkflowCommentReportExportScript(workflow, docs, outputPath, options = {}) {
   persistStore();
   const stagingDir = fs.mkdtempSync(path.join(EXPORTS_DIR, "workflow-comment-report-"));
   const manifestPath = path.join(stagingDir, "manifest.json");
@@ -27753,7 +27821,7 @@ async function runWorkflowCommentReportExportScript(workflow, docs, outputPath) 
         safeText(workflow?.id, ""),
         manifestPath,
         outputPath,
-      ]);
+      ], exportSpawnOptions(options.language));
 
       let stderr = "";
       child.stderr.on("data", (chunk) => {
@@ -27780,7 +27848,7 @@ async function runWorkflowCommentReportExportScript(workflow, docs, outputPath) 
   }
 }
 
-function runWorkflowReportExportScript(workflow, outputPath) {
+function runWorkflowReportExportScript(workflow, outputPath, options = {}) {
   persistStore();
 
   if (process.env.CDE_FAIL_WORKFLOW_REPORT_EXPORT_ONCE && !workflowReportExportFailureInjected) {
@@ -27794,7 +27862,7 @@ function runWorkflowReportExportScript(workflow, outputPath) {
       STORE_PATH,
       safeText(workflow?.id, ""),
       outputPath,
-    ]);
+    ], exportSpawnOptions(options.language));
 
     let stderr = "";
     child.stderr.on("data", (chunk) => {

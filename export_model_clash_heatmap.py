@@ -11,6 +11,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
 
 from pdf_font_utils import register_pdf_font
+from report_i18n import localize_text, localize_workbook
 
 FONT_NAME = "ClashHeatmapArialUnicode"
 PAGE_WIDTH, PAGE_HEIGHT = A4
@@ -121,6 +122,7 @@ def export_matrix(output_path, heatmap, run, records):
     sheet.freeze_panes = "B6"
     for col in range(1, len(headers) + 1):
         sheet.column_dimensions[sheet.cell(1, col).column_letter].width = 16
+    localize_workbook(workbook)
     workbook.save(output_path)
 
 
@@ -148,7 +150,7 @@ def export_hotspots_pdf(output_path, heatmap, run, hotspots):
     pdf.setTitle("Clash Heatmap Hotspot Report")
     cursor_y = TOP_Y
     pdf.setFont(font_name, 18)
-    pdf.drawString(MARGIN_X, cursor_y, "碰撞热力图热点区域报告")
+    pdf.drawString(MARGIN_X, cursor_y, localize_text("碰撞热力图热点区域报告"))
     cursor_y -= 28
     pdf.setFont(font_name, 10.5)
     lines = [
@@ -161,7 +163,7 @@ def export_hotspots_pdf(output_path, heatmap, run, hotspots):
     cursor_y = draw_lines(pdf, cursor_y, lines)
     cursor_y -= 8
     pdf.setFont(font_name, 13)
-    pdf.drawString(MARGIN_X, cursor_y, "Top 热点区域")
+    pdf.drawString(MARGIN_X, cursor_y, localize_text("Top 热点区域"))
     cursor_y -= 20
     pdf.setFont(font_name, 10.5)
     for index, hotspot in enumerate(sorted(hotspots, key=lambda item: item.get("clashCount", 0), reverse=True), start=1):
@@ -191,7 +193,7 @@ def draw_lines(pdf, cursor_y, lines):
             pdf.showPage()
             cursor_y = TOP_Y
             pdf.setFont(font_name, 10.5)
-        pdf.drawString(MARGIN_X, cursor_y, safe_text(line, "—")[:110])
+        pdf.drawString(MARGIN_X, cursor_y, localize_text(safe_text(line, "—"))[:110])
         cursor_y -= LINE_HEIGHT
     return cursor_y
 
@@ -233,18 +235,18 @@ def export_snapshot_svg(output_path, heatmap, cells, hotspots):
 
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
   <rect width="{width}" height="{height}" fill="#f5f7fb"/>
-  <text x="46" y="42" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#172033">碰撞热力图截图</text>
-  <text x="46" y="66" font-family="Arial, sans-serif" font-size="13" fill="#64748b">热力图 {escape(safe_text(heatmap.get("id")))} · 网格 {heatmap.get("gridSize", 1)}m · {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</text>
+  <text x="46" y="42" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#172033">{escape(localize_text("碰撞热力图截图"))}</text>
+  <text x="46" y="66" font-family="Arial, sans-serif" font-size="13" fill="#64748b">{escape(localize_text(f'热力图 {safe_text(heatmap.get("id"))} · 网格 {heatmap.get("gridSize", 1)}m · {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'))}</text>
   <rect x="{plot_x}" y="{plot_y}" width="{plot_w}" height="{plot_h}" fill="#ffffff" stroke="#cbd5e1"/>
   {''.join(rects)}
   {''.join(hotspot_labels)}
-  <text x="{plot_x}" y="{plot_y + plot_h + 34}" font-family="Arial, sans-serif" font-size="12" fill="#64748b">比例尺：单元格边长 {heatmap.get("gridSize", 1)}m，颜色由蓝、绿、黄到红表示碰撞密度升高。</text>
+  <text x="{plot_x}" y="{plot_y + plot_h + 34}" font-family="Arial, sans-serif" font-size="12" fill="#64748b">{escape(localize_text(f'比例尺：单元格边长 {heatmap.get("gridSize", 1)}m，颜色由蓝、绿、黄到红表示碰撞密度升高。'))}</text>
   <g transform="translate(790 112)">
-    <text x="0" y="-18" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#172033">图例</text>
-    <rect x="0" y="0" width="28" height="18" fill="#237df0" opacity="0.72"/><text x="40" y="14" font-family="Arial, sans-serif" font-size="12" fill="#64748b">低密度</text>
-    <rect x="0" y="34" width="28" height="18" fill="#22a45d" opacity="0.72"/><text x="40" y="48" font-family="Arial, sans-serif" font-size="12" fill="#64748b">中低</text>
-    <rect x="0" y="68" width="28" height="18" fill="#f5b535" opacity="0.72"/><text x="40" y="82" font-family="Arial, sans-serif" font-size="12" fill="#64748b">中高</text>
-    <rect x="0" y="102" width="28" height="18" fill="#d34a4a" opacity="0.72"/><text x="40" y="116" font-family="Arial, sans-serif" font-size="12" fill="#64748b">高密度</text>
+    <text x="0" y="-18" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#172033">{escape(localize_text("图例"))}</text>
+    <rect x="0" y="0" width="28" height="18" fill="#237df0" opacity="0.72"/><text x="40" y="14" font-family="Arial, sans-serif" font-size="12" fill="#64748b">{escape(localize_text("低密度"))}</text>
+    <rect x="0" y="34" width="28" height="18" fill="#22a45d" opacity="0.72"/><text x="40" y="48" font-family="Arial, sans-serif" font-size="12" fill="#64748b">{escape(localize_text("中低"))}</text>
+    <rect x="0" y="68" width="28" height="18" fill="#f5b535" opacity="0.72"/><text x="40" y="82" font-family="Arial, sans-serif" font-size="12" fill="#64748b">{escape(localize_text("中高"))}</text>
+    <rect x="0" y="102" width="28" height="18" fill="#d34a4a" opacity="0.72"/><text x="40" y="116" font-family="Arial, sans-serif" font-size="12" fill="#64748b">{escape(localize_text("高密度"))}</text>
   </g>
 </svg>'''
     with open(output_path, "w", encoding="utf-8") as handle:

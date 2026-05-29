@@ -9,6 +9,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
 
 from pdf_font_utils import register_pdf_font
+from report_i18n import localize_text
 
 FONT_NAME = "RedlineArialUnicode"
 PAGE_WIDTH, PAGE_HEIGHT = A4
@@ -161,7 +162,7 @@ def use_font(pdf, size=10, bold=False):
 def draw_title(pdf, task, document):
     use_font(pdf, 18)
     pdf.setFillColor(colors.HexColor("#102033"))
-    pdf.drawString(MARGIN_X, TOP_Y, "图纸版本红线对比报告")
+    pdf.drawString(MARGIN_X, TOP_Y, localize_text("图纸版本红线对比报告"))
     use_font(pdf, 10)
     pdf.setFillColor(colors.HexColor("#6B7C91"))
     pdf.drawString(MARGIN_X, TOP_Y - 22, f"{safe_text(task.get('fileName'), safe_text(document.get('name'), '未命名图纸'))}")
@@ -174,7 +175,7 @@ def draw_section(pdf, cursor_y, title, lines):
     cursor_y = ensure_space(pdf, cursor_y, 52)
     use_font(pdf, 12)
     pdf.setFillColor(colors.HexColor("#172033"))
-    pdf.drawString(MARGIN_X, cursor_y, title)
+    pdf.drawString(MARGIN_X, cursor_y, localize_text(title))
     cursor_y -= LINE_HEIGHT
     return draw_wrapped_lines(pdf, cursor_y, lines or ["—"], indent=0)
 
@@ -183,7 +184,7 @@ def draw_table_header(pdf, cursor_y):
     cursor_y = ensure_space(pdf, cursor_y, 44)
     use_font(pdf, 12)
     pdf.setFillColor(colors.HexColor("#172033"))
-    pdf.drawString(MARGIN_X, cursor_y, "差异明细列表")
+    pdf.drawString(MARGIN_X, cursor_y, localize_text("差异明细列表"))
     return cursor_y - LINE_HEIGHT
 
 
@@ -205,7 +206,7 @@ def draw_wrapped_lines(pdf, cursor_y, lines, indent=0, fill=None):
 
 
 def wrap_text(value, width):
-    text = safe_text(value)
+    text = localize_text(safe_text(value))
     if len(text) <= width:
         return [text]
     return [text[index:index + width] for index in range(0, len(text), width)]

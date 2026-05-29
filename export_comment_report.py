@@ -12,6 +12,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+from report_i18n import localize_workbook
 
 WORD_NS = {
     "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
@@ -61,6 +62,7 @@ def main():
     summary_sheet = workbook.create_sheet("导出摘要")
     write_summary_sheet(summary_sheet, document, version_entry, rows, native_support)
 
+    localize_workbook(workbook)
     workbook.save(output_xlsx)
 
 

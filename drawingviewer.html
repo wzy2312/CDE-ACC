@@ -503,6 +503,17 @@
         return result;
       }
 
+      function hasCjkText(value) {
+        return /[\u4e00-\u9fff]/.test(String(value || ""));
+      }
+
+      function localizeUserMessage(value, fallback = t("图纸加载失败", "Drawing load failed.")) {
+        const fallbackValue = String(fallback || "").trim() || t("图纸加载失败", "Drawing load failed.");
+        const source = String(value || "").trim() || fallbackValue;
+        const localized = localizeStandaloneText(source);
+        return currentLanguage() === "en" && hasCjkText(localized) ? fallbackValue : localized;
+      }
+
       function applyStandaloneTranslations(root = document.body) {
         if (currentLanguage() !== "en" || !root) {
           return;
@@ -684,10 +695,11 @@
               "Cache-Control": "no-store",
             },
           });
+          const payload = await response.json().catch(() => ({}));
           if (!response.ok) {
-            throw new Error(`${t("获取图纸信息失败，状态码", "Failed to get drawing information, status")} ${response.status}`);
+            const serverMessage = [payload.error, payload.message].find(Boolean);
+            throw new Error(localizeUserMessage(serverMessage, `${t("获取图纸信息失败，状态码", "Failed to get drawing information, status")} ${response.status}`));
           }
-          const payload = await response.json();
           const documents = Array.isArray(payload.documents) ? payload.documents : [];
           const doc = documents.find((item) => item.id === docId);
           const profile = workspaceProfile(doc || {}, {});
@@ -723,8 +735,11 @@
           const fallbackLabel = mode === "review" ? t("图纸审阅页", "Drawing Review Page") : t("图纸浏览页", "Drawing View Page");
           updateState(
             t("图纸加载失败", "Drawing Load Failed"),
-            error && error.message ? error.message : `${t("加载", "Loading ")}${fallbackLabel}${t("时发生未知错误。", " failed with an unknown error.")}`,
-            error && error.stack ? error.stack : "",
+            localizeUserMessage(
+              error && error.message ? error.message : "",
+              `${t("加载", "Loading ")}${fallbackLabel}${t("时发生未知错误。", " failed with an unknown error.")}`,
+            ),
+            currentLanguage() === "en" ? "" : error && error.stack ? error.stack : "",
           );
         }
       }

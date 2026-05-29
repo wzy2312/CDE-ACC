@@ -63,11 +63,36 @@ function t(key) {
   return language() === "en" ? pair[1] : pair[0];
 }
 
+function hasCjkText(value) {
+  return /[\u4e00-\u9fff]/.test(String(value || ""));
+}
+
+function localizeUserMessage(value, fallback = t("loginFailed")) {
+  const dictionary = {
+    "请输入邮箱和密码。": t("missingCredentials"),
+    "登录失败，请稍后重试。": t("loginFailed"),
+    "请先登录后再继续。": t("sessionFailed"),
+    "请先登录后再执行该操作。": t("sessionFailed"),
+    "邮箱或密码错误。": "Email or password is incorrect.",
+    "该账号尚未激活，请使用邀请链接完成密码设置。": "This account has not been activated. Use the invite link to set a password.",
+    "当前环境尚未配置飞书登录。": "Lark login is not configured in this environment.",
+    "当前环境尚未配置飞书登录，请先补充 LARK_APP_ID / LARK_APP_SECRET。": "Lark login is not configured. Add LARK_APP_ID / LARK_APP_SECRET first.",
+    "飞书登录状态已失效，请重新发起授权。": "The Lark login state expired. Start authorization again.",
+    "飞书授权已取消或失败，请重新尝试。": "Lark authorization was canceled or failed. Try again.",
+    "未收到飞书授权码，请重新尝试。": "No Lark authorization code was received. Try again.",
+    "飞书登录失败，请稍后重试。": "Lark sign-in failed. Please try again later.",
+  };
+  const fallbackValue = String(fallback || t("loginFailed")).trim() || t("loginFailed");
+  const source = String(value || "").trim() || fallbackValue;
+  const translated = dictionary[source] || source;
+  return language() === "en" && hasCjkText(translated) ? fallbackValue : translated;
+}
+
 function setError(message = "") {
   if (!elements.error) {
     return;
   }
-  elements.error.textContent = message;
+  elements.error.textContent = message ? localizeUserMessage(message, t("loginFailed")) : "";
   elements.error.classList.toggle("hidden", !message);
 }
 
@@ -194,7 +219,7 @@ async function fetchSession(signal = null) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload.error || t("sessionFailed"));
+    throw new Error(localizeUserMessage(payload.error, t("sessionFailed")));
   }
   return payload;
 }
@@ -257,7 +282,7 @@ async function submitPasswordLogin() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || !payload.authenticated) {
-      throw new Error(payload.error || t("loginFailed"));
+      throw new Error(localizeUserMessage(payload.error, t("loginFailed")));
     }
     if (elements.password) {
       elements.password.value = "";
@@ -265,7 +290,7 @@ async function submitPasswordLogin() {
     await loadMainApp(payload);
   } catch (error) {
     busy = false;
-    setError(error?.name === "AbortError" ? t("loginTimeout") : error?.message || t("loginFailed"));
+    setError(error?.name === "AbortError" ? t("loginTimeout") : localizeUserMessage(error?.message, t("loginFailed")));
     renderAuthShell(activeTab === "lark" ? t("readyLark") : t("readyPassword"));
     scheduleBusinessAssetPrefetch();
   } finally {
@@ -354,7 +379,7 @@ async function bootstrapAuth() {
   busy = false;
   checkingSession = true;
   if (startupAuth.status === "error") {
-    setError(startupAuth.message || t("loginFailed"));
+    setError(localizeUserMessage(startupAuth.message, t("loginFailed")));
   }
   renderAuthShell(t("checking"));
   const sessionPromise = startSessionCheck(elements.shell ? WORKSPACE_SESSION_CHECK_TIMEOUT_MS : SESSION_CHECK_TIMEOUT_MS);

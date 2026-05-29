@@ -329,6 +329,42 @@
         return state.language === "en" ? en : zh;
       }
 
+      function hasCjkText(value) {
+        return /[\u4e00-\u9fff]/.test(String(value || ""));
+      }
+
+      function localizeDisplayText(value) {
+        const source = String(value || "");
+        if (state.language !== "en" || !hasCjkText(source)) {
+          return source;
+        }
+        const dictionary = {
+          "超级管理员": "Super Admin",
+          "项目管理员": "Project Admin",
+          "审阅者": "Reviewer",
+          "编辑者": "Editor",
+          "访客": "Guest",
+        };
+        return dictionary[source] || source;
+      }
+
+      function localizeUserMessage(value, fallback = t("操作失败，请稍后重试。", "Operation failed. Please try again.")) {
+        const fallbackValue = String(fallback || "").trim() || t("操作失败，请稍后重试。", "Operation failed. Please try again.");
+        const source = String(value || "").trim() || fallbackValue;
+        const dictionary = {
+          "邀请链接不可用。": t("邀请链接不可用。", "The invite link is unavailable."),
+          "邀请链接不存在或已失效。": t("邀请链接不存在或已失效。", "The invite link does not exist or has expired."),
+          "邀请链接已过期。": t("邀请链接已过期。", "The invite link has expired."),
+          "邀请链接已被使用。": t("邀请链接已被使用。", "The invite link has already been used."),
+          "请输入姓名。": t("请输入姓名。", "Enter your name."),
+          "密码至少需要 8 位。": t("密码至少需要 8 位。", "Password must be at least 8 characters."),
+          "两次输入的密码不一致。": t("两次输入的密码不一致。", "The two passwords do not match."),
+          "激活失败，请稍后重试。": t("激活失败，请稍后重试。", "Activation failed. Please try again later."),
+        };
+        const translated = dictionary[source] || source;
+        return state.language === "en" && hasCjkText(translated) ? fallbackValue : translated;
+      }
+
       function formatDateTime(value) {
         if (!value) {
           return "--";
@@ -384,7 +420,7 @@
           elements.inviteSummary.classList.remove("hidden");
           setText(elements.inviteNameValue, state.invite.name || "--");
           setText(elements.inviteEmailValue, state.invite.email || "--");
-          setText(elements.inviteRoleValue, state.invite.roleLabel || state.invite.role || "--");
+          setText(elements.inviteRoleValue, localizeDisplayText(state.invite.roleLabel || state.invite.role || "--"));
           setText(elements.inviteExpiryValue, formatDateTime(state.invite.expiresAt));
           setText(elements.inviteInviterValue, state.invite.invitedByName || "--");
           if (!state.form.name) {
@@ -430,13 +466,13 @@
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) {
-            throw new Error(payload.error || t("邀请链接不可用。", "The invite link is unavailable."));
+            throw new Error(localizeUserMessage(payload.error, t("邀请链接不可用。", "The invite link is unavailable.")));
           }
           state.invite = payload.invite || null;
           state.status = t("邀请链接已验证，请设置密码后继续。", "Invite verified. Set your password to continue.");
         } catch (error) {
           state.invite = null;
-          state.error = error.message || t("邀请链接校验失败。", "Unable to verify the invite link.");
+          state.error = localizeUserMessage(error.message, t("邀请链接校验失败。", "Unable to verify the invite link."));
         } finally {
           state.loading = false;
           render();
@@ -468,11 +504,12 @@
               name: state.form.name,
               password: state.form.password,
               confirmPassword: state.form.confirmPassword,
+              language: state.language,
             }),
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) {
-            throw new Error(payload.error || t("激活失败，请稍后重试。", "Activation failed. Please try again later."));
+            throw new Error(localizeUserMessage(payload.error, t("激活失败，请稍后重试。", "Activation failed. Please try again later.")));
           }
           state.status = t("账户已激活，正在进入系统…", "Your account has been activated. Redirecting...");
           state.form.password = "";
@@ -482,7 +519,7 @@
             window.location.href = "/";
           }, 500);
         } catch (error) {
-          state.error = error.message || t("激活失败，请稍后重试。", "Activation failed. Please try again later.");
+          state.error = localizeUserMessage(error.message, t("激活失败，请稍后重试。", "Activation failed. Please try again later."));
         } finally {
           state.submitting = false;
           render();

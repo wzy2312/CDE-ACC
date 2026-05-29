@@ -7,6 +7,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+from report_i18n import localize_workbook
+
 
 HEADER_FILL = PatternFill("solid", fgColor="E8EEF7")
 TITLE_FILL = PatternFill("solid", fgColor="DDE8F5")
@@ -42,6 +44,7 @@ def main():
     write_export_sheet(export_sheet, document, task, snapshots, summaries)
 
     os.makedirs(os.path.dirname(output_xlsx), exist_ok=True)
+    localize_workbook(workbook)
     workbook.save(output_xlsx)
 
 

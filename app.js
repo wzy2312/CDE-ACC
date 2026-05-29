@@ -418,6 +418,21 @@ function localizeMixedText(value) {
     .replace(/确认退出当前 PDF 页面吗？未保存的批注草稿会丢失。/g, "Exit the current PDF page? Unsaved annotation drafts will be lost.");
 }
 
+function hasCjkText(value) {
+  return /[\u4e00-\u9fff]/.test(String(value || ""));
+}
+
+function localizeUserMessage(value, fallback = text("操作失败，请稍后重试。", "Operation failed. Please try again.")) {
+  const fallbackValue = String(fallback || "").trim() || text("操作失败，请稍后重试。", "Operation failed. Please try again.");
+  const source = String(value || "").trim() || fallbackValue;
+  const localized = localizeMixedText(source);
+  if (currentLanguage() === "en" && hasCjkText(localized)) {
+    const fallbackLocalized = localizeMixedText(fallbackValue);
+    return hasCjkText(fallbackLocalized) ? "Operation failed. Please try again." : fallbackLocalized;
+  }
+  return localized || fallbackValue;
+}
+
 
 const folderPermissionLabels = createLocalizedLookup({
   zh: {
@@ -6103,7 +6118,7 @@ async function fetchSessionState() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(payload.error || text("无法获取当前登录状态。", "Unable to fetch the current session."));
+      throw new Error(localizeUserMessage(payload.error, text("无法获取当前登录状态。", "Unable to fetch the current session.")));
     }
     return payload;
   } catch (error) {
@@ -8452,7 +8467,7 @@ async function exportDrawingRegister() {
   state.drawingRegisterMessage = text("正在生成图纸目录 Excel…", "Generating drawing register workbook...");
   renderDrawingAppsPanel();
   try {
-    const payload = await postJson("/api/drawing-apps/register/export", { format: "all" });
+    const payload = await postJson("/api/drawing-apps/register/export", { format: "all", language: currentLanguage() });
     state.drawingRegisterMessage = text("图纸目录已生成。", "Drawing register is ready.");
     if (payload.downloadUrl) {
       openResolvedUrl(payload.downloadUrl);
@@ -9882,7 +9897,7 @@ async function exportDrawingSmartReviewReport(taskId = "") {
   state.drawingSmartReviewMessage = text("正在生成预审报告 Excel…", "Generating pre-check report workbook...");
   renderDrawingAppsPanel();
   try {
-    const payload = await postJson(`/api/drawing-apps/smart-review/tasks/${encodeURIComponent(task.id)}/export`, {});
+    const payload = await postJson(`/api/drawing-apps/smart-review/tasks/${encodeURIComponent(task.id)}/export`, { language: currentLanguage() });
     state.drawingSmartReviewMessage = text("预审报告已生成。", "Pre-check report is ready.");
     if (payload.downloadUrl) {
       openResolvedUrl(payload.downloadUrl);
@@ -10884,7 +10899,7 @@ async function exportDrawingRedlineReport(taskId = "") {
   state.drawingRedlineMessage = text("正在生成红线 PDF 报告…", "Generating redline PDF report...");
   renderDrawingAppsPanel();
   try {
-    const payload = await postJson(`/api/drawing-apps/redline/tasks/${encodeURIComponent(targetTaskId)}/export`, {});
+    const payload = await postJson(`/api/drawing-apps/redline/tasks/${encodeURIComponent(targetTaskId)}/export`, { language: currentLanguage() });
     if (payload.task) {
       state.drawingRedlineTasks = mergeDrawingRedlineTasks(state.drawingRedlineTasks, [payload.task]);
     }
@@ -12923,7 +12938,7 @@ async function exportModelClashHeatmap(kind) {
   state.modelClashMessage = text("正在生成热力图导出文件…", "Generating heatmap export...");
   renderModelAppsPanel();
   try {
-    const payload = await postJson(`/api/model-apps/clash/heatmaps/${encodeURIComponent(state.modelClashHeatmapId)}/export`, { kind });
+    const payload = await postJson(`/api/model-apps/clash/heatmaps/${encodeURIComponent(state.modelClashHeatmapId)}/export`, { kind, language: currentLanguage() });
     state.modelClashMessage = text("热力图导出已生成。", "Heatmap export is ready.");
     if (payload.downloadUrl) {
       window.open(payload.downloadUrl, "_blank", "noopener");
@@ -13942,9 +13957,9 @@ function renderModelHealthReportPanels(report) {
     return;
   }
   const summary = report?.summary || state.modelHealthLatestTask?.summary || {};
-  elements.modelHealthReportBadge.textContent = report ? `${report.score ?? state.modelHealthLatestTask?.score ?? 0} 分` : text("未生成", "Not generated");
-  elements.modelHealthRuleBadge.textContent = `${(summary.errorCount || 0) + (summary.warningCount || 0) + (summary.infoCount || 0)} 项`;
-  elements.modelHealthAiBadge.textContent = `${summary.aiCount || 0} 项`;
+  elements.modelHealthReportBadge.textContent = report ? text(`${report.score ?? state.modelHealthLatestTask?.score ?? 0} 分`, `${report.score ?? state.modelHealthLatestTask?.score ?? 0} pts`) : text("未生成", "Not generated");
+  elements.modelHealthRuleBadge.textContent = text(`${(summary.errorCount || 0) + (summary.warningCount || 0) + (summary.infoCount || 0)} 项`, `${(summary.errorCount || 0) + (summary.warningCount || 0) + (summary.infoCount || 0)} items`);
+  elements.modelHealthAiBadge.textContent = text(`${summary.aiCount || 0} 项`, `${summary.aiCount || 0} items`);
   const categoryItems = modelHealthCombinedIssues().reduce((map, issue) => {
     const key = issue.category || text("未分类", "Uncategorized");
     const current = map.get(key) || { category: key, total: 0, error: 0, warning: 0, ai: 0 };
@@ -14006,7 +14021,7 @@ function renderModelHealthIssueList() {
   }
   renderModelHealthIssueFilters();
   const issues = filteredModelHealthIssues();
-  elements.modelHealthIssueBadge.textContent = `${issues.length} 项`;
+  elements.modelHealthIssueBadge.textContent = text(`${issues.length} 项`, `${issues.length} items`);
   elements.modelHealthIssueList.innerHTML = issues.length
     ? issues.map((issue) => {
         const isAi = issue.source === "ai";
@@ -14844,7 +14859,7 @@ function renderModelDiffTrend() {
     return;
   }
   const rows = Array.isArray(state.modelDiffTrends) ? state.modelDiffTrends : [];
-  elements.modelDiffTrendBadge.textContent = `${rows.length} 组`;
+  elements.modelDiffTrendBadge.textContent = text(`${rows.length} 组`, `${rows.length} groups`);
   const max = Math.max(1, ...rows.map((row) => Number(row.total || 0)));
   elements.modelDiffTrendChart.innerHTML = rows.length
     ? rows.map((row) => `
@@ -15535,6 +15550,7 @@ async function exportConstructionSchedule(kind) {
       kind,
       weekEnd,
       weekStart: weekEnd ? scheduleDateMinusDays(weekEnd, 6) : "",
+      language: currentLanguage(),
     });
     state.scheduleMessage = text(`${label} 已生成。`, `${label} is ready.`);
     if (payload.downloadUrl) {
@@ -15984,18 +16000,18 @@ function renderConstructionSchedulePager(context = {}) {
     step?.classList.toggle("disabled", !scheduleGuidePageAvailable(key, context));
   });
   if (elements.schedulePagerTitle) {
-    elements.schedulePagerTitle.textContent = page.title;
+    elements.schedulePagerTitle.textContent = localizedDisplayName(page.title);
   }
   if (elements.schedulePagerNote) {
-    elements.schedulePagerNote.textContent = page.note;
+    elements.schedulePagerNote.textContent = localizeMixedText(page.note);
   }
   if (elements.schedulePrevStepButton) {
     elements.schedulePrevStepButton.disabled = !prevPage;
-    elements.schedulePrevStepButton.textContent = prevPage ? `上一步：${prevPage.title}` : "上一步";
+    elements.schedulePrevStepButton.textContent = prevPage ? text(`上一步：${prevPage.title}`, `Previous: ${localizedDisplayName(prevPage.title)}`) : text("上一步", "Previous");
   }
   if (elements.scheduleNextStepButton) {
     elements.scheduleNextStepButton.disabled = !nextPage || !scheduleGuidePageAvailable(nextPage.key, context);
-    elements.scheduleNextStepButton.textContent = nextPage ? `下一步：${nextPage.title}` : "完成";
+    elements.scheduleNextStepButton.textContent = nextPage ? text(`下一步：${nextPage.title}`, `Next: ${localizedDisplayName(nextPage.title)}`) : text("完成", "Done");
   }
 }
 
@@ -16436,6 +16452,7 @@ async function exportLatestQuantityTakeoff() {
   try {
     const payload = await postJson(`/api/model-apps/quantity/documents/${encodeURIComponent(state.quantityDocumentId)}/export`, {
       taskId: task.id,
+      language: currentLanguage(),
     });
     state.quantityMessage = text("工程量 Excel 已生成。", "Quantity workbook is ready.");
     if (payload.downloadUrl) {
@@ -16718,7 +16735,7 @@ function renderModelClashMatrix(matrix) {
     return;
   }
   const disciplines = Array.isArray(matrix?.disciplines) ? matrix.disciplines : [];
-  elements.modelClashMatrixBadge.textContent = `${disciplines.length} 专业`;
+  elements.modelClashMatrixBadge.textContent = text(`${disciplines.length} 专业`, `${disciplines.length} disciplines`);
   if (!disciplines.length) {
     elements.modelClashMatrixTable.innerHTML = `<div class="empty-card">${escapeHtml(text("检测后会在这里显示专业之间的碰撞数量矩阵。", "The discipline clash matrix appears after detection."))}</div>`;
     return;
@@ -17331,7 +17348,7 @@ function renderQuantitySummaryTable() {
 
 function renderQuantitySnapshotList() {
   const snapshots = selectedQuantitySnapshots();
-  elements.quantitySnapshotBadge.textContent = `${snapshots.length} 对象`;
+  elements.quantitySnapshotBadge.textContent = text(`${snapshots.length} 对象`, `${snapshots.length} objects`);
   elements.quantitySnapshotList.innerHTML = snapshots.length
     ? snapshots.map((snapshot) => `
         <article class="quantity-snapshot-row">
@@ -20096,7 +20113,7 @@ function renderLibraryBatchBar() {
   const startableCount = selectedDocs.filter((doc) => canStartFlow(doc)).length;
   const visible = state.currentView === "files" && selectedCount > 0;
   elements.libraryBatchBar.classList.toggle("hidden", !visible);
-  elements.libraryBatchCount.textContent = `已选 ${selectedCount} 项`;
+  elements.libraryBatchCount.textContent = text(`已选 ${selectedCount} 项`, `${selectedCount} selected`);
   elements.batchDownloadButton.disabled = downloadableCount === 0;
   elements.batchMoveButton.disabled = movableCount === 0;
   elements.batchDeleteButton.disabled = deletableCount === 0;
@@ -22109,12 +22126,12 @@ function renderCurrentDocumentManager() {
   const occupancy = documentOccupancyMeta(doc);
   elements.libraryCheckoutToggle.checked = Boolean(documentCheckedOutBy(doc));
   elements.libraryCheckoutToggle.disabled = !canToggleDocumentCheckout(doc);
-  elements.libraryCheckoutHeading.textContent = documentCheckedOutBy(doc) ? `签出 / 占用 · ${occupancy.label}` : "签出 / 占用";
+  elements.libraryCheckoutHeading.textContent = documentCheckedOutBy(doc) ? text(`签出 / 占用 · ${occupancy.label}`, `Checked Out / Occupied · ${localizedDisplayName(occupancy.label)}`) : text("签出 / 占用", "Checked Out / Occupied");
   elements.libraryCheckoutHint.textContent = occupancy.hint;
 
   const shareEnabled = Boolean(doc.share?.enabled && documentShareUrl(doc));
-  elements.libraryShareStatus.textContent = shareEnabled ? `有效至 ${doc.share.expiresAt}` : "未开启";
-  elements.libraryShareLink.textContent = shareEnabled ? documentShareUrl(doc) : "当前还没有生成临时分享链接。";
+  elements.libraryShareStatus.textContent = shareEnabled ? text(`有效至 ${doc.share.expiresAt}`, `Valid until ${doc.share.expiresAt}`) : text("未开启", "Disabled");
+  elements.libraryShareLink.textContent = shareEnabled ? documentShareUrl(doc) : text("当前还没有生成临时分享链接。", "No temporary share link has been generated yet.");
   const shareCreating = isActionPending("document:share:create");
   const shareCopying = isActionPending("document:share:copy");
   const shareDisabling = isActionPending("document:share:disable");
@@ -22198,10 +22215,10 @@ function renderCurrentDocumentManager() {
 
 function renderVersionHistory(doc) {
   const history = Array.isArray(doc.versionHistory) ? [...doc.versionHistory].reverse() : [];
-  elements.libraryVersionCountBadge.textContent = `${history.length} 版`;
+  elements.libraryVersionCountBadge.textContent = text(`${history.length} 版`, `${history.length} versions`);
 
   if (!history.length) {
-    elements.versionHistoryList.innerHTML = '<div class="empty-card compact-empty">当前还没有版本记录。</div>';
+    elements.versionHistoryList.innerHTML = `<div class="empty-card compact-empty">${escapeHtml(text("当前还没有版本记录。", "No version history yet."))}</div>`;
     return;
   }
 
@@ -22213,12 +22230,12 @@ function renderVersionHistory(doc) {
         <article class="item-card version-item ${current ? "current" : ""}">
           <div class="item-meta">
             <strong>${escapeHtml(entry.version)}</strong>
-            <span class="mini-pill">${current ? "当前版本" : "历史版本"}</span>
-            <a class="attachment-link" href="${escapeHtml(entry.fileUrl || "#")}" target="_blank" rel="noreferrer">下载</a>
-            ${current ? "" : `<button class="attachment-link button-link" data-restore-version="${entry.id}" type="button" ${restoreDisabled ? "disabled" : ""}>还原</button>`}
+            <span class="mini-pill">${current ? text("当前版本", "Current Version") : text("历史版本", "Historical Version")}</span>
+            <a class="attachment-link" href="${escapeHtml(entry.fileUrl || "#")}" target="_blank" rel="noreferrer">${text("下载", "Download")}</a>
+            ${current ? "" : `<button class="attachment-link button-link" data-restore-version="${entry.id}" type="button" ${restoreDisabled ? "disabled" : ""}>${text("还原", "Restore")}</button>`}
           </div>
           <p>${escapeHtml(entry.note || "—")}</p>
-          <p>${escapeHtml(entry.uploadedBy || "系统")} · ${formatDateTime(entry.uploadedAt)} · ${formatBytes(Number(entry.size || 0))}</p>
+          <p>${escapeHtml(localizedDisplayName(entry.uploadedBy || "系统"))} · ${formatDateTime(entry.uploadedAt)} · ${formatBytes(Number(entry.size || 0))}</p>
         </article>
       `;
     })
@@ -22233,10 +22250,10 @@ function renderVersionHistory(doc) {
 
 function renderLibraryActivity(doc) {
   const activities = Array.isArray(doc.activity) ? [...doc.activity].reverse().slice(0, 8) : [];
-  elements.libraryActivityCountBadge.textContent = `${activities.length} 条`;
+  elements.libraryActivityCountBadge.textContent = text(`${activities.length} 条`, `${activities.length} items`);
 
   if (!activities.length) {
-    elements.libraryActivityList.innerHTML = '<div class="empty-card compact-empty">还没有管理动作记录。</div>';
+    elements.libraryActivityList.innerHTML = `<div class="empty-card compact-empty">${escapeHtml(text("还没有管理动作记录。", "No management activity yet."))}</div>`;
     return;
   }
 
@@ -23440,7 +23457,7 @@ async function submitInlineRename() {
     return;
   }
   if (!name) {
-    showAlert(type === "folder" ? "文件夹名称不能为空。" : "文件名称不能为空。");
+    showAlert(type === "folder" ? text("文件夹名称不能为空。", "Folder name is required.") : text("文件名称不能为空。", "File name is required."));
     return;
   }
 
@@ -23458,7 +23475,7 @@ async function submitInlineRename() {
     cancelInlineRename({ render: false });
     await refreshDocuments();
   } catch (error) {
-    showAlert(error.message || "重命名失败，请稍后重试。");
+    showAlert(error.message || text("重命名失败，请稍后重试。", "Rename failed. Please try again later."));
   }
 }
 
@@ -23575,7 +23592,7 @@ function notify(message, tone = "info", options = {}) {
   const item = {
     id,
     tone,
-    message: localizedDisplayName(message || ""),
+    message: localizeUserMessage(message || "", text("操作失败，请稍后重试。", "Operation failed. Please try again.")),
   };
   state.toastItems = [...state.toastItems, item].slice(-4);
   renderToasts();
@@ -23585,11 +23602,11 @@ function notify(message, tone = "info", options = {}) {
 }
 
 function notifyError(error, fallback) {
-  notify(localizedDisplayName(error?.message || fallback || text("操作失败，请稍后重试。", "Operation failed. Please try again.")), "alert");
+  notify(localizeUserMessage(error?.message || fallback || text("操作失败，请稍后重试。", "Operation failed. Please try again.")), "alert");
 }
 
 function showAlert(message) {
-  notify(localizedDisplayName(message || text("请检查当前操作。", "Please review the current action.")), "alert", { timeout: 6200 });
+  notify(localizeUserMessage(message || text("请检查当前操作。", "Please review the current action.")), "alert", { timeout: 6200 });
 }
 
 function dismissToast(id) {
@@ -24566,10 +24583,10 @@ function renderLaunchFlowModal() {
   elements.launchFlowSubmitError.classList.toggle("hidden", !state.launchFlowValidation.submit);
   elements.launchFlowSubmitError.textContent = state.launchFlowValidation.submit || "";
 
-  elements.launchFlowTemplateValue.textContent = template?.name || "请选择工作流程";
+  elements.launchFlowTemplateValue.textContent = template?.name || text("请选择工作流程", "Select a workflow");
   elements.launchFlowTemplatePath.textContent = template
-    ? `${template.category || "项目级流程"} / ${template.projectName || state.access.project?.name || "当前项目"}`
-    : "项目级流程 / 当前项目";
+    ? `${localizedDisplayName(template.category || "项目级流程")} / ${template.projectName || state.access.project?.name || text("当前项目", "Current Project")}`
+    : text("项目级流程 / 当前项目", "Project Workflow / Current Project");
   elements.launchFlowTemplateTrigger.classList.toggle("is-placeholder", !template);
   elements.launchFlowTemplateTrigger.setAttribute("aria-expanded", state.launchFlowTemplateMenuOpen ? "true" : "false");
   elements.launchFlowTemplateMenu.classList.toggle("hidden", !state.launchFlowTemplateMenuOpen);
@@ -24631,7 +24648,7 @@ function renderLaunchFlowModal() {
   elements.launchFlowSelectedFiles.innerHTML = renderLaunchFlowSelectedFilesMarkup();
   elements.confirmLaunchFlowButton.disabled = state.launchFlowSubmitting;
   elements.cancelLaunchFlowButton.disabled = state.launchFlowSubmitting;
-  elements.confirmLaunchFlowButton.textContent = state.launchFlowSubmitting ? "提交中..." : "发起流程";
+  elements.confirmLaunchFlowButton.textContent = state.launchFlowSubmitting ? text("提交中...", "Submitting...") : text("发起流程", "Launch Workflow");
 
   Array.from(elements.launchFlowTemplateMenu.querySelectorAll("[data-launch-template-group]")).forEach((button) => {
     button.addEventListener("click", () => {
@@ -25671,7 +25688,7 @@ async function submitWorkflowTemplateDraft() {
     renderWorkflowTemplateManagerModal();
     renderLaunchFlowModal();
   } catch (error) {
-    showAlert(error.message || "保存流程模板失败，请稍后重试。");
+    showAlert(error.message || text("保存流程模板失败，请稍后重试。", "Failed to save workflow template. Please try again later."));
   }
 }
 
@@ -25692,7 +25709,7 @@ async function deleteCurrentWorkflowTemplateDraft() {
     renderWorkflowTemplateManagerModal();
     renderLaunchFlowModal();
   } catch (error) {
-    showAlert(error.message || "删除流程模板失败，请稍后重试。");
+    showAlert(error.message || text("删除流程模板失败，请稍后重试。", "Failed to delete workflow template. Please try again later."));
   }
 }
 
@@ -30462,7 +30479,7 @@ function uploadChunkWithProgress(sessionId, index, chunk, { task, onProgress = n
         applyLoggedOutState(text("登录已失效，请重新登录。", "Your session has expired. Please sign in again."));
         render();
       }
-      reject(new Error(payload.error || "Request failed"));
+      reject(new Error(localizeUserMessage(payload.error, text("请求失败，请稍后重试。", "Request failed. Please try again."))));
     };
     xhr.onerror = () => reject(new Error(text("网络异常，请稍后重试。", "Network error. Please try again later.")));
     xhr.onabort = () => {
@@ -30890,7 +30907,7 @@ function readFileAsBase64WithProgress(file, { onProgress = null, task = null } =
       resolve(result.split(",")[1]);
     };
     reader.onerror = () => {
-      reject(reader.error || new Error("读取文件失败"));
+      reject(reader.error || new Error(text("读取文件失败", "Failed to read file")));
     };
     reader.onabort = () => {
       const error = new Error("Upload canceled");
@@ -32656,7 +32673,7 @@ async function attachFiles(files, explicitKind = null) {
 
   const currentAttachments = state.annotationEditor.attachments || [];
   if (currentAttachments.length + files.length > MAX_ATTACHMENT_COUNT) {
-    showAlert(`单条批注最多补充 ${MAX_ATTACHMENT_COUNT} 个附件。`);
+    showAlert(text(`单条批注最多补充 ${MAX_ATTACHMENT_COUNT} 个附件。`, `Each annotation can include up to ${MAX_ATTACHMENT_COUNT} attachments.`));
     return;
   }
 
@@ -32699,7 +32716,7 @@ async function attachReplyFiles(files, explicitKind = null) {
 
   const currentAttachments = state.replyEditor.attachments || [];
   if (currentAttachments.length + files.length > MAX_ATTACHMENT_COUNT) {
-    showAlert(`单条回复最多补充 ${MAX_ATTACHMENT_COUNT} 个附件。`);
+    showAlert(text(`单条回复最多补充 ${MAX_ATTACHMENT_COUNT} 个附件。`, `Each reply can include up to ${MAX_ATTACHMENT_COUNT} attachments.`));
     return;
   }
 
@@ -33003,7 +33020,7 @@ async function exportReviewedFile() {
   }
   setExportButtonsBusy(true);
   try {
-    const response = await postJson(`/api/documents/${doc.id}/export`, {});
+    const response = await postJson(`/api/documents/${doc.id}/export`, { language: currentLanguage() });
     await refreshDocuments();
     openResolvedUrl(response.downloadUrl, pendingWindow);
   } catch (error) {
@@ -33037,7 +33054,7 @@ async function exportCommentReport(targetDocId = "") {
 
   setCommentReportButtonBusy(true, doc);
   try {
-    const response = await postJson(`/api/documents/${doc.id}/comment-report`, {});
+    const response = await postJson(`/api/documents/${doc.id}/comment-report`, { language: currentLanguage() });
     await refreshDocuments();
     openResolvedUrl(response.downloadUrl, pendingWindow);
   } catch (error) {
@@ -33068,7 +33085,7 @@ async function exportWorkflowCommentReport(workflowId, triggerButton = null) {
   }
 
   try {
-    const response = await postJson(`/api/workflows/${workflow.id}/comment-report`, {});
+    const response = await postJson(`/api/workflows/${workflow.id}/comment-report`, { language: currentLanguage() });
     await refreshDocuments();
     openResolvedUrl(response.downloadUrl, pendingWindow);
   } catch (error) {
@@ -33102,7 +33119,7 @@ async function exportWorkflowReport(workflowId, triggerButton = null) {
   }
 
   try {
-    const response = await postJson(`/api/workflows/${workflow.id}/report-export`, {});
+    const response = await postJson(`/api/workflows/${workflow.id}/report-export`, { language: currentLanguage() });
     await refreshDocuments();
     if (elements.workflowDetailModal?.open) {
       renderWorkflowDetailModal();
@@ -35099,7 +35116,7 @@ async function fetchJson(url, options = {}) {
     render();
   }
   if (!response.ok) {
-    throw new Error(payload.error || "Request failed");
+    throw new Error(localizeUserMessage(payload.error, text("请求失败，请稍后重试。", "Request failed. Please try again.")));
   }
   return payload;
 }
@@ -35164,7 +35181,7 @@ function postJsonWithProgress(url, body, { onProgress = null, task = null } = {}
         render();
       }
 
-      reject(new Error(payload.error || "Request failed"));
+      reject(new Error(localizeUserMessage(payload.error, text("请求失败，请稍后重试。", "Request failed. Please try again."))));
     };
     xhr.onerror = () => {
       reject(new Error(text("网络异常，请稍后重试。", "Network error. Please try again later.")));

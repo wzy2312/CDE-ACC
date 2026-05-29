@@ -109,6 +109,14 @@ const STANDALONE_EN_TEXT = {
   "未填写说明": "No Notes",
   "区域视角": "Area View",
   "当前模型还没有三维定位 Issue。": "This model has no 3D-located issues yet.",
+  "自由线": "Freehand",
+  "箭头": "Arrow",
+  "矩形": "Rectangle",
+  "云线": "Cloud",
+  "文字": "Text",
+  "撤销": "Undo",
+  "重做": "Redo",
+  "保存": "Save",
   "操作失败，请稍后重试。": "Operation failed. Please try again later.",
   "请求失败": "Request Failed",
   "缺少文档参数": "Missing Document Parameter",
@@ -125,8 +133,121 @@ const STANDALONE_EN_TEXT = {
   "初始化失败": "Initialization Failed",
   "装载失败": "Load Failed",
   "未知错误，请稍后重试。": "Unknown error. Please try again later.",
+  "未知错误": "Unknown error",
+  "失败": "failed",
+  "尚未就绪": "Not Ready",
+  "未成功启用": "not enabled",
+  "APS 服务尚未配置完整，请先到系统设置 / APS 配置填写 Client ID 和 Client Secret。": "APS is not fully configured. Go to System Settings / APS Settings and enter the Client ID and Client Secret.",
+  "请先到系统设置 / APS 配置中填写并启用 APS 凭证：": "Go to System Settings / APS Settings and enter and enable APS credentials:",
+  "Bucket 与 Viewer 运行参数": "Bucket and Viewer runtime parameters",
+  "保存后重新打开当前工作台。": "Save, then reopen this workspace.",
+  "请回到文件管理页，在“文件属性 -> APS 配置”中填写：": "Return to the file management page and fill in File Properties -> APS Settings:",
+  "可选的 2D 图纸 GUID": "Optional 2D drawing GUID",
+  "可选的 3D 模型 GUID": "Optional 3D model GUID",
+  "保存后重新打开": "Save, then reopen",
+  "即可。": ".",
+  "请确认当前文件是否已完成 APS 转换，并且具备可访问的": "Confirm that APS translation has completed for this file and that it has an accessible",
+  "URN。": "URN.",
+  "热力图加载失败": "Heatmap load failed",
+  "模型差异图层加载失败": "Model diff layer load failed",
+  "模型差异图层": "Model Diff Layer",
+  "版本 A": "Version A",
+  "版本 B": "Version B",
+  "A/B 分屏": "A/B Split",
+  "叠加模式": "Overlay Mode",
+  "新增": "Added",
+  "删除": "Deleted",
+  "属性": "Properties",
+  "移动": "Moved",
+  "属性变更": "Property Changes",
+  "位置移动": "Position Moved",
+  "无法比对": "Unable to Compare",
+  "未变更": "Unchanged",
+  "当前差异筛选没有可显示构件。": "No elements match the current diff filter.",
+  "选择差异记录后，可查看属性变化并在当前视角创建 Issue。": "Select a diff record to review property changes and create an Issue from the current view.",
+  "复核：": "Review: ",
+  "创建差异 Issue": "Create Diff Issue",
+  "已关联 Issue": "Issue Linked",
+  "差异 Issue 创建失败": "Diff Issue creation failed",
+  "4D 时间点加载失败": "4D date load failed",
+  "手动映射失败": "Manual mapping failed",
+  "进度 Issue 创建失败": "Schedule Issue creation failed",
+  "4D 进度快照导出失败": "4D progress snapshot export failed",
+  "标注回放失败": "Markup playback failed",
+  "模型差异分屏不可用，已回退到叠加模式": "Model diff split view is unavailable; fell back to overlay mode",
+  "Issue 操作失败，请稍后重试。": "Issue operation failed. Please try again later.",
+  "请先在 Viewer 中选择一个或多个构件": "Select one or more elements in the Viewer first",
+  "请选择要绑定的 Activity": "Select an Activity to bind",
+  "未找到该滞后构件对应的进度预警，暂不能自动创建 Issue": "No schedule alert was found for this delayed element, so an Issue cannot be created automatically.",
+  "请先选择一条需要重新绑定的 Issue。": "Select an Issue to rebind first.",
+  "当前没有可重新绑定的 3D 模型视图。": "No rebindable 3D model view is available.",
+  "请先在模型中选择新的关联构件。": "Select a new linked element in the model first.",
+  "主视图尚未完成加载": "The primary view has not finished loading.",
+  "请先在主视图中选择构件": "Select elements in the primary view first.",
+  "当前没有打开 2D 图纸视图": "No 2D drawing view is open.",
+  "当前没有可记录的 3D 模型视图。": "No recordable 3D model view is available.",
+  "隔离状态已清空": "Isolation cleared",
+  "构件着色已清空": "Element coloring cleared",
+  "当前文件没有 3D 视图，测量不可用": "This file has no 3D view, so measurement is unavailable",
+  "待 3D 模型视图装载后启用": "Enabled after the 3D model view loads",
+  "当前文件没有 2D 图纸，标注不可用": "This file has no 2D drawing, so markup is unavailable",
+  "当前文件没有 2D 图纸，标注工具栏不可用": "This file has no 2D drawing, so the markup toolbar is unavailable",
+  "保存中...": "Saving...",
+  "记录中...": "Capturing...",
+  "绑定中...": "Binding...",
+  "开启中...": "Starting...",
+  "清空中...": "Clearing...",
+  "清除中...": "Clearing...",
+  "隔离中...": "Isolating...",
+  "着色中...": "Coloring...",
+  "切换中...": "Switching...",
+  "已保存": "Saved",
+  "已记录": "Captured",
+  "已绑定": "Bound",
+  "已开启": "Started",
+  "已清空": "Cleared",
+  "已清除": "Cleared",
+  "已隔离": "Isolated",
+  "已着色": "Colored",
+  "已切换": "Switched",
+  "场景已保存": "Scene Saved",
+  "已恢复": "Restored",
+  "区域视角": "Area View",
   "历史版本或差异对比视图不写回当前模型视点": "Historical versions and diff views do not write back current model viewpoints",
   "当前": "Current",
+  "施工进度计划": "Construction Schedule",
+  "收起": "Collapse",
+  "模式": "Mode",
+  "实际状态": "Actual Status",
+  "计划状态": "Planned Status",
+  "专业": "Discipline",
+  "全部专业": "All Disciplines",
+  "全部 WBS": "All WBS",
+  "手动关联 Activity": "Manual Activity Link",
+  "暂无 Activity": "No Activity",
+  "绑定当前选择": "Bind Current Selection",
+  "当前状态筛选下没有可显示构件。": "No elements match the current status filter.",
+  "状态：": "Status: ",
+  "该构件暂无关联工序。": "This element has no linked activities.",
+  "创建进度 Issue": "Create Schedule Issue",
+  "选择构件后查看关联 Activity。": "Select an element to view linked activities.",
+  "后退": "Back",
+  "暂停": "Pause",
+  "播放": "Play",
+  "前进": "Forward",
+  "查看日期": "View Date",
+  "速度": "Speed",
+  "1 天/帧": "1 day/frame",
+  "1 周/秒": "1 week/sec",
+  "1 月/秒": "1 month/sec",
+  "只看滞后": "Delayed Only",
+  "保存快照": "Save Snapshot",
+  "暂无里程碑": "No Milestones",
+  "编辑中": "Editing",
+  "待标注": "Pending Markup",
+  "最近更新：": "Recently updated: ",
+  "刚刚": "just now",
+  "图纸审阅位": "Drawing Review View",
 };
 
 function currentLanguage() {
@@ -165,6 +286,17 @@ function localizeStandaloneText(value) {
       result = result.replaceAll(zh, en);
     });
   return result;
+}
+
+function hasCjkText(value) {
+  return /[\u4e00-\u9fff]/.test(String(value || ""));
+}
+
+function localizeUserMessage(value, fallback = t("操作失败，请稍后重试。", "Operation failed. Please try again later.")) {
+  const fallbackValue = String(fallback || "").trim() || t("操作失败，请稍后重试。", "Operation failed. Please try again later.");
+  const source = String(value || "").trim() || fallbackValue;
+  const localized = localizeStandaloneText(source);
+  return currentLanguage() === "en" && hasCjkText(localized) ? fallbackValue : localized;
 }
 
 function applyStandaloneTranslations(root = document.body) {
@@ -230,7 +362,7 @@ function startStandaloneTranslationObserver() {
 startStandaloneTranslationObserver();
 
 const originalAlert = window.alert.bind(window);
-window.alert = (message) => originalAlert(localizeStandaloneText(message));
+window.alert = (message) => originalAlert(localizeUserMessage(message, t("操作失败，请稍后重试。", "Operation failed. Please try again later.")));
 document.title = localizeStandaloneText(document.title);
 
 const params = new URLSearchParams(window.location.search);
@@ -552,9 +684,9 @@ function formatDateTime(value) {
 }
 
 function updateOverlay(title, message, detail = "") {
-  dom.stateTitle.textContent = title;
-  dom.stateMessage.textContent = message;
-  dom.stateDetail.textContent = detail;
+  dom.stateTitle.textContent = localizeStandaloneText(title);
+  dom.stateMessage.textContent = localizeStandaloneText(message);
+  dom.stateDetail.textContent = localizeStandaloneText(detail);
   dom.stateDetail.classList.toggle("hidden", !detail);
   dom.stateWrap.classList.remove("hidden");
 }
@@ -564,7 +696,7 @@ function hideOverlay() {
 }
 
 function setBadge(element, text, tone = "neutral") {
-  element.textContent = text;
+  element.textContent = localizeStandaloneText(text);
   element.className = `status-pill ${statusTone(tone)}`;
 }
 
@@ -590,7 +722,7 @@ function pulseButton(button, text) {
   }
   const original = button.dataset.originalLabel || button.textContent;
   button.dataset.originalLabel = original;
-  button.textContent = text;
+  button.textContent = localizeStandaloneText(text);
   window.clearTimeout(button.__pulseTimer);
   button.__pulseTimer = window.setTimeout(() => {
     button.textContent = original;
@@ -601,7 +733,7 @@ async function runButtonAction(button, pendingLabel, task, successLabel = "") {
   const original = button.dataset.originalLabel || button.textContent;
   button.dataset.originalLabel = original;
   button.disabled = true;
-  button.textContent = pendingLabel;
+  button.textContent = localizeStandaloneText(pendingLabel);
   try {
     await task();
     if (successLabel) {
@@ -611,7 +743,7 @@ async function runButtonAction(button, pendingLabel, task, successLabel = "") {
     }
   } catch (error) {
     button.textContent = original;
-    window.alert(error.message || "操作失败，请稍后重试。");
+    window.alert(localizeUserMessage(error.message, t("操作失败，请稍后重试。", "Operation failed. Please try again later.")));
   } finally {
     button.disabled = false;
   }
@@ -621,7 +753,7 @@ function setPageMeta(items) {
   dom.pageMeta.innerHTML = "";
   items.filter(Boolean).forEach((item) => {
     const chip = document.createElement("span");
-    chip.textContent = item;
+    chip.textContent = localizeStandaloneText(item);
     dom.pageMeta.appendChild(chip);
   });
 }
@@ -631,7 +763,7 @@ function setComponentStatus(key, status, note) {
     return;
   }
   state.componentStatus[key].status = status;
-  state.componentStatus[key].note = note;
+  state.componentStatus[key].note = localizeStandaloneText(note);
   renderComponentStatuses();
 }
 
@@ -725,7 +857,7 @@ function createSmallButton(label, onClick, disabled = false) {
   button.addEventListener("click", (event) => {
     event.stopPropagation();
     Promise.resolve(onClick()).catch((error) => {
-      window.alert(error.message || "操作失败，请稍后重试。");
+      window.alert(localizeUserMessage(error.message, t("操作失败，请稍后重试。", "Operation failed. Please try again later.")));
     });
   });
   return button;
@@ -947,13 +1079,16 @@ async function readJson(response) {
 }
 
 async function fetchJson(url, options = {}) {
+  const { headers = {}, ...rest } = options;
   const response = await fetch(url, {
     credentials: "same-origin",
-    ...options,
+    headers,
+    ...rest,
   });
   const payload = await readJson(response);
   if (!response.ok) {
-    throw new Error(payload.error || payload.message || `请求失败 (${response.status})`);
+    const serverMessage = [payload.error, payload.message].find(Boolean);
+    throw new Error(localizeUserMessage(serverMessage, `${t("请求失败", "Request Failed")} (${response.status})`));
   }
   return payload;
 }
@@ -3361,8 +3496,9 @@ function runIssueAction(task) {
   return Promise.resolve()
     .then(task)
     .catch((error) => {
-      dom.issueMeta.textContent = error.message || "Issue 操作失败，请稍后重试。";
-      window.alert(error.message || "Issue 操作失败，请稍后重试。");
+      const message = localizeUserMessage(error.message, "Issue operation failed. Please try again later.");
+      dom.issueMeta.textContent = message;
+      window.alert(message);
     });
 }
 
@@ -3928,7 +4064,8 @@ async function boot() {
     });
     const payload = await readJson(response);
     if (!response.ok) {
-      throw new Error(payload.error || payload.message || "APS 配置获取失败");
+      const serverMessage = [payload.error, payload.message].find(Boolean);
+      throw new Error(localizeUserMessage(serverMessage, t("APS 配置获取失败", "Failed to load APS configuration")));
     }
 
     if (!payload.enabled) {
@@ -4011,9 +4148,12 @@ async function boot() {
     renderConstructionScheduleOverlay();
   } catch (error) {
     document.title = localizeStandaloneText(`${labels.apsWorkspace}打开失败`);
-    dom.pageTitle.textContent = `${labels.apsWorkspace}打开失败`;
+    dom.pageTitle.textContent = localizeStandaloneText(`${labels.apsWorkspace}打开失败`);
     setPageMeta([`${labels.workspace}初始化失败`]);
-    updateOverlay(`${labels.apsWorkspace}装载失败`, error.message || "未知错误，请稍后重试。");
+    updateOverlay(
+      `${labels.apsWorkspace}装载失败`,
+      localizeUserMessage(error.message, t("未知错误，请稍后重试。", "Unknown error. Please try again later.")),
+    );
   }
 }
 

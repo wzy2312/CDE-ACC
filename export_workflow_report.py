@@ -6,6 +6,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
 
 from pdf_font_utils import register_pdf_font
+from report_i18n import localize_text
 
 FONT_NAME = "WorkflowArialUnicode"
 PAGE_WIDTH, PAGE_HEIGHT = A4
@@ -138,10 +139,10 @@ def register_font():
 def draw_title(pdf, cursor_y, workflow):
     font_name = register_font()
     pdf.setFont(font_name, 18)
-    pdf.drawString(MARGIN_X, cursor_y, "审批记录单")
+    pdf.drawString(MARGIN_X, cursor_y, localize_text("审批记录单"))
     cursor_y -= 28
     pdf.setFont(font_name, 11)
-    pdf.drawString(MARGIN_X, cursor_y, f"流程编号：{workflow.get('id', '—')}")
+    pdf.drawString(MARGIN_X, cursor_y, localize_text(f"流程编号：{workflow.get('id', '—')}"))
     return cursor_y - 22
 
 
@@ -149,7 +150,7 @@ def draw_section(pdf, cursor_y, title, lines):
     font_name = register_font()
     cursor_y = ensure_space(pdf, cursor_y, 44)
     pdf.setFont(font_name, 13)
-    pdf.drawString(MARGIN_X, cursor_y, title)
+    pdf.drawString(MARGIN_X, cursor_y, localize_text(title))
     cursor_y -= 18
     pdf.setLineWidth(0.6)
     pdf.line(MARGIN_X, cursor_y, PAGE_WIDTH - MARGIN_X, cursor_y)
@@ -174,6 +175,7 @@ def ensure_space(pdf, cursor_y, needed_height):
 
 def wrap_text(text, max_width, font_size):
     font_name = register_font()
+    text = localize_text(text)
     if not text:
         return [""]
     lines = []

@@ -10,6 +10,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 from pdf_font_utils import register_pdf_font
+from report_i18n import localize_text, localize_workbook
 
 FONT_NAME = "ScheduleArialUnicode"
 PAGE_WIDTH, PAGE_HEIGHT = A4
@@ -284,6 +285,7 @@ def export_workbook(output_path, store, schedule):
         write_row(summary_sheet, row_index, [item.get("activityId"), item.get("name"), item.get("type"), changes])
     fit_columns(summary_sheet, [18, 34, 16, 80])
 
+    localize_workbook(workbook)
     workbook.save(output_path)
 
 
@@ -297,11 +299,11 @@ def draw_text_lines(pdf, cursor_y, title, lines):
         pdf.setFont(register_font(), 10)
         cursor_y = TOP_Y
     pdf.setFont(register_font(), 12)
-    pdf.drawString(MARGIN_X, cursor_y, title)
+    pdf.drawString(MARGIN_X, cursor_y, localize_text(title))
     cursor_y -= LINE_HEIGHT + 4
     pdf.setFont(register_font(), 9)
     for line in lines:
-        for chunk in wrap_text(safe_text(line, "—"), 86):
+        for chunk in wrap_text(localize_text(safe_text(line, "—")), 86):
             if cursor_y < BOTTOM_Y:
                 pdf.showPage()
                 pdf.setFont(register_font(), 9)
@@ -337,7 +339,7 @@ def export_weekly_pdf(output_path, store, schedule, week_start, week_end):
     pdf = canvas.Canvas(output_path, pagesize=A4)
     pdf.setTitle(f"Construction Schedule Weekly Report - {safe_text(schedule.get('name'))}")
     pdf.setFont(font, 14)
-    pdf.drawString(MARGIN_X, TOP_Y, "海水淡化项目进度周报")
+    pdf.drawString(MARGIN_X, TOP_Y, localize_text("海水淡化项目进度周报"))
     cursor = TOP_Y - 32
     cursor = draw_text_lines(pdf, cursor, "基本信息", [
         f"模型：{safe_text(document.get('name'), '未命名模型')}",
@@ -367,7 +369,7 @@ def export_gantt_pdf(output_path, store, schedule):
     pdf = canvas.Canvas(output_path, pagesize=A4)
     pdf.setTitle(f"Construction Gantt - {safe_text(schedule.get('name'))}")
     pdf.setFont(font, 14)
-    pdf.drawString(MARGIN_X, TOP_Y, "施工进度甘特导出")
+    pdf.drawString(MARGIN_X, TOP_Y, localize_text("施工进度甘特导出"))
     cursor = TOP_Y - 28
     pdf.setFont(font, 9)
     for index, activity in enumerate(activities[:80], start=1):
@@ -376,8 +378,8 @@ def export_gantt_pdf(output_path, store, schedule):
           pdf.setFont(font, 9)
           cursor = TOP_Y
       status = activity_status(activity, schedule.get("dataDate"))
-      pdf.drawString(MARGIN_X, cursor, f"{index}. {activity.get('activityId')} {activity.get('name')}")
-      pdf.drawRightString(PAGE_WIDTH - MARGIN_X, cursor, f"{activity.get('plannedStart')} -> {activity.get('plannedFinish')} · {status_label(status)} · {activity.get('percentComplete')}%")
+      pdf.drawString(MARGIN_X, cursor, localize_text(f"{index}. {activity.get('activityId')} {activity.get('name')}"))
+      pdf.drawRightString(PAGE_WIDTH - MARGIN_X, cursor, localize_text(f"{activity.get('plannedStart')} -> {activity.get('plannedFinish')} · {status_label(status)} · {activity.get('percentComplete')}%"))
       cursor -= LINE_HEIGHT
     pdf.save()
 

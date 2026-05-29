@@ -17,6 +17,7 @@ from export_comment_report import (
     sort_key_for_row,
     write_comment_sheet,
 )
+from report_i18n import localize_workbook
 
 
 def main():
@@ -70,6 +71,7 @@ def main():
     summary_sheet = workbook.create_sheet("导出摘要")
     write_workflow_summary_sheet(summary_sheet, workflow, exported_docs, rows, native_support)
 
+    localize_workbook(workbook)
     workbook.save(output_xlsx)
 
 

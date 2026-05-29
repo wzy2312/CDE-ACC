@@ -426,6 +426,17 @@
         return result;
       }
 
+      function hasCjkText(value) {
+        return /[\u4e00-\u9fff]/.test(String(value || ""));
+      }
+
+      function localizeUserMessage(value, fallback = t("操作失败，请稍后重试。", "Operation failed. Please try again.")) {
+        const fallbackValue = String(fallback || "").trim() || t("操作失败，请稍后重试。", "Operation failed. Please try again.");
+        const source = String(value || "").trim() || fallbackValue;
+        const localized = localizeStandaloneText(source);
+        return currentLanguage() === "en" && hasCjkText(localized) ? fallbackValue : localized;
+      }
+
       function applyStandaloneTranslations(root = document.body) {
         if (currentLanguage() !== "en" || !root) {
           return;
@@ -486,7 +497,7 @@
       document.title = localizeStandaloneText(document.title);
 
       const originalAlert = window.alert.bind(window);
-      window.alert = (message) => originalAlert(localizeStandaloneText(message));
+      window.alert = (message) => originalAlert(localizeUserMessage(message, t("操作失败，请稍后重试。", "Operation failed. Please try again.")));
 
       const params = new URLSearchParams(window.location.search);
       const docId = params.get("docId") || "";
@@ -539,11 +550,11 @@
             headers: {
               "Content-Type": "application/json",
             },
-            body: "{}",
+            body: JSON.stringify({ language: currentLanguage() }),
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || !payload.downloadUrl) {
-            throw new Error(payload.error || t("评论导出失败，请稍后重试。", "Comment export failed. Please try again later."));
+            throw new Error(localizeUserMessage(payload.error, t("评论导出失败，请稍后重试。", "Comment export failed. Please try again later.")));
           }
           if (pendingWindow) {
             pendingWindow.location.href = payload.downloadUrl;
@@ -554,7 +565,7 @@
           if (pendingWindow && !pendingWindow.closed) {
             pendingWindow.close();
           }
-          window.alert(error.message || t("评论导出失败，请稍后重试。", "Comment export failed. Please try again later."));
+          window.alert(localizeUserMessage(error.message, t("评论导出失败，请稍后重试。", "Comment export failed. Please try again later.")));
         } finally {
           commentExportButton.disabled = false;
           commentExportButton.textContent = originalLabel;
@@ -639,7 +650,7 @@
           const payload = await response.json();
 
           if (!response.ok) {
-            throw new Error(payload.error || t("OnlyOffice 配置获取失败", "Failed to load OnlyOffice configuration"));
+            throw new Error(localizeUserMessage(payload.error, t("OnlyOffice 配置获取失败", "Failed to load OnlyOffice configuration")));
           }
 
           if (!payload.enabled) {
@@ -655,7 +666,7 @@
         } catch (error) {
           document.title = t("OnlyOffice 打开失败", "OnlyOffice Open Failed");
           modeChip.textContent = t("失败", "Failed");
-          updateState(t("OnlyOffice 装载失败", "OnlyOffice Load Failed"), error.message || t("未知错误，请稍后重试。", "Unknown error. Please try again later."));
+          updateState(t("OnlyOffice 装载失败", "OnlyOffice Load Failed"), localizeUserMessage(error.message, t("未知错误，请稍后重试。", "Unknown error. Please try again later.")));
         }
       }
 
