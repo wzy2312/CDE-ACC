@@ -12,5 +12,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: python3 -m pip install --user numpy pillow PyMuPDF openpyxl reportlab pdf2image
       - run: npm ci
       - run: npm test
