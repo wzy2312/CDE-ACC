@@ -11,7 +11,35 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
-      - run: python3 -m pip install --user numpy pillow PyMuPDF openpyxl reportlab pdf2image
-      - run: npm ci
-      - run: npm test
+      - name: Install Poppler
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Install Python report dependencies
+        run: python3 -m pip install --user numpy pillow PyMuPDF openpyxl reportlab pdf2image
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Run unit smoke tests
+        run: npm run test:unit
+      - name: Run integration smoke tests
+        run: |
+          node scripts/smoke-healthz.js
+          node scripts/smoke-storage.js
+          node scripts/smoke-signed-storage.js
+          node scripts/smoke-signed-export.js
+          node scripts/smoke-csrf.js
+          node scripts/smoke-login-rate-limit.js
+          node scripts/smoke-workflow-transaction.js
+          node scripts/smoke-auto-export-retry.js
+          node scripts/smoke-upload-limits.js
+          node scripts/smoke-resumable-upload-parse.js
+          node scripts/smoke-project-folder-create.js
+          node scripts/smoke-production-hardening.js
+          node scripts/smoke-api.js
+          node scripts/test-model-clash-api.js
+          node scripts/test-model-health-api.js
+          node scripts/test-quantity-takeoff-api.js
+          node scripts/test-model-diff-api.js
+          node scripts/test-construction-schedule-api.js
+          node scripts/test-drawing-spec-check-api.js
+          node scripts/smoke-frontend.js
