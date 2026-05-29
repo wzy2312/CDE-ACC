@@ -3,6 +3,7 @@ const path = require("node:path");
 
 const source = fs.readFileSync(path.join(process.cwd(), "server.js"), "utf8");
 const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
+const pythonResolverSource = source.match(/function resolvePythonBin\(\) \{[\s\S]*?\n\}/)?.[0] || "";
 
 function assert(condition, message) {
   if (!condition) {
@@ -33,6 +34,10 @@ assert(
 assert(
   source.includes('process.env.CDE_PYTHON_BIN') && source.includes('"python3"'),
   "server.js must resolve PYTHON_BIN from env with python3 fallback",
+);
+assert(
+  pythonResolverSource && !pythonResolverSource.includes("codex-runtimes") && !pythonResolverSource.includes("codex-primary-runtime"),
+  "server.js must not default PYTHON_BIN to a Codex bundled runtime",
 );
 assert(
   source.includes('process.env.CDE_PDFJS_DIR') && source.includes('path.join(ROOT, "node_modules", "pdfjs-dist", "build")'),

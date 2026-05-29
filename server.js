@@ -98,17 +98,7 @@ function resolvePythonBin() {
   if (configured) {
     return configured;
   }
-  const bundledPython = path.join(
-    os.homedir(),
-    ".cache",
-    "codex-runtimes",
-    "codex-primary-runtime",
-    "dependencies",
-    "python",
-    "bin",
-    "python3",
-  );
-  return firstExistingPath([bundledPython, "/usr/bin/python3", "/usr/local/bin/python3"]) || "python3";
+  return "python3";
 }
 
 function resolvePdfjsDir() {

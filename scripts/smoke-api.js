@@ -2542,6 +2542,7 @@ async function main() {
       CDE_BOOTSTRAP_PASSWORD: BOOTSTRAP_PASSWORD,
       APS_CLIENT_ID: "",
       APS_CLIENT_SECRET: "",
+      ONLYOFFICE_SERVER_URL: "http://127.0.0.1:9/onlyoffice",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
