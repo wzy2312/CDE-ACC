@@ -57,6 +57,21 @@ function currentSortLocale() {
   return currentLanguageMeta().sortLocale;
 }
 
+const localeCollatorCache = new Map();
+function localeCollator(locale) {
+  const key = String(locale || "");
+  let collator = localeCollatorCache.get(key);
+  if (!collator) {
+    collator = new Intl.Collator(key || undefined);
+    localeCollatorCache.set(key, collator);
+  }
+  return collator;
+}
+
+function compareBySortLocale(left, right) {
+  return localeCollator(currentSortLocale()).compare(String(left ?? ""), String(right ?? ""));
+}
+
 function text(zh, en) {
   return currentLanguage() === "en" ? en : zh;
 }
@@ -975,7 +990,7 @@ function createEmptyWorkflowTemplateDraft() {
       enabled: false,
       targetFolderId: "",
       targetPath: "",
-      namingRule: "流程发起时间 + 审核流程名称 + 发起人",
+      namingRule: text("流程发起时间 + 审核流程名称 + 发起人", "Workflow start time + review name + initiator"),
       exportReviewedFile: true,
       exportApprovalReport: true,
     },
@@ -1013,7 +1028,7 @@ function templateDraftFromTemplate(template) {
         resolvedExportFolderId
           ? workflowTemplateExportPathForFolder(resolvedExportFolderId)
           : template.autoExport?.targetPath || "",
-      namingRule: template.autoExport?.namingRule || "流程发起时间 + 审核流程名称 + 发起人",
+      namingRule: template.autoExport?.namingRule || text("流程发起时间 + 审核流程名称 + 发起人", "Workflow start time + review name + initiator"),
       exportReviewedFile: template.autoExport?.exportReviewedFile !== undefined ? Boolean(template.autoExport.exportReviewedFile) : true,
       exportApprovalReport: template.autoExport?.exportApprovalReport !== undefined ? Boolean(template.autoExport.exportApprovalReport) : true,
     },
@@ -1203,14 +1218,16 @@ function workflowInstanceIssueStats(workflow) {
 function workflowInstanceFileSummary(workflow) {
   const docs = workflowResolvedDocuments(workflow);
   if (!docs.length) {
-    return "当前流程还没有关联文件";
+    return text("当前流程还没有关联文件", "No files linked to this workflow yet");
   }
   const names = docs.slice(0, 2).map((doc) => doc.name);
-  return docs.length > 2 ? `${names.join(" / ")} 等 ${docs.length} 个文件` : names.join(" / ");
+  return docs.length > 2
+    ? text(`${names.join(" / ")} 等 ${docs.length} 个文件`, `${names.join(" / ")} and ${docs.length} files`)
+    : names.join(" / ");
 }
 
 function workflowInstanceLatestActor(workflow) {
-  return workflow?.activity?.[0]?.actor || workflow?.initiator || "系统";
+  return workflow?.activity?.[0]?.actor || workflow?.initiator || text("系统", "System");
 }
 
 function launchableWorkflowTemplates() {
@@ -1689,6 +1706,7 @@ let quantityTakeoffPollTimer = 0;
 let modelHealthPollTimer = 0;
 let modelDiffPollTimer = 0;
 let drawingRedlinePollTimer = 0;
+let libraryListDelegationBound = false;
 const NOTIFICATION_POLL_INTERVAL_MS = 30000;
 const QUANTITY_TAKEOFF_POLL_INTERVAL_MS = 2500;
 const MODEL_HEALTH_POLL_INTERVAL_MS = 2500;
@@ -3400,6 +3418,159 @@ Object.assign(STATIC_EN_TEXT, {
   "XER 文件": "XER File",
   "WBS/系统区域": "WBS / System Area",
   "中 | EN": "中 | EN",
+});
+
+Object.assign(STATIC_EN_TEXT, {
+  "文档审阅": "Document Review",
+  "专业会签": "Discipline Sign-off",
+  "系统级流程": "System Flow",
+  "查看未变字段": "View unchanged fields",
+  "空": "Empty",
+  "基准": "Baseline",
+  "当前": "Current",
+  "已完成": "Completed",
+  "无": "None",
+  "未分类": "Uncategorized",
+  "全部区域": "All Zones",
+  "全部材质/规格": "All Materials/Specs",
+  "没有符合条件的流程，试试放宽筛选条件或清空搜索。": "No matching workflows. Try relaxing the filters or clearing the search.",
+  "当前还没有流程数据。上传文件并发起流程后，就会在这里集中管理。": "No workflow data yet. After uploading files and starting a workflow, they will be managed here.",
+  "当前还没有版本记录。": "No version history yet.",
+  "下载": "Download",
+  "还原": "Restore",
+  "还没有管理动作记录。": "No management actions recorded yet.",
+  "当前没有可用流程模板": "No workflow templates available",
+  "当前项目没有可用流程模板，请先在“流程模板”中配置。": "This project has no workflow templates. Configure them in \"Workflow Templates\" first.",
+  "折叠文件夹": "Collapse folder",
+  "展开文件夹": "Expand folder",
+  "当前还没有流程模板，可以先新建一个。": "No workflow templates yet. Create one to get started.",
+  "发起角色": "Initiator Role",
+  "步骤模式": "Step Mode",
+  "串联单签": "Sequential single sign-off",
+  "审批人方式": "Approver Method",
+  "按人员": "By Person",
+  "按角色": "By Role",
+  "时限（天）": "Limit (days)",
+  "项目根目录": "Project Root",
+  "当前没有可选项。": "No options available.",
+});
+
+// index.html static markup (system & project settings, ACC/Feishu integration).
+Object.assign(STATIC_EN_TEXT, {
+  "ACC 文件接入": "ACC File Access",
+  "目录与打印包": "Folders & Print Packages",
+  "审批前自动预检": "Pre-approval Auto-check",
+  "版本差异可视化": "Version Diff Visualization",
+  "规格一致性": "Spec Consistency",
+  "跨图纸检索": "Cross-drawing Search",
+  "碰撞与 Issue": "Clash & Issue",
+  "审批前质量门控": "Pre-approval Quality Gate",
+  "版本变更追踪": "Version Change Tracking",
+  "4D 进度联动": "4D Schedule Link",
+  "全局用户管理": "Global User Management",
+  "跨项目共享": "Cross-project Sharing",
+  "飞书组织": "Feishu Organization",
+  "模板": "Templates",
+  "预览": "Preview",
+  "系统级用户权限": "System-level User Permissions",
+  "集中查看所有账号，并控制其在各项目中的成员关系和角色。": "Centrally view all accounts and control their membership and roles across projects.",
+  "搜索用户": "Search users",
+  "项目筛选": "Project Filter",
+  "选择具体项目后可为所有用户批量维护该项目权限。": "After selecting a specific project, you can bulk-manage that project's permissions for all users.",
+  "平台级文件流转": "Platform-level File Transfer",
+  "将源项目文件当前版本共享到目标项目，生成独立副本；审批状态、流程、批注、备注、签出和分享链接不会带过去。": "Shares the current version of source-project files to the target project as an independent copy. Approval status, workflows, annotations, notes, checkouts, and share links are not carried over.",
+  "共享配置": "Sharing Settings",
+  "独立副本": "Independent Copy",
+  "源项目": "Source Project",
+  "目标项目": "Target Project",
+  "目标文件夹": "Target Folder",
+  "同名处理": "Name Conflict Handling",
+  "保留两者，自动重命名": "Keep both, auto-rename",
+  "跳过同名文件": "Skip files with the same name",
+  "选择文件": "Select Files",
+  "源项目文件": "Source Project Files",
+  "0 个已选": "0 selected",
+  "共享到目标项目": "Share to Target Project",
+  "目标项目会生成新的文件记录和 V1 版本，后续版本、审阅和权限独立维护。": "The target project creates a new file record and a V1 version; subsequent versions, reviews, and permissions are maintained independently.",
+  "执行结果": "Result",
+  "结果": "Result",
+  "飞书集成": "Feishu Integration",
+  "飞书组织同步": "Feishu Organization Sync",
+  "读取飞书通讯录部门，将生态环境工程院和国际公司成员同步到同名 CDE 项目。": "Reads Feishu contact departments and syncs members of the Eco-Environment Engineering Institute and the International Company to CDE projects of the same name.",
+  "同步范围": "Sync Scope",
+  "预览组织架构": "Preview Org Structure",
+  "同步到项目成员": "Sync to Project Members",
+  "同步只新增或恢复成员，不会删除现有 CDE 成员。": "Syncing only adds or restores members; it never deletes existing CDE members.",
+  "最近结果": "Recent Result",
+  "项目": "Project",
+  "启用当前项目飞书推送": "Enable Feishu push for the current project",
+  "打开后，项目事件可按下方规则发送飞书消息，仍受全局飞书应用配置和成员绑定影响。": "When enabled, project events can send Feishu messages per the rules below, still subject to the global Feishu app configuration and member bindings.",
+  "启用站内邀请提示": "Enable in-app invite notifications",
+  "成员邀请默认只提醒被邀请人；如需抄送邀请人或项目管理员，可在下方单独开启。": "Member invitations notify only the invitee by default; to also notify the inviter or project admins, enable it separately below.",
+  "邀请": "Invite",
+  "填写说明": "Instructions",
+  "共享授权模式": "Shared Authorization Mode",
+  "管理员一次授权，项目成员复用 ACC 连接": "Admin authorizes once; project members reuse the ACC connection",
+  "超级管理员维护应用凭证，项目管理员连接可访问 ACC 的 Autodesk 账号；完成项目绑定后，文件管理页即可从 ACC 目录导入版本。": "The super admin maintains the app credentials, and a project admin connects an Autodesk account with ACC access. Once the project binding is complete, File Management can import versions from the ACC directory.",
+  "配置 Client ID / Secret 与 Callback": "Configure Client ID / Secret and Callback",
+  "连接管理员 Autodesk 账号": "Connect admin Autodesk account",
+  "绑定 Hub / Project / Top Folder": "Bind Hub / Project / Top Folder",
+  "启用 ACC 文件接入": "Enable ACC File Access",
+  "启用后，项目可绑定 ACC Hub / Project，并从 ACC 目录拉取文件版本进入 CDE。": "When enabled, a project can bind an ACC Hub / Project and pull file versions from the ACC directory into CDE.",
+  "保存 ACC 配置": "Save ACC Configuration",
+  "未完成管理员共享授权时，只能保存配置，不能浏览 ACC 项目文件。": "Until the admin shared authorization is complete, you can only save the configuration and cannot browse ACC project files.",
+  "当前项目绑定": "Current Project Binding",
+  "保存项目绑定": "Save Project Binding",
+  "绑定后，文件管理页会出现“从 ACC 导入”。": "After binding, \"Import from ACC\" appears on the File Management page.",
+  "在 ACC 后台添加 CDE 的 APS Client ID": "Add CDE's APS Client ID in the ACC console",
+  "这一步是 ACC 侧的准入治理：确认 CDE App 已在 Account Admin / Custom Integrations 中添加、启用，并具备对应项目访问权限。配置完成后，文件管理左侧会出现 ACC 共享文件夹，进入后自动同步绑定的 ACC Top Folder。": "This step is ACC-side access governance: confirm the CDE App has been added and enabled under Account Admin / Custom Integrations with access to the relevant projects. Once configured, an ACC shared folder appears on the left of File Management and automatically syncs the bound ACC Top Folder when opened.",
+  "打开官方说明": "Open official guide",
+  "打开 ACC 管理后台": "Open ACC console",
+  "准入状态登记": "Access Status Registration",
+  "未登记": "Not registered",
+  "启用 Custom Integration 准入记录": "Enable Custom Integration access record",
+  "启用后，项目会明确追踪 ACC 后台 Custom Integration 的 Active 状态和访问范围。": "When enabled, the project explicitly tracks the Active status and access scope of the Custom Integration in the ACC console.",
+  "待确认": "Pending",
+  "异常": "Error",
+  "指定项目": "Specific Project",
+  "整个账号": "Entire Account",
+  "项目访问模式": "Project Access Mode",
+  "完整项目目录": "Full Project Directory",
+  "指定文件夹": "Specific Folder",
+  "服务账号邮箱": "Service Account Email",
+  "ACC 管理后台链接": "ACC Console Link",
+  "备注": "Notes",
+  "已使用 SSA / 服务账号": "SSA / service account used",
+  "用于后续从共享 OAuth 过渡到服务账号模式；当前仍保留共享 OAuth 导入链路。": "For later migration from shared OAuth to service-account mode; the shared OAuth import path is still retained for now.",
+  "作为 ACC 导入前置条件": "As a prerequisite for ACC import",
+  "开启后，只有 Custom Integration 状态为 Active 时才允许浏览和导入 ACC 文件。": "When enabled, browsing and importing ACC files is allowed only when the Custom Integration status is Active.",
+  "保存 Custom Integration": "Save Custom Integration",
+  "建议在生产 ACC 项目上线前完成这一步。": "We recommend completing this step before the production ACC project goes live.",
+  "接入关系": "Integration Relationship",
+  "API + ACC 准入": "API + ACC Access",
+  "由 ACC 文件接入页维护 Client ID / Secret / Callback / Scopes。": "Client ID / Secret / Callback / Scopes are maintained on the ACC File Access page.",
+  "由 ACC Account Admin 添加同一个 Client ID，并设置为 Active。同步到 CDE 目录时，会使用当前选中的 CDE 文件夹作为落点。": "The ACC Account Admin adds the same Client ID and sets it to Active. When syncing to the CDE directory, the currently selected CDE folder is used as the destination.",
+  "3. CDE 导入": "3. CDE Import",
+  "共享 OAuth 或 SSA 获得 token 后，CDE 才能调用 Data Management API 拉取文件版本。": "Only after obtaining a token via shared OAuth or SSA can CDE call the Data Management API to pull file versions.",
+  "调用统计": "Call Statistics",
+  "邀请链接": "Invite Link",
+  "项目成员": "Project Members",
+  "ACC 导入": "ACC Import",
+  "从 Autodesk Construction Cloud 导入": "Import from Autodesk Construction Cloud",
+  "浏览已绑定 ACC 项目的目录，选择文件版本后导入到当前 CDE 目录。": "Browse the directory of the bound ACC project, select file versions, and import them into the current CDE directory.",
+  "远端 Folder ID": "Remote Folder ID",
+  "浏览目录": "Browse Directory",
+  "准入配置": "Access Configuration",
+  // attribute-only originals (placeholder / aria-label / title)
+  "回到顶部": "Back to top",
+  "列表设置": "List settings",
+  "姓名或邮箱": "Name or email",
+  "搜索文件名、目录、版本或上传人": "Search file name, folder, version, or uploader",
+  "与 ACC API 凭证一致": "Same as ACC API credentials",
+  "可选：SSA / Service Account": "Optional: SSA / Service Account",
+  "记录 ACC 管理员、权限范围、确认时间等": "Record ACC admin, permission scope, confirmation time, etc.",
+  "关闭 ACC 导入": "Close ACC Import",
+  "留空使用项目绑定的 Top Folder": "Leave blank to use the project-bound Top Folder",
 });
 
 const staticTextNodeOriginals = new WeakMap();
@@ -6943,6 +7114,7 @@ const ACCESS_EN_TEXT = {
   "设置文件夹覆盖权限": "Set Folder Overrides",
   "配置邮件发信通道": "Configure Mail Delivery Channel",
   "配置项目邮件通知": "Configure Project Mail Notifications",
+  "配置 APS 模型通道": "Configure APS Model Channel",
   "配置系统 AI": "Configure System AI",
   "创建新项目": "Create New Project",
   "查看审计日志": "View Audit Logs",
@@ -7535,7 +7707,7 @@ function renderAccessPanel() {
 function modelClashDocuments() {
   return state.documents
     .filter((doc) => isModelWorkspaceDocument(doc) && canPreviewDocument(doc))
-    .sort((left, right) => left.name.localeCompare(right.name, currentSortLocale()));
+    .sort((left, right) => compareBySortLocale(left.name, right.name));
 }
 
 function normalizeModelAppTool(value) {
@@ -7771,7 +7943,7 @@ function renderDrawingRegisterWorkbench() {
     if (leftIndex >= 0 || rightIndex >= 0) {
       return (leftIndex >= 0 ? leftIndex : Number.MAX_SAFE_INTEGER) - (rightIndex >= 0 ? rightIndex : Number.MAX_SAFE_INTEGER);
     }
-    return left.localeCompare(right, currentSortLocale());
+    return compareBySortLocale(left, right);
   });
   const approvalOptions = [
     ["all", text("全部审批状态", "All approval")],
@@ -8517,7 +8689,7 @@ async function editDrawingExpectedList() {
   const currentRows = drawingExpectedRowsForPrompt();
   const value = await promptAction(
     text("粘贴 Excel 行维护本项目应出图清单。保存后将以本次内容覆盖当前清单；列顺序：图纸编号、图纸名称、专业、计划日期、责任人、备注。", "Paste spreadsheet rows to maintain this project's expected drawing list. Saving replaces the current list. Column order: drawing no, name, discipline, planned date, owner, remarks."),
-    currentRows || "P-001-001\t总平面布置图\t总图\t2026-04-30\t设计负责人\t",
+    currentRows || text("P-001-001\t总平面布置图\t总图\t2026-04-30\t设计负责人\t", "P-001-001\tGeneral Layout Plan\tGeneral\t2026-04-30\tLead Designer\t"),
     {
       title: text("维护应出图清单", "Maintain Expected Drawing List"),
       label: text("应出图清单（支持从 Excel 直接粘贴）", "Expected drawings (paste from Excel)"),
@@ -9856,7 +10028,7 @@ function mergeDrawingRedlineTasks(existing = [], incoming = []) {
 function drawingRedlineDocuments() {
   return (Array.isArray(state.drawingRedlineDocuments) ? state.drawingRedlineDocuments : [])
     .filter((doc) => Array.isArray(doc.versionHistory) && doc.versionHistory.length >= 2)
-    .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), currentSortLocale()));
+    .sort((left, right) => compareBySortLocale(left.name, right.name));
 }
 
 function selectedDrawingRedlineDocument() {
@@ -10114,7 +10286,7 @@ function filteredDrawingRedlineRecords() {
       return (rank[left.aiConfidence] ?? 3) - (rank[right.aiConfidence] ?? 3);
     }
     if (sort === "type") {
-      return drawingRedlineTypeLabel(left.diffType).localeCompare(drawingRedlineTypeLabel(right.diffType), currentSortLocale());
+      return compareBySortLocale(drawingRedlineTypeLabel(left.diffType), drawingRedlineTypeLabel(right.diffType));
     }
     return Number(left.page || 1) - Number(right.page || 1) || String(left.id || "").localeCompare(String(right.id || ""));
   });
@@ -10877,7 +11049,9 @@ function handleDrawingRedlineChange(event) {
     return true;
   }
   if (input === "opacity") {
-    state.drawingRedlineOpacity = String(Math.max(0, Math.min(100, Number(target.value || 72) || 72)));
+    const parsedOpacity = Number(target.value);
+    const opacity = Number.isFinite(parsedOpacity) ? parsedOpacity : 72;
+    state.drawingRedlineOpacity = String(Math.max(0, Math.min(100, opacity)));
     renderDrawingAppsPanel();
     return true;
   }
@@ -10954,7 +11128,7 @@ function drawingOcrZoneLabel(zoneType) {
 
 function drawingOcrDisciplineOptions() {
   const disciplines = Array.from(new Set((state.drawingOcrDocuments || []).map((doc) => doc.discipline).filter(Boolean)))
-    .sort((left, right) => left.localeCompare(right, currentSortLocale()));
+    .sort((left, right) => compareBySortLocale(left, right));
   return ["all", ...disciplines];
 }
 
@@ -11350,7 +11524,7 @@ function renderDrawingOcrEmptyState() {
       <strong>${escapeHtml(text("等待检索图纸内容", "Search drawing content"))}</strong>
       <p>${escapeHtml(text("支持单词、短语、AND / OR / NOT、通配符和正则。扫描件会进入 OCR 质量队列，质量较低的页面会在结果中提示。", "Supports words, phrases, AND / OR / NOT, wildcard, and regex. Scanned pages enter the OCR quality queue and low-quality pages are flagged."))}</p>
       <div>
-        ${["DN150", "P-001A AND DN150", "\"High Pressure Pump\"", "高压泵相关图纸"].map((sample) => `<button data-drawing-ocr-action="suggestion" data-query="${escapeHtml(sample)}" type="button">${escapeHtml(sample)}</button>`).join("")}
+        ${["DN150", "P-001A AND DN150", "\"High Pressure Pump\"", text("高压泵相关图纸", "High pressure pump drawings")].map((sample) => `<button data-drawing-ocr-action="suggestion" data-query="${escapeHtml(sample)}" type="button">${escapeHtml(sample)}</button>`).join("")}
       </div>
     </section>
   `;
@@ -11575,8 +11749,8 @@ function drawingSpecSelectableVersions() {
     .map((version) => ({ version, entry: drawingSpecEntryForVersion(version) }))
     .filter((item) => item.entry)
     .sort((left, right) =>
-      String(left.entry.tagNumber || "").localeCompare(String(right.entry.tagNumber || ""), currentSortLocale()) ||
-      String(left.entry.documentType || "").localeCompare(String(right.entry.documentType || ""), currentSortLocale()) ||
+      compareBySortLocale(left.entry.tagNumber, right.entry.tagNumber) ||
+      compareBySortLocale(left.entry.documentType, right.entry.documentType) ||
       Number(right.version.isCurrent) - Number(left.version.isCurrent) ||
       String(right.version.createdAt || "").localeCompare(String(left.version.createdAt || ""))
     );
@@ -11645,7 +11819,7 @@ function drawingSpecAvailableDrawingDocsForEntries(entries = []) {
   return Array.from(docsById.values()).sort((left, right) => {
     const leftNumber = left.drawingMetadata?.drawingNumber || left.name || "";
     const rightNumber = right.drawingMetadata?.drawingNumber || right.name || "";
-    return leftNumber.localeCompare(rightNumber, currentSortLocale());
+    return compareBySortLocale(leftNumber, rightNumber);
   });
 }
 
@@ -11843,7 +12017,7 @@ function renderDrawingSpecUploadForm(presetEntry) {
   ];
   const drawingOptions = state.drawingSpecCheckDocuments
     .filter((doc) => doc.drawingMetadata?.markedAsDrawing)
-    .sort((left, right) => String(left.drawingMetadata?.drawingNumber || left.name || "").localeCompare(String(right.drawingMetadata?.drawingNumber || right.name || ""), currentSortLocale()));
+    .sort((left, right) => compareBySortLocale(left.drawingMetadata?.drawingNumber || left.name, right.drawingMetadata?.drawingNumber || right.name));
   const selectedLinkedIds = new Set(presetEntry?.linkedDrawingIds || []);
   return `
     <form class="drawing-spec-upload-form" data-drawing-spec-upload-form>
@@ -12943,7 +13117,7 @@ function modelHealthDocuments() {
           aps: doc.aps,
           healthGate: null,
         }));
-  return docs.sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), currentSortLocale()));
+  return docs.sort((left, right) => compareBySortLocale(left.name, right.name));
 }
 
 function modelHealthDocumentReady(doc) {
@@ -13563,11 +13737,11 @@ function renderModelHealthTemplateSummary(ruleset) {
       { label: text("模板编号", "Template ID"), value: profile.id || "—" },
       { label: text("项目类型", "Project Type"), value: profile.projectType || "—" },
       { label: text("版本", "Version"), value: profile.version || "—" },
-      { label: text("门控", "Gate"), value: `${modelHealthGateModeLabel(profile.gateMode)} · ${profile.minScore ? `${profile.minScore} 分` : text("无评分阈值", "No score threshold")}` },
-      { label: text("覆盖专业", "Disciplines"), value: `${profile.disciplineCount || 1} 个` },
-      { label: text("构件类型", "Element Types"), value: `${profile.totalElementTypes} 类` },
-      { label: text("必填字段", "Required Fields"), value: `${profile.totalRequiredFields} 项` },
-      { label: text("跨专业规则", "Cross Checks"), value: `${profile.crossDisciplineChecks.length} 项` },
+      { label: text("门控", "Gate"), value: `${modelHealthGateModeLabel(profile.gateMode)} · ${profile.minScore ? text(`${profile.minScore} 分`, `${profile.minScore} pts`) : text("无评分阈值", "No score threshold")}` },
+      { label: text("覆盖专业", "Disciplines"), value: text(`${profile.disciplineCount || 1} 个`, `${profile.disciplineCount || 1}`) },
+      { label: text("构件类型", "Element Types"), value: text(`${profile.totalElementTypes} 类`, `${profile.totalElementTypes}`) },
+      { label: text("必填字段", "Required Fields"), value: text(`${profile.totalRequiredFields} 项`, `${profile.totalRequiredFields}`) },
+      { label: text("跨专业规则", "Cross Checks"), value: text(`${profile.crossDisciplineChecks.length} 项`, `${profile.crossDisciplineChecks.length}`) },
     ];
     elements.modelHealthTemplateSummaryGrid.innerHTML = cards.map((card) => `
       <div class="model-health-template-summary-item">
@@ -13584,11 +13758,11 @@ function renderModelHealthTemplateSummary(ruleset) {
               <strong>${escapeHtml(discipline.name)}</strong>
               <span>${escapeHtml(discipline.software || "—")}</span>
             </div>
-            <p>${escapeHtml(`${discipline.elementCount} 类构件 · ${discipline.requiredCount} 个必填字段${discipline.governanceCount ? ` · ${discipline.governanceCount} 项图层/工作集约束` : ""}`)}</p>
+            <p>${escapeHtml(text(`${discipline.elementCount} 类构件 · ${discipline.requiredCount} 个必填字段${discipline.governanceCount ? ` · ${discipline.governanceCount} 项图层/工作集约束` : ""}`, `${discipline.elementCount} element types · ${discipline.requiredCount} required fields${discipline.governanceCount ? ` · ${discipline.governanceCount} layer/workset rules` : ""}`))}</p>
             <small>${escapeHtml(discipline.examples.join(" / ") || text("暂无构件类型", "No element types"))}</small>
           </article>
         `).join("")
-      : `<article class="model-health-template-discipline-row"><div><strong>${escapeHtml(ruleset.discipline || text("通用模板", "General"))}</strong><span>${escapeHtml(text("规则字段", "Rule fields"))}</span></div><p>${escapeHtml(`${profile.totalElementTypes} 类构件 · ${profile.totalRequiredFields} 个必填字段`)}</p></article>`;
+      : `<article class="model-health-template-discipline-row"><div><strong>${escapeHtml(ruleset.discipline || text("通用模板", "General"))}</strong><span>${escapeHtml(text("规则字段", "Rule fields"))}</span></div><p>${escapeHtml(text(`${profile.totalElementTypes} 类构件 · ${profile.totalRequiredFields} 个必填字段`, `${profile.totalElementTypes} element types · ${profile.totalRequiredFields} required fields`))}</p></article>`;
     elements.modelHealthTemplateDisciplineSummary.innerHTML = `
       <div class="model-health-template-section-title">${escapeHtml(text("专业覆盖", "Discipline Coverage"))}</div>
       ${disciplineRows}
@@ -13717,7 +13891,7 @@ function renderModelHealthTaskList(latestTask) {
             <span>${escapeHtml(task.triggeredByName || text("系统", "System"))}</span>
           </div>
           <span>${escapeHtml(formatDateTime(task.completedAt || task.updatedAt || task.createdAt))}</span>
-          <span>${escapeHtml(`${task.score || 0} 分`)}</span>
+          <span>${escapeHtml(text(`${task.score || 0} 分`, `${task.score || 0} pts`))}</span>
         </div>
       `).join("")
     : `<div class="empty-card">${escapeHtml(text("尚未运行模型健康度检查。", "No model health check has been run yet."))}</div>`;
@@ -13839,8 +14013,8 @@ function renderModelHealthIssueList() {
         const dbIds = Array.isArray(issue.dbIds) ? issue.dbIds : [];
         const referenceDbIds = Array.isArray(issue.referenceDbIds) ? issue.referenceDbIds : [];
         const actualExpected = isAi
-          ? `${issue.confidence ? `置信度 ${issue.confidence}` : text("AI 参考结论", "AI advisory")} ${referenceDbIds.length ? `· 参照 dbId ${referenceDbIds.slice(0, 5).join(", ")}` : ""}`
-          : [issue.actualValue ? `实际：${issue.actualValue}` : "", issue.expectedValue ? `期望：${issue.expectedValue}` : ""].filter(Boolean).join(" · ");
+          ? `${issue.confidence ? text(`置信度 ${issue.confidence}`, `Confidence ${issue.confidence}`) : text("AI 参考结论", "AI advisory")} ${referenceDbIds.length ? text(`· 参照 dbId ${referenceDbIds.slice(0, 5).join(", ")}`, `· ref dbId ${referenceDbIds.slice(0, 5).join(", ")}`) : ""}`
+          : [issue.actualValue ? text(`实际：${issue.actualValue}`, `Actual: ${issue.actualValue}`) : "", issue.expectedValue ? text(`期望：${issue.expectedValue}`, `Expected: ${issue.expectedValue}`) : ""].filter(Boolean).join(" · ");
         return `
           <article class="model-health-issue-row ${isAi ? "ai" : ""}">
             <div class="model-health-issue-copy">
@@ -13889,7 +14063,7 @@ function renderModelHealthWorkbench(activeTool = normalizeModelAppTool(state.mod
       ...(docs.length ? [{ value: "", label: text("请选择健康度检查模型", "Select a model for health check"), disabled: true }] : []),
       ...docs.map((item) => ({
         value: item.id,
-        label: `${item.name}${modelHealthDocumentReady(item) ? "" : " · 未就绪"}`,
+        label: `${item.name}${modelHealthDocumentReady(item) ? "" : text(" · 未就绪", " · not ready")}`,
       })),
     ],
     state.modelHealthDocumentId,
@@ -14057,7 +14231,7 @@ function modelDiffDocuments() {
   const source = serverDocs.length ? serverDocs : quantityTakeoffDocuments();
   return source
     .filter((doc) => isModelWorkspaceDocument(doc) && canPreviewDocument(documentById(doc.id) || doc))
-    .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), currentSortLocale()));
+    .sort((left, right) => compareBySortLocale(left.name, right.name));
 }
 
 function selectedModelDiffDocument() {
@@ -14403,7 +14577,7 @@ function filteredModelDiffRecords() {
     .filter((record) => !state.modelDiffOnlyUnlinked || !record.issueId)
     .sort((left, right) => {
       const order = { unmatched: 0, deleted: 1, added: 2, modified: 3, moved: 4 };
-      return (order[left.diffType] ?? 9) - (order[right.diffType] ?? 9) || String(left.elementType || "").localeCompare(String(right.elementType || ""), currentSortLocale());
+      return (order[left.diffType] ?? 9) - (order[right.diffType] ?? 9) || compareBySortLocale(left.elementType, right.elementType);
     });
 }
 
@@ -14630,7 +14804,7 @@ function renderModelDiffDetailPanel(record) {
     <div class="model-diff-detail-head">
       <span class="status-pill ${modelDiffTypeTone(record.diffType)}">${escapeHtml(modelDiffTypeLabel(record.diffType))}</span>
       <strong>${escapeHtml(record.name || record.elementType)}</strong>
-      <span>${escapeHtml([record.uniqueId ? `ID ${record.uniqueId.slice(0, 12)}` : "", record.matchMethod ? `匹配 ${record.matchMethod}` : "", record.issueId ? `Issue ${record.issueId.slice(0, 8)}` : ""].filter(Boolean).join(" · "))}</span>
+      <span>${escapeHtml([record.uniqueId ? `ID ${record.uniqueId.slice(0, 12)}` : "", record.matchMethod ? text(`匹配 ${record.matchMethod}`, `Match ${record.matchMethod}`) : "", record.issueId ? `Issue ${record.issueId.slice(0, 8)}` : ""].filter(Boolean).join(" · "))}</span>
     </div>
     <div class="model-diff-detail-meta">
       <div><span>对象类型</span><strong>${escapeHtml(record.elementType || "—")}</strong></div>
@@ -14996,7 +15170,7 @@ function constructionScheduleDocuments() {
   const source = serverDocs.length ? serverDocs : state.documents;
   return source
     .filter((doc) => isModelWorkspaceDocument(doc) && canPreviewDocument(documentById(doc.id) || doc))
-    .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), currentSortLocale()));
+    .sort((left, right) => compareBySortLocale(left.name, right.name));
 }
 
 function selectedConstructionScheduleDocument() {
@@ -15538,7 +15712,7 @@ function renderConstructionScheduleWorkbench(activeTool = normalizeModelAppTool(
   if (!docs.length) elements.scheduleDocumentSelect.innerHTML = `<option value="">${escapeHtml(text("暂无模型", "No models"))}</option>`;
   setSelectOptions(
     elements.scheduleVersionSelect,
-    schedules.map((item) => ({ value: item.id, label: `${item.name} · ${item.dataDate || "无数据日期"}${item.isBaseline ? " · 基准" : ""}` })),
+    schedules.map((item) => ({ value: item.id, label: `${item.name} · ${item.dataDate || text("无数据日期", "No data date")}${item.isBaseline ? text(" · 基准", " · Baseline") : ""}` })),
     state.scheduleId,
   );
   if (!schedules.length) elements.scheduleVersionSelect.innerHTML = `<option value="">${escapeHtml(text("暂无计划版本", "No schedules"))}</option>`;
@@ -15646,7 +15820,7 @@ function renderConstructionSchedulePreview() {
       <div><span>项目</span><strong>${escapeHtml(preview.project?.name || "—")}</strong></div>
       <div><span>数据日期</span><strong>${escapeHtml(preview.project?.dataDate || "—")}</strong></div>
       <div><span>Activity</span><strong>${escapeHtml(stats.activityCount || 0)}</strong></div>
-      <div><span>WBS</span><strong>${escapeHtml(`${stats.wbsCount || 0} 节点 / ${stats.wbsLevels || 0} 级`)}</strong></div>
+      <div><span>WBS</span><strong>${escapeHtml(text(`${stats.wbsCount || 0} 节点 / ${stats.wbsLevels || 0} 级`, `${stats.wbsCount || 0} nodes / ${stats.wbsLevels || 0} levels`))}</strong></div>
       <div><span>进行中</span><strong>${escapeHtml(status.inProgress || 0)}</strong></div>
       <div><span>已完成</span><strong>${escapeHtml(status.completed || 0)}</strong></div>
     </div>
@@ -15661,10 +15835,10 @@ function renderConstructionScheduleVersionList(schedules) {
       <div>
         <strong>${escapeHtml(schedule.name)}</strong>
         <span>${escapeHtml([schedule.projectName, schedule.dataDate, formatDateTime(schedule.importedAt)].filter(Boolean).join(" · "))}</span>
-        ${schedule.importSummary?.baseScheduleId ? `<small>${escapeHtml(`较上一版：新增 ${schedule.importSummary.added || 0} / 删除 ${schedule.importSummary.deleted || 0} / 日期调整 ${schedule.importSummary.dateChanged || 0} / 进度变化 ${schedule.importSummary.progressChanged || 0}`)}</small>` : ""}
+        ${schedule.importSummary?.baseScheduleId ? `<small>${escapeHtml(text(`较上一版：新增 ${schedule.importSummary.added || 0} / 删除 ${schedule.importSummary.deleted || 0} / 日期调整 ${schedule.importSummary.dateChanged || 0} / 进度变化 ${schedule.importSummary.progressChanged || 0}`, `vs previous: +${schedule.importSummary.added || 0} added / ${schedule.importSummary.deleted || 0} deleted / ${schedule.importSummary.dateChanged || 0} date changes / ${schedule.importSummary.progressChanged || 0} progress changes`))}</small>` : ""}
       </div>
       <span>${escapeHtml(`${schedule.activityCount || 0} Activity`)}</span>
-      <span>${escapeHtml(`${schedule.mappedActivityCount || 0} 已映射`)}</span>
+      <span>${escapeHtml(text(`${schedule.mappedActivityCount || 0} 已映射`, `${schedule.mappedActivityCount || 0} mapped`))}</span>
     </button>
   `).join("") : `<div class="empty-card">${escapeHtml(text("还没有导入任何施工进度计划。", "No schedule version imported yet."))}</div>`;
 }
@@ -15677,7 +15851,7 @@ function renderConstructionScheduleTimelinePanel() {
     return;
   }
   const stats = timeline.stats || {};
-  elements.scheduleTimelineBadge.textContent = `${timeline.date} · ${timeline.elements?.length || 0} 构件`;
+  elements.scheduleTimelineBadge.textContent = text(`${timeline.date} · ${timeline.elements?.length || 0} 构件`, `${timeline.date} · ${timeline.elements?.length || 0} elements`);
   elements.scheduleTimelinePanel.innerHTML = `
     <div class="construction-schedule-stat-strip">
       ${[
@@ -15749,7 +15923,7 @@ function renderConstructionScheduleGanttPanel() {
       <article class="construction-schedule-gantt-row ${delayed ? "delayed" : ""}">
         <div>
           <strong>${escapeHtml(`${activity.activityId} ${activity.name}`)}</strong>
-          <span>${escapeHtml(`${activity.plannedStart || "—"} → ${activity.plannedFinish || "—"} · ${activity.type || "Task"} · 上报 ${reports.length} 次`)}</span>
+          <span>${escapeHtml(text(`${activity.plannedStart || "—"} → ${activity.plannedFinish || "—"} · ${activity.type || "Task"} · 上报 ${reports.length} 次`, `${activity.plannedStart || "—"} → ${activity.plannedFinish || "—"} · ${activity.type || "Task"} · ${reports.length} reports`))}</span>
         </div>
         <div class="construction-schedule-gantt-track"><i style="width:${pct}%"></i></div>
         <span class="mini-pill">${escapeHtml(`${pct}%`)}</span>
@@ -15761,7 +15935,7 @@ function renderConstructionScheduleGanttPanel() {
 
 function renderConstructionScheduleAlerts() {
   const alerts = Array.isArray(state.scheduleAlerts) ? state.scheduleAlerts : [];
-  elements.scheduleAlertBadge.textContent = `${alerts.filter((item) => item.status === "open").length} 条未处理`;
+  elements.scheduleAlertBadge.textContent = text(`${alerts.filter((item) => item.status === "open").length} 条未处理`, `${alerts.filter((item) => item.status === "open").length} unhandled`);
   elements.scheduleAlertList.innerHTML = alerts.length ? alerts.slice(0, 30).map((alert) => `
     <article class="construction-schedule-alert-row ${alert.severity}">
       <div>
@@ -15769,8 +15943,8 @@ function renderConstructionScheduleAlerts() {
         <strong>${escapeHtml(`${alert.activityCode} ${alert.activityName}`)}</strong>
         <small>${escapeHtml(alert.message || "")}</small>
       </div>
-      <span>${escapeHtml(alert.delayDays ? `${alert.delayDays} 天` : `${alert.percentComplete || 0}%`)}</span>
-      <button class="ghost-button compact-button" data-schedule-action="issue" data-alert-id="${escapeHtml(alert.id)}" type="button" ${alert.issueId ? "disabled" : ""}>${escapeHtml(alert.issueId ? "已关联" : "创建 Issue")}</button>
+      <span>${escapeHtml(alert.delayDays ? text(`${alert.delayDays} 天`, `${alert.delayDays} d`) : `${alert.percentComplete || 0}%`)}</span>
+      <button class="ghost-button compact-button" data-schedule-action="issue" data-alert-id="${escapeHtml(alert.id)}" type="button" ${alert.issueId ? "disabled" : ""}>${escapeHtml(alert.issueId ? text("已关联", "Linked") : text("创建 Issue", "Create Issue"))}</button>
     </article>
   `).join("") : `<div class="empty-card">${escapeHtml(text("加载时间点后，滞后、临期、里程碑风险和长期未上报会显示在这里。", "After loading a date, delayed, due-soon, milestone, and stale-report alerts appear here."))}</div>`;
 }
@@ -15861,7 +16035,7 @@ function renderConstructionWeeklyPanel() {
 function quantityTakeoffDocuments() {
   return state.documents
     .filter((doc) => isModelWorkspaceDocument(doc) && canPreviewDocument(doc))
-    .sort((left, right) => left.name.localeCompare(right.name, currentSortLocale()));
+    .sort((left, right) => compareBySortLocale(left.name, right.name));
 }
 
 function quantityDocumentReady(doc) {
@@ -16528,7 +16702,7 @@ function renderModelClashHotspots(hotspots) {
           <article class="model-clash-hotspot-row">
             <span class="model-clash-hotspot-rank">${index + 1}</span>
             <div>
-              <strong>${escapeHtml(`${hotspot.clashCount || 0} 项碰撞 · ${hotspot.openIssueCount || 0} 未关闭`)}</strong>
+              <strong>${escapeHtml(text(`${hotspot.clashCount || 0} 项碰撞 · ${hotspot.openIssueCount || 0} 未关闭`, `${hotspot.clashCount || 0} clashes · ${hotspot.openIssueCount || 0} open`))}</strong>
               <span>${escapeHtml((hotspot.disciplinePairs || []).join(" / ") || text("未指定专业对", "No discipline pair"))}</span>
               <small>${escapeHtml(`min ${JSON.stringify(bbox.min || [])} / max ${JSON.stringify(bbox.max || [])}`)}</small>
             </div>
@@ -16790,7 +16964,7 @@ function renderQuantityTakeoffPanel(activeTool = normalizeModelAppTool(state.mod
         : []),
       ...docs.map((doc) => ({
       value: doc.id,
-      label: `${doc.name}${quantityDocumentReady(doc) ? "" : " · 未就绪"}`,
+      label: `${doc.name}${quantityDocumentReady(doc) ? "" : text(" · 未就绪", " · not ready")}`,
       })),
     ],
     state.quantityDocumentId,
@@ -16862,7 +17036,7 @@ function renderQuantityTakeoffPanel(activeTool = normalizeModelAppTool(state.mod
             <span>${escapeHtml(task.createdBy || text("系统", "System"))}</span>
           </div>
           <span>${escapeHtml(formatDateTime(task.completedAt || task.updatedAt || task.createdAt))}</span>
-          <span>${escapeHtml(`${task.snapshotCount || 0} 对象 / ${task.summaryCount || 0} 汇总`)}</span>
+          <span>${escapeHtml(text(`${task.snapshotCount || 0} 对象 / ${task.summaryCount || 0} 汇总`, `${task.snapshotCount || 0} objects / ${task.summaryCount || 0} summaries`))}</span>
           <span class="quantity-task-actions">
             <button class="ghost-button compact-button" data-quantity-task-action="cancel" data-quantity-task-id="${escapeHtml(task.id)}" type="button" ${["queued", "running"].includes(task.status) && !state.quantityBusy ? "" : "disabled"}>${escapeHtml(text("取消", "Cancel"))}</button>
             <button class="ghost-button compact-button" data-quantity-task-action="retry" data-quantity-task-id="${escapeHtml(task.id)}" type="button" ${["failed", "canceled"].includes(task.status) && !state.quantityBusy ? "" : "disabled"}>${escapeHtml(text("重跑", "Retry"))}</button>
@@ -22917,37 +23091,42 @@ function renderLibraryFolderRow(folder) {
   `;
 }
 
+// Event delegation: bind ONCE on the stable documentList container so that
+// re-rendering the list (which can be hundreds–thousands of rows) no longer
+// re-attaches a listener per row. Inner controls call stopPropagation in the
+// original per-row binding; here we replicate that by handling each inner
+// control first and returning, so the row-level handlers don't also fire.
 function bindLibraryRowSelection() {
-  Array.from(elements.documentList.querySelectorAll(".file-row[data-id]")).forEach((row) => {
-    row.addEventListener("click", async () => {
-      await selectDocument(row.dataset.id);
-    });
-  });
+  if (libraryListDelegationBound || !elements.documentList) {
+    return;
+  }
+  libraryListDelegationBound = true;
+  const container = elements.documentList;
 
-  Array.from(elements.documentList.querySelectorAll("[data-folder-row]")).forEach((row) => {
-    row.addEventListener("click", () => {
-      openFolder(row.dataset.folderRow, { clearSearch: true });
-    });
-  });
+  container.addEventListener("click", async (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-open-folder-row]")).forEach((button) => {
-    button.addEventListener("click", (event) => {
+    const openFolderBtn = target.closest("[data-open-folder-row]");
+    if (openFolderBtn && container.contains(openFolderBtn)) {
       event.stopPropagation();
-      openFolder(button.dataset.openFolderRow, { clearSearch: true });
-    });
-  });
+      openFolder(openFolderBtn.dataset.openFolderRow, { clearSearch: true });
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-create-child-folder]")).forEach((button) => {
-    button.addEventListener("click", (event) => {
+    const createChildBtn = target.closest("[data-create-child-folder]");
+    if (createChildBtn && container.contains(createChildBtn)) {
       event.stopPropagation();
-      void createChildFolderFromRow(button.dataset.createChildFolder);
-    });
-  });
+      void createChildFolderFromRow(createChildBtn.dataset.createChildFolder);
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-open-workflow-row]")).forEach((button) => {
-    button.addEventListener("click", async (event) => {
+    const workflowBtn = target.closest("[data-open-workflow-row]");
+    if (workflowBtn && container.contains(workflowBtn)) {
       event.stopPropagation();
-      const doc = documentById(button.dataset.openWorkflowRow);
+      const doc = documentById(workflowBtn.dataset.openWorkflowRow);
       if (!doc) {
         return;
       }
@@ -22961,110 +23140,135 @@ function bindLibraryRowSelection() {
         selectedIds: [doc.id],
         workflowName: doc.workflowName || "",
       });
-    });
-  });
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-preview-row]")).forEach((button) => {
-    button.addEventListener("click", async (event) => {
+    const previewBtn = target.closest("[data-preview-row]");
+    if (previewBtn && container.contains(previewBtn)) {
       event.stopPropagation();
-      previewDocumentFromRow(button.dataset.previewRow);
-    });
-  });
+      previewDocumentFromRow(previewBtn.dataset.previewRow);
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-share-row]")).forEach((button) => {
-    button.addEventListener("click", async (event) => {
+    const shareBtn = target.closest("[data-share-row]");
+    if (shareBtn && container.contains(shareBtn)) {
       event.stopPropagation();
-      await quickShareDocument(button.dataset.shareRow);
-    });
-  });
+      await quickShareDocument(shareBtn.dataset.shareRow);
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-download-row]")).forEach((button) => {
-    button.addEventListener("click", async (event) => {
+    const downloadBtn = target.closest("[data-download-row]");
+    if (downloadBtn && container.contains(downloadBtn)) {
       event.stopPropagation();
-      downloadDocumentFromRow(button.dataset.downloadRow);
-    });
-  });
+      downloadDocumentFromRow(downloadBtn.dataset.downloadRow);
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-open-version-manager]")).forEach((button) => {
-    button.addEventListener("click", async (event) => {
+    const versionBtn = target.closest("[data-open-version-manager]");
+    if (versionBtn && container.contains(versionBtn)) {
       event.stopPropagation();
-      await openVersionManagerModal(button.dataset.openVersionManager);
-    });
-  });
+      await openVersionManagerModal(versionBtn.dataset.openVersionManager);
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-open-row-menu]")).forEach((button) => {
-    button.addEventListener("click", (event) => {
+    const rowMenuBtn = target.closest("[data-open-row-menu]");
+    if (rowMenuBtn && container.contains(rowMenuBtn)) {
       event.stopPropagation();
-      const [type, id] = String(button.dataset.openRowMenu || "").split(":");
+      const [type, id] = String(rowMenuBtn.dataset.openRowMenu || "").split(":");
       toggleRowActionMenu(type, id);
-    });
-  });
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-row-menu-action]")).forEach((button) => {
-    button.addEventListener("click", async (event) => {
+    const rowMenuAction = target.closest("[data-row-menu-action]");
+    if (rowMenuAction && container.contains(rowMenuAction)) {
       event.stopPropagation();
-      await handleRowMenuAction(button.dataset.rowMenuAction, button.dataset.rowMenuType, button.dataset.rowMenuId);
-    });
-  });
+      await handleRowMenuAction(rowMenuAction.dataset.rowMenuAction, rowMenuAction.dataset.rowMenuType, rowMenuAction.dataset.rowMenuId);
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-inline-rename-input]")).forEach((input) => {
-    input.addEventListener("click", (event) => {
-      event.stopPropagation();
-    });
-    input.addEventListener("input", () => {
-      state.inlineRenameValue = input.value;
-    });
-    input.addEventListener("keydown", async (event) => {
-      event.stopPropagation();
-      if (event.key === "Enter") {
-        event.preventDefault();
-        await submitInlineRename();
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        cancelInlineRename();
-      }
-    });
-  });
-
-  Array.from(elements.documentList.querySelectorAll("[data-inline-rename-confirm]")).forEach((button) => {
-    button.addEventListener("click", async (event) => {
+    const renameConfirm = target.closest("[data-inline-rename-confirm]");
+    if (renameConfirm && container.contains(renameConfirm)) {
       event.stopPropagation();
       await submitInlineRename();
-    });
-  });
+      return;
+    }
 
-  Array.from(elements.documentList.querySelectorAll("[data-inline-rename-cancel]")).forEach((button) => {
-    button.addEventListener("click", (event) => {
+    const renameCancel = target.closest("[data-inline-rename-cancel]");
+    if (renameCancel && container.contains(renameCancel)) {
       event.stopPropagation();
       cancelInlineRename();
-    });
+      return;
+    }
+
+    // Controls that only swallow the click in the original binding.
+    if (
+      target.closest("[data-inline-rename-input]") ||
+      target.closest("[data-inline-rename-shell]") ||
+      target.closest("[data-batch-select]")
+    ) {
+      event.stopPropagation();
+      return;
+    }
+
+    const folderRow = target.closest("[data-folder-row]");
+    if (folderRow && container.contains(folderRow)) {
+      openFolder(folderRow.dataset.folderRow, { clearSearch: true });
+      return;
+    }
+
+    const fileRow = target.closest(".file-row[data-id]");
+    if (fileRow && container.contains(fileRow)) {
+      await selectDocument(fileRow.dataset.id);
+    }
   });
 
-  Array.from(elements.documentList.querySelectorAll("[data-inline-rename-shell]")).forEach((shell) => {
-    shell.addEventListener("click", (event) => {
-      event.stopPropagation();
-    });
+  container.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const input = target.closest("[data-inline-rename-input]");
+    if (input) {
+      state.inlineRenameValue = input.value;
+    }
   });
 
-  Array.from(elements.documentList.querySelectorAll("[data-batch-select]")).forEach((input) => {
-    input.addEventListener("click", (event) => {
+  container.addEventListener("keydown", async (event) => {
+    const target = event.target;
+    if (!(target instanceof Element) || !target.closest("[data-inline-rename-input]")) {
+      return;
+    }
+    event.stopPropagation();
+    if (event.key === "Enter") {
+      event.preventDefault();
+      await submitInlineRename();
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      cancelInlineRename();
+    }
+  });
+
+  container.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const checkbox = target.closest("[data-batch-select]");
+    if (checkbox) {
       event.stopPropagation();
-    });
-    input.addEventListener("change", (event) => {
-      event.stopPropagation();
-      toggleBatchSelection(input.dataset.batchSelect, input.checked);
-    });
+      toggleBatchSelection(checkbox.dataset.batchSelect, checkbox.checked);
+    }
   });
 }
 
+// The workflow document list renders into the same elements.documentList
+// container, so reuse the delegated binding. The delegated click handler
+// already maps .file-row[data-id] clicks to selectDocument; binding per row
+// here as well would double-fire once the delegation is in place.
 function bindFileRowSelection() {
-  Array.from(elements.documentList.querySelectorAll(".file-row[data-id]")).forEach((row) => {
-    row.addEventListener("click", async () => {
-      await selectDocument(row.dataset.id);
-    });
-  });
+  bindLibraryRowSelection();
 }
 
 function visibleFoldersInCurrentFolder() {
@@ -30255,7 +30459,7 @@ function uploadChunkWithProgress(sessionId, index, chunk, { task, onProgress = n
         return;
       }
       if (xhr.status === 401 && state.authenticated) {
-        applyLoggedOutState("登录已失效，请重新登录。");
+        applyLoggedOutState(text("登录已失效，请重新登录。", "Your session has expired. Please sign in again."));
         render();
       }
       reject(new Error(payload.error || "Request failed"));
@@ -32657,8 +32861,8 @@ function openAttachmentPreview(attachment) {
   rememberOverlayReturnFocus();
   state.overlayFocusedKey = "";
   elements.attachmentPreviewImage.src = attachment.previewUrl || attachment.url || "";
-  elements.attachmentPreviewTitle.textContent = attachment.name || "图片附件";
-  elements.attachmentPreviewCaption.textContent = `${formatBytes(Number(attachment.size || 0))}${attachment.url ? "" : " · 待保存"}`;
+  elements.attachmentPreviewTitle.textContent = attachment.name || text("图片附件", "Image attachment");
+  elements.attachmentPreviewCaption.textContent = `${formatBytes(Number(attachment.size || 0))}${attachment.url ? "" : text(" · 待保存", " · Pending save")}`;
   elements.attachmentPreviewModal.classList.remove("hidden");
   elements.attachmentPreviewModal.setAttribute("aria-hidden", "false");
   applyOverlayChromeState();
@@ -32933,13 +33137,13 @@ async function shareReview() {
 
   const annotation = currentSelectedAnnotation();
   const lines = [
-    `PDF 审阅：${doc.name}`,
-    `流程：${doc.workflowName}`,
-    `文档状态：${statusLabels[doc.status]}`,
-    `批注总数：${doc.annotations.length}`,
+    text(`PDF 审阅：${doc.name}`, `PDF Review: ${doc.name}`),
+    text(`流程：${doc.workflowName}`, `Workflow: ${doc.workflowName}`),
+    text(`文档状态：${statusLabels[doc.status]}`, `Document Status: ${statusLabels[doc.status]}`),
+    text(`批注总数：${doc.annotations.length}`, `Total Annotations: ${doc.annotations.length}`),
   ];
   if (annotation) {
-    lines.push(`当前批注：${annotationDisplayTitle(annotation)} / ${annotationStatusDisplayLabel(annotation.status)}`);
+    lines.push(text(`当前批注：${annotationDisplayTitle(annotation)} / ${annotationStatusDisplayLabel(annotation.status)}`, `Current Annotation: ${annotationDisplayTitle(annotation)} / ${annotationStatusDisplayLabel(annotation.status)}`));
   }
   if (doc.exportUrl) {
     lines.push(`${window.location.origin}${doc.exportUrl}`);
@@ -33971,15 +34175,33 @@ function buildReportSummaryText(doc) {
   const issues = issueStats(doc);
   const reportState = reportStatusMeta(doc, issues);
   const lines = [
-    `审阅归档摘要：${doc.name}`,
-    `流程名称：${doc.workflowName}`,
-    `当前状态：${statusLabels[doc.status]} / ${reportState.summaryLabel}`,
-    `参与角色：发起者 ${doc.initiator}，初审 ${doc.reviewer}，终审 ${doc.approver}`,
-    `问题汇总：总计 ${issues.total} 项，未解决 ${issues.open} 项，进行中 ${issues.inProgress} 项，已解决 ${issues.resolved} 项`,
-    `附件与回复：${issues.attachments} 个附件，${issues.replies} 条回复`,
-    `截止日期：${formatDate(doc.dueDate)}`,
-    `文档备注：${doc.remarks?.trim() || "未填写"}`,
-    `最新导出：${doc.exportUrl ? `${window.location.origin}${doc.exportUrl}` : "未生成"}`,
+    text(`审阅归档摘要：${doc.name}`, `Review Archive Summary: ${doc.name}`),
+    text(`流程名称：${doc.workflowName}`, `Workflow: ${doc.workflowName}`),
+    text(
+      `当前状态：${statusLabels[doc.status]} / ${reportState.summaryLabel}`,
+      `Current Status: ${statusLabels[doc.status]} / ${reportState.summaryLabel}`,
+    ),
+    text(
+      `参与角色：发起者 ${doc.initiator}，初审 ${doc.reviewer}，终审 ${doc.approver}`,
+      `Roles: Initiator ${doc.initiator}, Reviewer ${doc.reviewer}, Approver ${doc.approver}`,
+    ),
+    text(
+      `问题汇总：总计 ${issues.total} 项，未解决 ${issues.open} 项，进行中 ${issues.inProgress} 项，已解决 ${issues.resolved} 项`,
+      `Issues: ${issues.total} total, ${issues.open} open, ${issues.inProgress} in progress, ${issues.resolved} resolved`,
+    ),
+    text(
+      `附件与回复：${issues.attachments} 个附件，${issues.replies} 条回复`,
+      `Attachments & Replies: ${issues.attachments} attachment(s), ${issues.replies} reply(ies)`,
+    ),
+    text(`截止日期：${formatDate(doc.dueDate)}`, `Due Date: ${formatDate(doc.dueDate)}`),
+    text(
+      `文档备注：${doc.remarks?.trim() || "未填写"}`,
+      `Remarks: ${doc.remarks?.trim() || text("未填写", "Not provided")}`,
+    ),
+    text(
+      `最新导出：${doc.exportUrl ? `${window.location.origin}${doc.exportUrl}` : "未生成"}`,
+      `Latest Export: ${doc.exportUrl ? `${window.location.origin}${doc.exportUrl}` : text("未生成", "Not generated")}`,
+    ),
   ];
   return lines.join("\n");
 }
@@ -34873,7 +35095,7 @@ async function fetchJson(url, options = {}) {
 
   const payload = await response.json().catch(() => ({}));
   if (response.status === 401 && state.authenticated) {
-    applyLoggedOutState("登录已失效，请重新登录。");
+    applyLoggedOutState(text("登录已失效，请重新登录。", "Your session has expired. Please sign in again."));
     render();
   }
   if (!response.ok) {
@@ -34938,14 +35160,14 @@ function postJsonWithProgress(url, body, { onProgress = null, task = null } = {}
         return;
       }
       if (xhr.status === 401 && state.authenticated) {
-        applyLoggedOutState("登录已失效，请重新登录。");
+        applyLoggedOutState(text("登录已失效，请重新登录。", "Your session has expired. Please sign in again."));
         render();
       }
 
       reject(new Error(payload.error || "Request failed"));
     };
     xhr.onerror = () => {
-      reject(new Error("网络异常，请稍后重试。"));
+      reject(new Error(text("网络异常，请稍后重试。", "Network error. Please try again later.")));
     };
     xhr.onabort = () => {
       const error = new Error("Upload canceled");
@@ -35002,7 +35224,7 @@ function cloneAttachments(attachments = []) {
   return attachments.map((attachment) => ({
     id: attachment.id || crypto.randomUUID(),
     kind: attachment.kind || "document",
-    name: attachment.name || "未命名附件",
+    name: attachment.name || text("未命名附件", "Untitled attachment"),
     mimeType: attachment.mimeType || inferMimeType(attachment.name || "", attachment.kind || "document"),
     size: Number(attachment.size || 0),
     url: attachment.url || "",
@@ -35040,18 +35262,27 @@ function attachmentKindFromFile(file) {
 function validateAttachmentFile(file, kind) {
   if (kind === "image") {
     if (file.size > MAX_IMAGE_BYTES) {
-      return `图片附件“${file.name}”超过 10 MB，当前配置不允许继续上传。`;
+      return text(
+        `图片附件“${file.name}”超过 10 MB，当前配置不允许继续上传。`,
+        `Image attachment "${file.name}" exceeds 10 MB and cannot be uploaded under the current configuration.`,
+      );
     }
     return null;
   }
 
   if (file.size > MAX_DOCUMENT_BYTES) {
-    return `文件附件“${file.name}”超过 50 MB，当前配置不允许继续上传。`;
+    return text(
+      `文件附件“${file.name}”超过 50 MB，当前配置不允许继续上传。`,
+      `File attachment "${file.name}" exceeds 50 MB and cannot be uploaded under the current configuration.`,
+    );
   }
 
   const extension = fileExtension(file.name || "");
   if (!ALLOWED_DOCUMENT_EXTENSIONS.has(extension)) {
-    return `文件附件“${file.name}”格式暂不支持，请使用 PDF / DOCX / XLSX / DWG / TXT / ZIP 等格式。`;
+    return text(
+      `文件附件“${file.name}”格式暂不支持，请使用 PDF / DOCX / XLSX / DWG / TXT / ZIP 等格式。`,
+      `File attachment "${file.name}" has an unsupported format. Please use PDF / DOCX / XLSX / DWG / TXT / ZIP, etc.`,
+    );
   }
 
   return null;
@@ -35061,7 +35292,7 @@ function inferredAttachmentName(file, kind) {
   if (file.name) {
     return file.name;
   }
-  return kind === "image" ? "未命名图片" : "未命名附件";
+  return kind === "image" ? text("未命名图片", "Untitled image") : text("未命名附件", "Untitled attachment");
 }
 
 function fileExtension(name) {

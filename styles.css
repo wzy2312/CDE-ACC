@@ -1,36 +1,9 @@
+/* Component tokens (cursors, z-index, table grid) not redefined by the active theme below. */
 :root {
-  --bg: #eef3f9;
-  --bg-soft: #f7fafd;
-  --surface: #ffffff;
-  --surface-soft: #f5f8fc;
-  --surface-ink: #111827;
-  --line: #dde7f2;
-  --line-strong: #cbd8e8;
-  --text: #19314f;
-  --text-dim: #60728a;
-  --muted: #8394aa;
-  --blue: #1d6fe8;
-  --blue-deep: #1559bd;
-  --blue-soft: rgba(29, 111, 232, 0.1);
-  --green: #178765;
-  --amber: #d9871d;
-  --red: #d94a42;
-  --ink: #0b1220;
-  --ink-strong: #07101e;
-  --focus-ring: 0 0 0 4px rgba(29, 111, 232, 0.14);
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 26px;
-  --shadow: 0 20px 50px rgba(20, 43, 78, 0.09);
-  --shadow-soft: 0 10px 28px rgba(20, 43, 78, 0.06);
-  --shadow-tiny: 0 6px 16px rgba(20, 43, 78, 0.05);
   --z-row-menu: 30;
   --z-sticky: 35;
   --z-modal: 80;
   --z-modal-elevated: 90;
-  --modal-backdrop: rgba(8, 14, 24, 0.46);
-  --modal-shadow: 0 28px 68px rgba(10, 24, 44, 0.22);
   --library-table-columns: minmax(0, 3.18fr) 94px 108px 74px 68px 84px 84px 88px 84px;
   --cursor-review-circle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2316345e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 3.5v4M12 16.5v4M3.5 12h4M16.5 12h4'/%3E%3C/svg%3E") 12 12, crosshair;
   --cursor-review-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2316345e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='7' width='12' height='10' rx='2'/%3E%3Cpath d='M12 4v3M4 12h3'/%3E%3C/svg%3E") 12 12, crosshair;
@@ -44,56 +17,6 @@
    DOM and behavior, but normalizes surfaces, typography, navigation, buttons,
    tables, and the drawing register workbench.
    -------------------------------------------------------------------------- */
-
-:root {
-  --bg: #f8f6ef;
-  --bg-soft: #fbfaf5;
-  --surface: #fffefa;
-  --surface-soft: #f1eee6;
-  --surface-ink: #2d2923;
-  --line: #ddd8cd;
-  --line-strong: #c8c1b4;
-  --text: #2d2923;
-  --text-dim: #6f685d;
-  --muted: #928b80;
-  --blue: #b85f43;
-  --blue-deep: #8f402b;
-  --blue-soft: rgba(184, 95, 67, 0.1);
-  --green: #547864;
-  --amber: #a16f34;
-  --red: #a94738;
-  --ink: #24211d;
-  --ink-strong: #1b1814;
-  --focus-ring: 0 0 0 3px rgba(184, 95, 67, 0.14);
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
-  --radius-xl: 6px;
-  --shadow: none;
-  --shadow-soft: none;
-  --shadow-tiny: none;
-  --ds-bg: #f8f6ef;
-  --ds-paper: #fffefa;
-  --ds-panel: #f1eee6;
-  --ds-hairline: #ddd8cd;
-  --ds-hairline-soft: #ebe6dc;
-  --ds-ink: #24211d;
-  --ds-ink-2: #5d564d;
-  --ds-ink-3: #80786d;
-  --ds-ink-4: #aba498;
-  --ds-accent: #b85f43;
-  --ds-accent-ink: #8f402b;
-  --ds-accent-bg: #f6e9e2;
-  --ds-ok-ink: #4e745f;
-  --ds-ok-bg: #edf4ee;
-  --ds-warn-ink: #8a6033;
-  --ds-warn-bg: #f5efe4;
-  --ds-red-ink: #9b4034;
-  --ds-red-bg: #f7e8e5;
-  --ds-sans: "Inter", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
-  --ds-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, ui-monospace, monospace;
-  --ds-serif: "Noto Serif SC", "Songti SC", Georgia, serif;
-}
 
 html,
 body {
@@ -235,10 +158,10 @@ body {
   font-size: 13px;
   font-weight: 560;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease,
-    transform 160ms ease;
+    background 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 
 .nav-item:hover {
@@ -1848,10 +1771,10 @@ textarea:focus-visible,
   font-size: 14px;
   font-weight: 650;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    color 160ms ease;
+    background 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    color 160ms var(--ease-out);
 }
 
 .auth-tab:hover {
@@ -2068,9 +1991,9 @@ textarea:focus-visible,
   text-align: left;
   box-shadow: var(--shadow-soft);
   transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 
 .sidebar-user-trigger:hover {
@@ -2607,10 +2530,10 @@ textarea:focus-visible,
   display: grid;
   gap: 10px;
   transition:
-    transform 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease;
+    transform 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    background 160ms var(--ease-out);
 }
 
 .notification-item:hover {
@@ -2712,11 +2635,11 @@ textarea:focus-visible,
   font-weight: 700;
   letter-spacing: -0.005em;
   transition:
-    transform 160ms ease,
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    color 160ms ease;
+    transform 160ms var(--ease-out),
+    background 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    color 160ms var(--ease-out);
 }
 
 .role-button,
@@ -3078,10 +3001,10 @@ textarea:focus-visible,
   font-size: 13px;
   font-weight: 650;
   transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease,
-    box-shadow 160ms ease;
+    border-color 160ms var(--ease-out),
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
 .access-subnav-item:hover {
@@ -3909,10 +3832,10 @@ textarea:focus-visible,
   font-size: 13px;
   font-weight: 650;
   transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease,
-    box-shadow 160ms ease;
+    border-color 160ms var(--ease-out),
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
 .profile-center-tab:hover {
@@ -3969,10 +3892,10 @@ textarea:focus-visible,
   font-size: 12px;
   font-weight: 700;
   transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease,
-    box-shadow 160ms ease;
+    border-color 160ms var(--ease-out),
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
 .workflow-scope-tab:hover {
@@ -4009,10 +3932,10 @@ textarea:focus-visible,
   font-size: 12px;
   font-weight: 700;
   transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease,
-    box-shadow 160ms ease;
+    border-color 160ms var(--ease-out),
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
 .workflow-filter-chip:hover {
@@ -4999,8 +4922,8 @@ textarea:focus-visible,
   white-space: nowrap;
   transform: translate3d(6px, 0, 0);
   transition:
-    opacity 180ms ease,
-    transform 180ms ease;
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
 }
 
 .row-action-button {
@@ -5017,11 +4940,11 @@ textarea:focus-visible,
   display: grid;
   place-items: center;
   transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease,
-    transform 160ms ease,
-    box-shadow 160ms ease;
+    border-color 160ms var(--ease-out),
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    transform 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
 .row-action-button:hover {
@@ -5294,8 +5217,8 @@ textarea:focus-visible,
   position: relative;
   z-index: 0;
   transition:
-    background 160ms ease,
-    box-shadow 160ms ease;
+    background 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
 .workflow-board-row:first-child {
@@ -5473,9 +5396,9 @@ textarea:focus-visible,
   font-size: 12px;
   font-weight: 700;
   transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease;
+    border-color 160ms var(--ease-out),
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out);
 }
 
 .workflow-detail-tab:hover {
@@ -5893,7 +5816,7 @@ textarea:focus-visible,
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: transform 160ms ease;
+  transition: transform 160ms var(--ease-out);
 }
 
 .workflow-picker-toggle.open svg {
@@ -6225,7 +6148,7 @@ textarea:focus-visible,
     #f7fdfa;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
   color: #153f32;
-  animation: workflowTemplateSaveReveal 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: workflowTemplateSaveReveal 220ms var(--ease-emphasized);
 }
 
 .workflow-template-save-feedback.hidden {
@@ -6573,7 +6496,7 @@ textarea:focus-visible,
   font-size: 18px;
   line-height: 1;
   transform: rotate(90deg);
-  transition: transform 160ms ease;
+  transition: transform 160ms var(--ease-out);
 }
 
 .workflow-template-group-toggle.open::after {
@@ -6737,7 +6660,7 @@ textarea:focus-visible,
   clip-path: inset(50%);
   overflow: hidden;
   white-space: nowrap;
-  transition: opacity 160ms ease;
+  transition: opacity 160ms var(--ease-out);
   z-index: 2;
 }
 
@@ -6889,8 +6812,8 @@ textarea:focus-visible,
   display: grid;
   gap: 14px;
   transition:
-    border-color 160ms ease,
-    background 160ms ease;
+    border-color 160ms var(--ease-out),
+    background 160ms var(--ease-out);
 }
 
 .workflow-template-step-editor.is-confirmed {
@@ -7832,7 +7755,7 @@ textarea:focus-visible,
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+  transition: transform 0.18s var(--ease-out), border-color 0.18s var(--ease-out), background 0.18s var(--ease-out), color 0.18s var(--ease-out);
 }
 
 .comment-card-action:hover:not(:disabled) {
@@ -8254,11 +8177,11 @@ textarea:focus-visible,
   box-shadow: var(--review-toolbar-button-shadow);
   backdrop-filter: blur(14px) saturate(138%);
   transition:
-    background 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease,
-    box-shadow 0.16s ease,
-    transform 0.16s ease;
+    background 0.16s var(--ease-out),
+    border-color 0.16s var(--ease-out),
+    color 0.16s var(--ease-out),
+    box-shadow 0.16s var(--ease-out),
+    transform 0.16s var(--ease-out);
 }
 
 .toolbar-action,
@@ -8371,11 +8294,11 @@ textarea:focus-visible,
   box-shadow: var(--review-toolbar-button-shadow);
   backdrop-filter: blur(14px) saturate(138%);
   transition:
-    background 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease,
-    box-shadow 0.16s ease,
-    transform 0.16s ease;
+    background 0.16s var(--ease-out),
+    border-color 0.16s var(--ease-out),
+    color 0.16s var(--ease-out),
+    box-shadow 0.16s var(--ease-out),
+    transform 0.16s var(--ease-out);
 }
 
 .color-swatch-button.active {
@@ -8757,7 +8680,7 @@ textarea:focus-visible,
   display: block;
   height: 100%;
   background: linear-gradient(90deg, var(--ds-accent), #d69a77);
-  transition: width 180ms ease;
+  transition: width 180ms var(--ease-out);
 }
 
 .annotation-layer {
@@ -9011,11 +8934,11 @@ textarea:focus-visible,
     0 8px 18px rgba(17, 37, 70, 0.08);
   backdrop-filter: blur(14px) saturate(138%);
   transition:
-    transform 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease,
-    background 0.16s ease,
-    box-shadow 0.16s ease;
+    transform 0.16s var(--ease-out),
+    border-color 0.16s var(--ease-out),
+    color 0.16s var(--ease-out),
+    background 0.16s var(--ease-out),
+    box-shadow 0.16s var(--ease-out);
 }
 
 .annotation-attachment-badge:hover {
@@ -9074,7 +8997,7 @@ textarea:focus-visible,
     0 8px 18px rgba(17, 37, 70, 0.08);
   backdrop-filter: blur(14px) saturate(138%);
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+  transition: transform 0.16s var(--ease-out), box-shadow 0.16s var(--ease-out), border-color 0.16s var(--ease-out), color 0.16s var(--ease-out), background 0.16s var(--ease-out);
 }
 
 .annotation-action-button:hover:not(:disabled) {
@@ -9351,7 +9274,7 @@ textarea:focus-visible,
 }
 
 .panel-focus-flash {
-  animation: panelFocusFlash 1.05s ease;
+  animation: panelFocusFlash 1.05s var(--ease-out);
 }
 
 @keyframes panelFocusFlash {
@@ -9722,8 +9645,8 @@ button.attachment-link.button-link:disabled {
   max-width: min(356px, calc(100vw - 32px));
   transform-origin: left bottom;
   transition:
-    opacity 160ms ease,
-    transform 160ms ease;
+    opacity 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 
 .upload-progress-dock.is-collapsed {
@@ -9804,10 +9727,10 @@ button.attachment-link.button-link:disabled {
   display: inline-grid;
   place-items: center;
   transition:
-    border-color 160ms ease,
-    color 160ms ease,
-    transform 160ms ease,
-    background 160ms ease;
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    transform 160ms var(--ease-out),
+    background 160ms var(--ease-out);
 }
 
 .upload-progress-action:hover:not(:disabled) {
@@ -9926,7 +9849,7 @@ button.attachment-link.button-link:disabled {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #1d72e0, #40a8ff);
-  transition: width 160ms ease;
+  transition: width 160ms var(--ease-out);
 }
 
 .upload-task-foot {
@@ -9963,9 +9886,9 @@ button.attachment-link.button-link:disabled {
   text-align: left;
   color: var(--text);
   transition:
-    transform 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease;
+    transform 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
 .upload-progress-collapsed:hover {
@@ -11036,10 +10959,10 @@ body.review-immersive {
 .file-row,
 .workflow-board-row {
   transition:
-    transform 160ms ease,
-    background 160ms ease,
-    box-shadow 160ms ease,
-    border-color 160ms ease;
+    transform 160ms var(--ease-out),
+    background 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    border-color 160ms var(--ease-out);
 }
 
 .file-row:hover,
@@ -11557,7 +11480,7 @@ body.review-immersive {
 }
 
 .upload-task-card {
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out), border-color 160ms var(--ease-out);
 }
 
 .upload-task-card:hover {
@@ -12901,7 +12824,7 @@ button[aria-busy="true"]::after {
 }
 
 .action-folder-picker-row {
-  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out), transform 160ms var(--ease-out);
 }
 
 .action-folder-picker-row:hover {
@@ -13943,7 +13866,7 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
   font-size: 12px;
   font-weight: 850;
   list-style: none;
-  transition: background 160ms ease, color 160ms ease;
+  transition: background 160ms var(--ease-out), color 160ms var(--ease-out);
 }
 
 .evidence-disclosure summary::-webkit-details-marker {
@@ -14222,7 +14145,7 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
   color: var(--ink);
   text-align: left;
   cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition: transform 0.18s var(--ease-out), border-color 0.18s var(--ease-out), background 0.18s var(--ease-out);
 }
 
 .model-app-model-row:hover {
@@ -14321,7 +14244,7 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
     radial-gradient(circle at 18% 16%, rgba(35, 125, 240, 0.14), transparent 28%);
   color: var(--ink);
   cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition: transform 0.18s var(--ease-out), border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out), background 0.18s var(--ease-out);
 }
 
 .model-app-entry-card:disabled,
@@ -15458,10 +15381,10 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
   text-align: left;
   cursor: pointer;
   transition:
-    transform 160ms ease,
-    border-color 160ms ease,
-    background 160ms ease,
-    box-shadow 160ms ease;
+    transform 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    background 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
 .drawing-redline-doc-row {
@@ -15706,9 +15629,9 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
   cursor: pointer;
   opacity: calc(0.36 + var(--redline-opacity, 0.72) * 0.64);
   transition:
-    transform 140ms ease,
-    box-shadow 140ms ease,
-    opacity 140ms ease;
+    transform 140ms var(--ease-out),
+    box-shadow 140ms var(--ease-out),
+    opacity 140ms var(--ease-out);
 }
 
 .drawing-redline-diff-block.added {
@@ -16909,9 +16832,9 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
 .drawing-register-table tbody tr:not(.drawing-register-version-detail) td {
   background: rgba(255, 255, 255, 0.74);
   transition:
-    background 140ms ease,
-    box-shadow 140ms ease,
-    color 140ms ease;
+    background 140ms var(--ease-out),
+    box-shadow 140ms var(--ease-out),
+    color 140ms var(--ease-out);
 }
 
 .drawing-register-table tbody tr:not(.drawing-register-version-detail):hover td {
@@ -18420,10 +18343,10 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
   text-decoration: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
   transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease,
-    background 160ms ease;
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    transform 160ms var(--ease-out),
+    background 160ms var(--ease-out);
 }
 
 .drawing-register-table .drawing-register-code-button:hover {
@@ -20663,56 +20586,6 @@ html[lang="en-US"] .workflow-cell:nth-child(8) .signal-pill {
    older blue, rounded, shadow-heavy component rules.
    -------------------------------------------------------------------------- */
 
-:root {
-  --bg: #f8f6ef;
-  --bg-soft: #fbfaf5;
-  --surface: #fffefa;
-  --surface-soft: #f1eee6;
-  --surface-ink: #2d2923;
-  --line: #ddd8cd;
-  --line-strong: #c8c1b4;
-  --text: #2d2923;
-  --text-dim: #6f685d;
-  --muted: #928b80;
-  --blue: #b85f43;
-  --blue-deep: #8f402b;
-  --blue-soft: rgba(184, 95, 67, 0.1);
-  --green: #547864;
-  --amber: #a16f34;
-  --red: #a94738;
-  --ink: #24211d;
-  --ink-strong: #1b1814;
-  --focus-ring: 0 0 0 3px rgba(184, 95, 67, 0.14);
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
-  --radius-xl: 6px;
-  --shadow: none;
-  --shadow-soft: none;
-  --shadow-tiny: none;
-  --ds-bg: #f8f6ef;
-  --ds-paper: #fffefa;
-  --ds-panel: #f1eee6;
-  --ds-hairline: #ddd8cd;
-  --ds-hairline-soft: #ebe6dc;
-  --ds-ink: #24211d;
-  --ds-ink-2: #5d564d;
-  --ds-ink-3: #80786d;
-  --ds-ink-4: #aba498;
-  --ds-accent: #b85f43;
-  --ds-accent-ink: #8f402b;
-  --ds-accent-bg: #f6e9e2;
-  --ds-ok-ink: #4e745f;
-  --ds-ok-bg: #edf4ee;
-  --ds-warn-ink: #8a6033;
-  --ds-warn-bg: #f5efe4;
-  --ds-red-ink: #9b4034;
-  --ds-red-bg: #f7e8e5;
-  --ds-sans: "Inter", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
-  --ds-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, ui-monospace, monospace;
-  --ds-serif: "Noto Serif SC", "Songti SC", Georgia, serif;
-}
-
 html,
 body {
   color: var(--ds-ink);
@@ -22594,6 +22467,10 @@ textarea {
   --ds-sans: "Inter", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
   --ds-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, ui-monospace, monospace;
   --ds-serif: "Noto Serif SC", "Songti SC", Georgia, serif;
+  --ds-red-bg: #f7e8e5;
+  --ds-red-ink: #9b4034;
+  --ease-out: cubic-bezier(0.25, 0.8, 0.35, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html,
@@ -25025,7 +24902,7 @@ input[type="radio"] {
 
 .drawing-apps-panel.is-app-page [data-drawing-app-view]:not(.hidden),
 .model-apps-panel.is-app-page [data-model-app-view]:not(.hidden) {
-  animation: appPageEnter 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: appPageEnter 0.24s var(--ease-emphasized) both;
 }
 
 .drawing-apps-panel.is-app-page .model-app-page-head,
@@ -29846,7 +29723,7 @@ button,
   opacity: 0;
   pointer-events: none;
   transform: translateY(8px);
-  transition: opacity 160ms ease, transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), border-color 160ms var(--ease-out), background-color 160ms var(--ease-out);
   z-index: 68;
 }
 

@@ -7,12 +7,10 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from pdf_font_utils import register_pdf_font
 
-FONT_PATH = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
 FONT_NAME = "ScheduleArialUnicode"
 PAGE_WIDTH, PAGE_HEIGHT = A4
 MARGIN_X = 46
@@ -290,11 +288,7 @@ def export_workbook(output_path, store, schedule):
 
 
 def register_font():
-    try:
-        pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
-        return FONT_NAME
-    except Exception:
-        return "Helvetica"
+    return register_pdf_font(FONT_NAME)
 
 
 def draw_text_lines(pdf, cursor_y, title, lines):

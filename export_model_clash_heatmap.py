@@ -8,11 +8,10 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from pdf_font_utils import register_pdf_font
 
-FONT_PATH = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
 FONT_NAME = "ClashHeatmapArialUnicode"
 PAGE_WIDTH, PAGE_HEIGHT = A4
 MARGIN_X = 46
@@ -144,14 +143,14 @@ def write_header(sheet, row_index, headers):
 
 
 def export_hotspots_pdf(output_path, heatmap, run, hotspots):
-    register_font()
+    font_name = register_font()
     pdf = canvas.Canvas(output_path, pagesize=A4)
     pdf.setTitle("Clash Heatmap Hotspot Report")
     cursor_y = TOP_Y
-    pdf.setFont(FONT_NAME, 18)
+    pdf.setFont(font_name, 18)
     pdf.drawString(MARGIN_X, cursor_y, "碰撞热力图热点区域报告")
     cursor_y -= 28
-    pdf.setFont(FONT_NAME, 10.5)
+    pdf.setFont(font_name, 10.5)
     lines = [
         f"热力图 ID：{heatmap.get('id')}",
         f"检测任务：{safe_text(run.get('id'), safe_text(heatmap.get('clashTaskId')))}",
@@ -161,10 +160,10 @@ def export_hotspots_pdf(output_path, heatmap, run, hotspots):
     ]
     cursor_y = draw_lines(pdf, cursor_y, lines)
     cursor_y -= 8
-    pdf.setFont(FONT_NAME, 13)
+    pdf.setFont(font_name, 13)
     pdf.drawString(MARGIN_X, cursor_y, "Top 热点区域")
     cursor_y -= 20
-    pdf.setFont(FONT_NAME, 10.5)
+    pdf.setFont(font_name, 10.5)
     for index, hotspot in enumerate(sorted(hotspots, key=lambda item: item.get("clashCount", 0), reverse=True), start=1):
         bbox = hotspot.get("bbox") or {}
         lines = [
@@ -177,21 +176,21 @@ def export_hotspots_pdf(output_path, heatmap, run, hotspots):
         if cursor_y < 80:
             pdf.showPage()
             cursor_y = TOP_Y
-            pdf.setFont(FONT_NAME, 10.5)
+            pdf.setFont(font_name, 10.5)
     pdf.save()
 
 
 def register_font():
-    if FONT_NAME not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
+    return register_pdf_font(FONT_NAME)
 
 
 def draw_lines(pdf, cursor_y, lines):
+    font_name = register_font()
     for line in lines:
         if cursor_y < 60:
             pdf.showPage()
             cursor_y = TOP_Y
-            pdf.setFont(FONT_NAME, 10.5)
+            pdf.setFont(font_name, 10.5)
         pdf.drawString(MARGIN_X, cursor_y, safe_text(line, "—")[:110])
         cursor_y -= LINE_HEIGHT
     return cursor_y
@@ -223,7 +222,7 @@ def export_snapshot_svg(output_path, heatmap, cells, hotspots):
         h = max(6, grid / span_y * plot_h)
         density = int(cell.get("density", 0) or 0)
         opacity = 0.28 + 0.5 * min(1, density / max_density)
-        color = safe_text(cell.get("color"), "#237df0")
+        color = escape(safe_text(cell.get("color"), "#237df0"))
         rects.append(f'<rect x="{x:.2f}" y="{y:.2f}" width="{w:.2f}" height="{h:.2f}" fill="{color}" opacity="{opacity:.2f}" stroke="#ffffff" stroke-width="1"/>')
     hotspot_labels = []
     for index, hotspot in enumerate(hotspots[:5], start=1):

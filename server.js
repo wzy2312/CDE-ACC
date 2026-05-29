@@ -2,6 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const zlib = require("zlib");
 const crypto = require("crypto");
 const { URL } = require("url");
 const { spawn } = require("child_process");
@@ -148,6 +149,8 @@ let storeHydrationMutated = false;
 let failNextPersistForTest = false;
 let storeTransactionDepth = 0;
 let storeTransactionDirty = false;
+let pendingDeferredStoreWrite = false;
+let deferredStoreWriteScheduled = false;
 let workflowReportExportFailureInjected = false;
 const APS_DRAWING_DOCUMENT_EXTENSIONS = new Set([".dwg", ".dxf", ".dgn", ".idw"]);
 const APS_MODEL_DOCUMENT_EXTENSIONS = new Set([".nwd", ".nwc", ".rvt", ".ifc"]);
@@ -3198,67 +3201,67 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname.startsWith("/vendor/pdfjs/")) {
       const fileName = path.basename(pathname);
-      serveFile(res, path.join(PDFJS_DIR, fileName));
+      serveFile(res, path.join(PDFJS_DIR, fileName), req);
       return;
     }
 
     if (pathname === "/" || pathname === "/index.html") {
-      serveFile(res, path.join(ROOT, "index.html"));
+      serveFile(res, path.join(ROOT, "index.html"), req);
       return;
     }
 
     if (pathname === "/invite.html") {
-      serveFile(res, path.join(ROOT, "invite.html"));
+      serveFile(res, path.join(ROOT, "invite.html"), req);
       return;
     }
 
     if (pathname === "/onlyoffice.html") {
-      serveFile(res, path.join(ROOT, "onlyoffice.html"));
+      serveFile(res, path.join(ROOT, "onlyoffice.html"), req);
       return;
     }
 
     if (pathname === "/apsviewer.html") {
-      serveFile(res, path.join(ROOT, "apsviewer.html"));
+      serveFile(res, path.join(ROOT, "apsviewer.html"), req);
       return;
     }
 
     if (pathname === "/drawingviewer.html") {
-      serveFile(res, path.join(ROOT, "drawingviewer.html"));
+      serveFile(res, path.join(ROOT, "drawingviewer.html"), req);
       return;
     }
 
     if (pathname === "/pdf.html") {
-      serveFile(res, path.join(ROOT, "pdf.html"));
+      serveFile(res, path.join(ROOT, "pdf.html"), req);
       return;
     }
 
     if (pathname === "/app.js") {
-      serveFile(res, path.join(ROOT, "app.js"));
+      serveFile(res, path.join(ROOT, "app.js"), req);
       return;
     }
 
     if (pathname === "/auth-bootstrap.js") {
-      serveFile(res, path.join(ROOT, "auth-bootstrap.js"));
+      serveFile(res, path.join(ROOT, "auth-bootstrap.js"), req);
       return;
     }
 
     if (pathname === "/apsviewer.js") {
-      serveFile(res, path.join(ROOT, "apsviewer.js"));
+      serveFile(res, path.join(ROOT, "apsviewer.js"), req);
       return;
     }
 
     if (pathname === "/pdf-runtime.js") {
-      serveFile(res, path.join(ROOT, "pdf-runtime.js"));
+      serveFile(res, path.join(ROOT, "pdf-runtime.js"), req);
       return;
     }
 
     if (pathname === "/styles.css") {
-      serveFile(res, path.join(ROOT, "styles.css"));
+      serveFile(res, path.join(ROOT, "styles.css"), req);
       return;
     }
 
     if (pathname === "/styles-critical.css") {
-      serveFile(res, path.join(ROOT, "styles-critical.css"));
+      serveFile(res, path.join(ROOT, "styles-critical.css"), req);
       return;
     }
 
@@ -4726,6 +4729,7 @@ function writeStoreNow() {
     failNextPersistForTest = false;
     throw new Error("Forced persist failure for transaction smoke test");
   }
+  pendingDeferredStoreWrite = false;
   storeRepository.write({
     projects,
     documents,
@@ -4793,13 +4797,70 @@ function writeStoreNow() {
   });
 }
 
+function scheduleDeferredStoreWrite() {
+  pendingDeferredStoreWrite = true;
+  if (deferredStoreWriteScheduled) {
+    return;
+  }
+  deferredStoreWriteScheduled = true;
+  setImmediate(() => {
+    deferredStoreWriteScheduled = false;
+    if (!pendingDeferredStoreWrite) {
+      return;
+    }
+    try {
+      writeStoreNow();
+    } catch (error) {
+      console.error("Deferred store persistence failed:", error);
+    }
+  });
+}
+
+function flushDeferredStoreWrites() {
+  if (!pendingDeferredStoreWrite) {
+    return;
+  }
+  writeStoreNow();
+}
+
+const localeCollatorCache = new Map();
+function localeCollator(locale) {
+  const key = String(locale || "");
+  let collator = localeCollatorCache.get(key);
+  if (!collator) {
+    collator = new Intl.Collator(key || undefined);
+    localeCollatorCache.set(key, collator);
+  }
+  return collator;
+}
+
 function persistStore() {
   if (storeTransactionDepth > 0) {
     storeTransactionDirty = true;
     return;
   }
-  writeStoreNow();
+  scheduleDeferredStoreWrite();
 }
+
+process.on("exit", () => {
+  try {
+    flushDeferredStoreWrites();
+  } catch (error) {
+    console.error("Store flush on exit failed:", error);
+  }
+});
+
+["SIGINT", "SIGTERM"].forEach((signal) => {
+  process.once(signal, () => {
+    try {
+      flushDeferredStoreWrites();
+    } catch (error) {
+      console.error("Store flush on signal failed:", error);
+    } finally {
+      process.exit(0);
+    }
+  });
+});
 
 function publicDocuments() {
   return [...documents]
@@ -4809,7 +4870,7 @@ function publicDocuments() {
 
 function publicFolders() {
   return [...folders]
-    .sort((left, right) => left.name.localeCompare(right.name, "zh-CN"))
+    .sort((left, right) => localeCollator("zh-CN").compare(left.name, right.name))
     .map((folder) => toPublicFolder(folder, SYSTEM_USER_CONTEXT));
 }
 
@@ -7057,7 +7118,7 @@ function constructionActivitiesForSchedule(scheduleId) {
   const id = safeText(scheduleId, "");
   return constructionScheduleActivities
     .filter((activity) => activity.scheduleId === id && !activity.deletedAt)
-    .sort((left, right) => safeText(left.activityId, "").localeCompare(safeText(right.activityId, ""), "zh-CN"));
+    .sort((left, right) => localeCollator("zh-CN").compare(safeText(left.activityId, ""), safeText(right.activityId, "")));
 }
 
 function constructionWbsForSchedule(scheduleId) {
@@ -8885,7 +8946,7 @@ function modelHealthRulesetsForProject(projectId) {
   const normalizedProjectId = safeText(projectId, DEFAULT_PROJECT_ID);
   return modelHealthRulesets
     .filter((ruleset) => safeText(ruleset.projectId, DEFAULT_PROJECT_ID) === normalizedProjectId)
-    .sort((left, right) => safeText(left.name, "").localeCompare(safeText(right.name, ""), "zh-CN"));
+    .sort((left, right) => localeCollator("zh-CN").compare(safeText(left.name, ""), safeText(right.name, "")));
 }
 
 function ensureModelHealthRulesets(projectId) {
@@ -10303,15 +10364,15 @@ function publicWorkflowTemplatesForUser(userContext) {
     .filter((template) => template.enabled || canManage)
     .filter((template) => canManage || template.allowedRoles.includes(role))
     .sort((left, right) => {
-      const categoryDiff = left.category.localeCompare(right.category, "zh-CN");
+      const categoryDiff = localeCollator("zh-CN").compare(left.category, right.category);
       if (categoryDiff !== 0) {
         return categoryDiff;
       }
-      const projectDiff = left.projectName.localeCompare(right.projectName, "zh-CN");
+      const projectDiff = localeCollator("zh-CN").compare(left.projectName, right.projectName);
       if (projectDiff !== 0) {
         return projectDiff;
       }
-      return left.name.localeCompare(right.name, "zh-CN");
+      return localeCollator("zh-CN").compare(left.name, right.name);
     })
     .map((template) => ({
       ...template,
@@ -12534,7 +12595,7 @@ function buildDrawingRegisterPayload(userContext, options = {}) {
       currentVersion,
       versions,
     };
-  }).sort((left, right) => left.drawingNo.localeCompare(right.drawingNo, "zh-CN"));
+  }).sort((left, right) => localeCollator("zh-CN").compare(left.drawingNo, right.drawingNo));
   const expectedPayload = buildDrawingExpectedPayload(projectId, entries, visibleDocs);
   const expectedByNo = new Map(expectedPayload.items.map((item) => [item.drawingNo, item]));
   entries.forEach((entry) => {
@@ -12628,8 +12689,8 @@ function projectDrawingExpectedItems(projectId) {
   return drawingExpectedItems
     .filter((item) => item.projectId === projectId && !item.archivedAt)
     .sort((left, right) => {
-      const disciplineOrder = safeText(left.discipline, "").localeCompare(safeText(right.discipline, ""), "zh-CN");
-      return disciplineOrder || safeText(left.drawingNo, "").localeCompare(safeText(right.drawingNo, ""), "zh-CN");
+      const disciplineOrder = localeCollator("zh-CN").compare(safeText(left.discipline, ""), safeText(right.discipline, ""));
+      return disciplineOrder || localeCollator("zh-CN").compare(safeText(left.drawingNo, ""), safeText(right.drawingNo, ""));
     });
 }
 
@@ -14502,7 +14563,7 @@ function publicDrawingOcrDocuments(userContext) {
     .sort((left, right) => {
       const leftMeta = normalizeDocumentDrawingMetadata(left.drawingMetadata || {});
       const rightMeta = normalizeDocumentDrawingMetadata(right.drawingMetadata || {});
-      return safeText(leftMeta.drawingNumber || left.name, "").localeCompare(safeText(rightMeta.drawingNumber || right.name, ""), "zh-CN");
+      return localeCollator("zh-CN").compare(safeText(leftMeta.drawingNumber || left.name, ""), safeText(rightMeta.drawingNumber || right.name, ""));
     })
     .map((doc) => publicDrawingOcrDocument(doc, userContext));
 }
@@ -15124,7 +15185,7 @@ function queryDrawingOcrSearch(body = {}, userContext = SYSTEM_USER_CONTEXT, req
       matches,
     });
   });
-  results.sort((left, right) => right.score - left.score || safeText(left.drawingNo || left.fileName, "").localeCompare(safeText(right.drawingNo || right.fileName, ""), "zh-CN"));
+  results.sort((left, right) => right.score - left.score || localeCollator("zh-CN").compare(safeText(left.drawingNo || left.fileName, ""), safeText(right.drawingNo || right.fileName, "")));
   appendAuditLog(userContext, "drawing_ocr.search", "drawing_ocr_index", "", {
     query,
     mode,
@@ -16917,7 +16978,7 @@ function publicFoldersForUser(userContext) {
   return [...folders]
     .filter((folder) => safeText(folder.projectId, DEFAULT_PROJECT_ID) === safeText(userContext?.projectId, DEFAULT_PROJECT_ID))
     .filter((folder) => visibleIds.has(folder.id))
-    .sort((left, right) => left.name.localeCompare(right.name, "zh-CN"))
+    .sort((left, right) => localeCollator("zh-CN").compare(left.name, right.name))
     .map((folder) => toPublicFolder(folder, userContext));
 }
 
@@ -26835,8 +26896,10 @@ function contentTypeForFileName(fileName) {
 
 function cacheControlForFileName(fileName) {
   const ext = path.extname(fileName).toLowerCase();
+  // Revalidate text assets via ETag/Last-Modified (304) instead of re-downloading the body
+  // on every load, while still picking up edits immediately. PDFs stay uncached.
   return [".html", ".css", ".js", ".mjs", ".map"].includes(ext)
-    ? "no-store"
+    ? "no-cache"
     : ext === ".pdf"
       ? "no-store"
       : "public, max-age=0";
@@ -26856,17 +26919,68 @@ async function serveStorageObject(res, bucket, fileName) {
   (await bucket.createReadStream(fileName)).pipe(res);
 }
 
-function serveFile(res, filePath) {
-  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+const COMPRESSIBLE_EXTENSIONS = new Set([".html", ".css", ".js", ".mjs", ".json", ".svg", ".csv", ".txt", ".map"]);
+
+function negotiateEncoding(req, ext, size) {
+  if (!req || size < 1024 || !COMPRESSIBLE_EXTENSIONS.has(ext)) {
+    return "";
+  }
+  const accept = String(req.headers["accept-encoding"] || "");
+  if (/\bbr\b/.test(accept)) {
+    return "br";
+  }
+  if (/\bgzip\b/.test(accept)) {
+    return "gzip";
+  }
+  return "";
+}
+
+function serveFile(res, filePath, req) {
+  let stat;
+  try {
+    stat = fs.statSync(filePath);
+  } catch {
+    sendJson(res, 404, { error: "File not found" });
+    return;
+  }
+  if (!stat.isFile()) {
     sendJson(res, 404, { error: "File not found" });
     return;
   }
 
-  res.writeHead(200, {
+  const etag = `W/"${stat.size.toString(16)}-${Math.round(stat.mtimeMs).toString(16)}"`;
+  const headers = {
     "Content-Type": contentTypeForFileName(filePath),
     "Cache-Control": cacheControlForFileName(filePath),
-  });
+    "Last-Modified": stat.mtime.toUTCString(),
+    ETag: etag,
+  };
 
+  const ifNoneMatch = req?.headers["if-none-match"];
+  const ifModifiedSince = req?.headers["if-modified-since"];
+  const notModified = ifNoneMatch
+    ? ifNoneMatch === etag
+    : Boolean(ifModifiedSince) && Date.parse(ifModifiedSince) >= Math.floor(stat.mtimeMs / 1000) * 1000;
+  if (notModified) {
+    res.writeHead(304, headers);
+    res.end();
+    return;
+  }
+
+  const encoding = negotiateEncoding(req, path.extname(filePath).toLowerCase(), stat.size);
+  if (encoding) {
+    headers["Content-Encoding"] = encoding;
+    headers.Vary = "Accept-Encoding";
+    res.writeHead(200, headers);
+    const compressor = encoding === "br"
+      ? zlib.createBrotliCompress({ params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 6 } })
+      : zlib.createGzip();
+    fs.createReadStream(filePath).pipe(compressor).pipe(res);
+    return;
+  }
+
+  headers["Content-Length"] = stat.size;
+  res.writeHead(200, headers);
   fs.createReadStream(filePath).pipe(res);
 }
 

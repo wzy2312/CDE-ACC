@@ -6,11 +6,10 @@ from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from pdf_font_utils import register_pdf_font
 
-FONT_PATH = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
 FONT_NAME = "RedlineArialUnicode"
 PAGE_WIDTH, PAGE_HEIGHT = A4
 MARGIN_X = 46
@@ -86,10 +85,7 @@ def main():
 
 
 def register_font():
-    try:
-        pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
-    except Exception:
-        pass
+    return register_pdf_font(FONT_NAME)
 
 
 def safe_text(value, fallback=""):
@@ -159,7 +155,7 @@ def sorted_records(records):
 
 
 def use_font(pdf, size=10, bold=False):
-    pdf.setFont(FONT_NAME if FONT_NAME in pdfmetrics.getRegisteredFontNames() else "Helvetica", size)
+    pdf.setFont(register_font(), size)
 
 
 def draw_title(pdf, task, document):
