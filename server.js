@@ -79,6 +79,55 @@ loadLocalEnvFiles([
   path.join(ROOT, ".env.local"),
   path.join(ROOT, ".env"),
 ]);
+
+function firstExistingPath(candidates) {
+  return candidates.find((candidate) => {
+    if (!candidate) {
+      return false;
+    }
+    try {
+      return fs.existsSync(candidate);
+    } catch {
+      return false;
+    }
+  });
+}
+
+function resolvePythonBin() {
+  const configured = String(process.env.CDE_PYTHON_BIN || process.env.PYTHON_BIN || "").trim();
+  if (configured) {
+    return configured;
+  }
+  const bundledPython = path.join(
+    os.homedir(),
+    ".cache",
+    "codex-runtimes",
+    "codex-primary-runtime",
+    "dependencies",
+    "python",
+    "bin",
+    "python3",
+  );
+  return firstExistingPath([bundledPython, "/usr/bin/python3", "/usr/local/bin/python3"]) || "python3";
+}
+
+function resolvePdfjsDir() {
+  const configured = String(process.env.CDE_PDFJS_DIR || process.env.PDFJS_DIR || "").trim();
+  const appPdfjsDir = path.join(ROOT, "node_modules", "pdfjs-dist", "build");
+  const bundledPdfjsDir = path.join(
+    os.homedir(),
+    ".cache",
+    "codex-runtimes",
+    "codex-primary-runtime",
+    "dependencies",
+    "node",
+    "node_modules",
+    "pdfjs-dist",
+    "build",
+  );
+  return firstExistingPath([configured, appPdfjsDir, bundledPdfjsDir]) || appPdfjsDir;
+}
+
 const DATA_DIR = path.resolve(process.env.CDE_DATA_DIR || path.join(ROOT, "data"));
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const EXPORTS_DIR = path.join(DATA_DIR, "exports");
@@ -99,10 +148,8 @@ const DRAWING_REDLINE_DETECT_SCRIPT = path.join(ROOT, "detect_pdf_redline.py");
 const DRAWING_OCR_EXTRACT_SCRIPT = path.join(ROOT, "extract_drawing_ocr.py");
 const DRAWING_REGISTER_EXPORT_SCRIPT = path.join(ROOT, "export_drawing_register.py");
 const MODEL_CLASH_HEATMAP_EXPORT_SCRIPT = path.join(ROOT, "export_model_clash_heatmap.py");
-const PYTHON_BIN =
-  "/Users/zhiyuan/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3";
-const PDFJS_DIR =
-  "/Users/zhiyuan/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/pdfjs-dist/build";
+const PYTHON_BIN = resolvePythonBin();
+const PDFJS_DIR = resolvePdfjsDir();
 const PORT = Number(process.env.PORT || 8080);
 const HOST = String(process.env.HOST || process.env.CDE_HOST || "0.0.0.0").trim() || "0.0.0.0";
 const MAX_BODY_BYTES = 100 * 1024 * 1024;
