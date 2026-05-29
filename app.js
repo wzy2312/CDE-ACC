@@ -21063,7 +21063,7 @@ function renderWorkflowActivityMarkup(items) {
             <strong>${escapeHtml(localizedDisplayName(item.actor))}</strong>
             <span class="mini-pill">${escapeHtml(localizedDisplayName(item.label))}</span>
           </div>
-          <p>${escapeHtml(localizedDisplayName(item.note))}</p>
+          <p>${escapeHtml(localizeMixedText(item.note))}</p>
           <p>${formatDateTime(item.timestamp)}</p>
         </article>
       `,
@@ -22248,7 +22248,7 @@ function renderLibraryActivity(doc) {
             <strong>${escapeHtml(localizedDisplayName(item.actor))}</strong>
             <span class="mini-pill">${escapeHtml(localizedDisplayName(item.label))}</span>
           </div>
-          <p>${escapeHtml(localizedDisplayName(item.note))}</p>
+          <p>${escapeHtml(localizeMixedText(item.note))}</p>
           <p>${formatDateTime(item.timestamp)}</p>
         </article>
       `,
@@ -28536,7 +28536,7 @@ function renderActivity() {
             <strong>${escapeHtml(localizedDisplayName(item.actor))}</strong>
             <span class="mini-pill">${escapeHtml(localizedDisplayName(item.label))}</span>
           </div>
-          <p>${escapeHtml(localizedDisplayName(item.note))}</p>
+          <p>${escapeHtml(localizeMixedText(item.note))}</p>
           <p>${formatDateTime(item.timestamp)}</p>
         </article>
       `,
@@ -28676,7 +28676,7 @@ function renderReportModule() {
           <span class="report-check-mark">${item.symbol}</span>
           <div>
             <strong>${localizedDisplayName(item.title)}</strong>
-            <p>${escapeHtml(localizedDisplayName(item.note))}</p>
+            <p>${escapeHtml(localizeMixedText(item.note))}</p>
           </div>
         </article>
       `,
@@ -28728,7 +28728,7 @@ function renderReportModule() {
             <strong>${escapeHtml(localizedDisplayName(item.actor))}</strong>
             <span class="mini-pill">${escapeHtml(localizedDisplayName(item.label))}</span>
           </div>
-          <p>${escapeHtml(localizedDisplayName(item.note))}</p>
+          <p>${escapeHtml(localizeMixedText(item.note))}</p>
           <p>${formatDateTime(item.timestamp)}</p>
         </article>
       `,
