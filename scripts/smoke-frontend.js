@@ -329,18 +329,19 @@ async function runFrontendScenario() {
     app.body,
     [
       "row-action-menu-floating",
-      "function positionOpenRowActionMenu",
-      "positionOpenRowActionMenu();",
+      "row-action-menu-portal",
+      "function renderRowActionMenuPortal",
+      "routeRowActionPortalClick",
     ],
-    "row action menu floating layer contract",
+    "row action menu portal contract",
   );
   assertIncludes(
     app.body,
     [
-      "function chooseBatchMoveTargetFolder",
+      "function folderPickerAction",
       'type: "folderPicker"',
-      "batch-move-folder",
-      "data-action-folder-choice",
+      "data-action-folder-row",
+      "normalizeActionDialogFolderChoice",
     ],
     "batch move folder picker contract",
   );

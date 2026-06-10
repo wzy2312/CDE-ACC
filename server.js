@@ -24693,10 +24693,8 @@ function normalizeShare(share) {
 }
 
 function defaultShareExpiryDate() {
+  const days = Math.max(1, Math.floor(positiveEnvNumber("CDE_SHARE_DEFAULT_EXPIRY_DAYS", 30)));
   const date = new Date();
-  // Default share-link validity. A 1-day default caused links to "expire"
-  // almost immediately; allow override via env, default to 30 days.
-  const days = Math.max(1, Number(process.env.CDE_SHARE_DEFAULT_EXPIRY_DAYS || 30) || 30);
   date.setDate(date.getDate() + days);
   return date.toISOString().slice(0, 10);
 }
@@ -28107,123 +28105,112 @@ async function createBatchDownloadArchive(ids, userContext = SYSTEM_USER_CONTEXT
   }
 }
 
-// Pure-Node ZIP writer (no external `zip` binary dependency, so it works in
-// minimal containers that don't ship /usr/bin/zip). Stores each file in the
-// (flat) staging dir with DEFLATE compression and UTF-8 file names.
-function zipDirectory(sourceDir, archivePath) {
-  return new Promise((resolve, reject) => {
-    try {
-      const zlib = require("zlib");
-      const CRC_TABLE = (() => {
-        const t = new Int32Array(256);
-        for (let n = 0; n < 256; n++) {
-          let c = n;
-          for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-          t[n] = c;
-        }
-        return t;
-      })();
-      const crc32 = (buf) => {
-        let c = ~0;
-        for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
-        return (~c) >>> 0;
-      };
-
-      const names = fs
-        .readdirSync(sourceDir, { withFileTypes: true })
-        .filter((d) => d.isFile())
-        .map((d) => d.name);
-
-      const now = new Date();
-      const dosTime =
-        ((now.getHours() & 31) << 11) | ((now.getMinutes() & 63) << 5) | ((Math.floor(now.getSeconds() / 2)) & 31);
-      const dosDate =
-        (((now.getFullYear() - 1980) & 127) << 9) | (((now.getMonth() + 1) & 15) << 5) | (now.getDate() & 31);
-
-      const fd = fs.openSync(archivePath, "w");
-      let offset = 0;
-      const central = [];
-      const writeBuf = (buf) => {
-        fs.writeSync(fd, buf, 0, buf.length, offset);
-        offset += buf.length;
-      };
-
-      try {
-        names.forEach((name) => {
-          const data = fs.readFileSync(path.join(sourceDir, name));
-          const crc = crc32(data);
-          const comp = zlib.deflateRawSync(data);
-          const nameBuf = Buffer.from(name, "utf8");
-          const localOffset = offset;
-
-          const lh = Buffer.alloc(30);
-          lh.writeUInt32LE(0x04034b50, 0);
-          lh.writeUInt16LE(20, 4);
-          lh.writeUInt16LE(0x0800, 6); // UTF-8 filename flag
-          lh.writeUInt16LE(8, 8); // method: deflate
-          lh.writeUInt16LE(dosTime, 10);
-          lh.writeUInt16LE(dosDate, 12);
-          lh.writeUInt32LE(crc, 14);
-          lh.writeUInt32LE(comp.length, 18);
-          lh.writeUInt32LE(data.length, 22);
-          lh.writeUInt16LE(nameBuf.length, 26);
-          lh.writeUInt16LE(0, 28);
-          writeBuf(lh);
-          writeBuf(nameBuf);
-          writeBuf(comp);
-
-          central.push({ name: nameBuf, crc, comp: comp.length, size: data.length, localOffset, dosTime, dosDate });
-        });
-
-        const cdStart = offset;
-        central.forEach((e) => {
-          const ch = Buffer.alloc(46);
-          ch.writeUInt32LE(0x02014b50, 0);
-          ch.writeUInt16LE(20, 4);
-          ch.writeUInt16LE(20, 6);
-          ch.writeUInt16LE(0x0800, 8);
-          ch.writeUInt16LE(8, 10);
-          ch.writeUInt16LE(e.dosTime, 12);
-          ch.writeUInt16LE(e.dosDate, 14);
-          ch.writeUInt32LE(e.crc, 16);
-          ch.writeUInt32LE(e.comp, 20);
-          ch.writeUInt32LE(e.size, 24);
-          ch.writeUInt16LE(e.name.length, 28);
-          ch.writeUInt16LE(0, 30);
-          ch.writeUInt16LE(0, 32);
-          ch.writeUInt16LE(0, 34);
-          ch.writeUInt16LE(0, 36);
-          ch.writeUInt32LE(0, 38);
-          ch.writeUInt32LE(e.localOffset, 42);
-          writeBuf(ch);
-          writeBuf(e.name);
-        });
-        const cdSize = offset - cdStart;
-
-        const eocd = Buffer.alloc(22);
-        eocd.writeUInt32LE(0x06054b50, 0);
-        eocd.writeUInt16LE(0, 4);
-        eocd.writeUInt16LE(0, 6);
-        eocd.writeUInt16LE(central.length, 8);
-        eocd.writeUInt16LE(central.length, 10);
-        eocd.writeUInt32LE(cdSize, 12);
-        eocd.writeUInt32LE(cdStart, 16);
-        eocd.writeUInt16LE(0, 20);
-        writeBuf(eocd);
-      } finally {
-        fs.closeSync(fd);
-      }
-
-      if (!central.length) {
-        const error = new Error("批量打包失败：没有可用文件");
-        error.statusCode = 500;
-        reject(error);
-        return;
-      }
-      resolve();
-    } catch (err) {
-      if (!err.statusCode) err.statusCode = 500;
-      reject(err);
+const ZIP_CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < table.length; i++) {
+    let value = i;
+    for (let bit = 0; bit < 8; bit++) {
+      value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
     }
+    table[i] = value >>> 0;
+  }
+  return table;
+})();
+
+function zipCrc32(buffer) {
+  let next = 0xffffffff;
+  for (const byte of buffer) {
+    next = ZIP_CRC32_TABLE[(next ^ byte) & 0xff] ^ (next >>> 8);
+  }
+  return (next ^ 0xffffffff) >>> 0;
+}
+
+function zipDosDateTime(date = new Date()) {
+  const year = Math.max(1980, date.getFullYear());
+  const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+  const dosDate = ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+  return { dosDate, dosTime };
+}
+
+function writeUInt16LE(value) {
+  const buffer = Buffer.alloc(2);
+  buffer.writeUInt16LE(value & 0xffff, 0);
+  return buffer;
+}
+
+function writeUInt32LE(value) {
+  const buffer = Buffer.alloc(4);
+  buffer.writeUInt32LE(value >>> 0, 0);
+  return buffer;
+}
+
+async function collectZipEntries(sourceDir, baseDir = sourceDir) {
+  const dirents = await fs.promises.readdir(sourceDir, { withFileTypes: true });
+  const entries = [];
+  for (const dirent of dirents.sort((left, right) => left.name.localeCompare(right.name, "zh-CN"))) {
+    const absolutePath = path.join(sourceDir, dirent.name);
+    const relativePath = path.relative(baseDir, absolutePath).split(path.sep).join("/");
+    if (dirent.isDirectory()) {
+      entries.push(...await collectZipEntries(absolutePath, baseDir));
+    } else if (dirent.isFile()) {
+      entries.push({ absolutePath, relativePath });
+    }
+  }
+  return entries;
+}
+
+function deflateRawBuffer(buffer) {
+  return new Promise((resolve, reject) => {
+    zlib.deflateRaw(buffer, { level: 6 }, (error, result) => {
+      if (error) reject(error);
+      else resolve(result);
+    });
   });
+}
+
+async function zipDirectory(sourceDir, archivePath) {
+  const entries = await collectZipEntries(sourceDir);
+  const output = await fs.promises.open(archivePath, "w");
+  const centralDirectory = [];
+  let offset = 0;
+  try {
+    for (const entry of entries) {
+      const content = await fs.promises.readFile(entry.absolutePath);
+      const compressed = await deflateRawBuffer(content);
+      const stat = await fs.promises.stat(entry.absolutePath);
+      const { dosDate, dosTime } = zipDosDateTime(stat.mtime);
+      const nameBuffer = Buffer.from(entry.relativePath, "utf8");
+      const crc = zipCrc32(content);
+      const localHeader = Buffer.concat([
+        writeUInt32LE(0x04034b50), writeUInt16LE(20), writeUInt16LE(0x0800), writeUInt16LE(8),
+        writeUInt16LE(dosTime), writeUInt16LE(dosDate), writeUInt32LE(crc),
+        writeUInt32LE(compressed.length), writeUInt32LE(content.length), writeUInt16LE(nameBuffer.length),
+        writeUInt16LE(0), nameBuffer
+      ]);
+      await output.write(localHeader);
+      await output.write(compressed);
+      centralDirectory.push({ nameBuffer, crc, compressedSize: compressed.length, size: content.length, dosDate, dosTime, offset });
+      offset += localHeader.length + compressed.length;
+    }
+    const centralStart = offset;
+    for (const entry of centralDirectory) {
+      const header = Buffer.concat([
+        writeUInt32LE(0x02014b50), writeUInt16LE(20), writeUInt16LE(20), writeUInt16LE(0x0800),
+        writeUInt16LE(8), writeUInt16LE(entry.dosTime), writeUInt16LE(entry.dosDate), writeUInt32LE(entry.crc),
+        writeUInt32LE(entry.compressedSize), writeUInt32LE(entry.size), writeUInt16LE(entry.nameBuffer.length),
+        writeUInt16LE(0), writeUInt16LE(0), writeUInt16LE(0), writeUInt16LE(0),
+        writeUInt32LE(0), writeUInt32LE(entry.offset), entry.nameBuffer
+      ]);
+      await output.write(header);
+      offset += header.length;
+    }
+    const centralSize = offset - centralStart;
+    await output.write(Buffer.concat([
+      writeUInt32LE(0x06054b50), writeUInt16LE(0), writeUInt16LE(0),
+      writeUInt16LE(centralDirectory.length), writeUInt16LE(centralDirectory.length),
+      writeUInt32LE(centralSize), writeUInt32LE(centralStart), writeUInt16LE(0)
+    ]));
+  } finally {
+    await output.close();
+  }
 }

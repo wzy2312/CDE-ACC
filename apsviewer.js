@@ -299,36 +299,83 @@ function localizeUserMessage(value, fallback = t("操作失败，请稍后重试
   return currentLanguage() === "en" && hasCjkText(localized) ? fallbackValue : localized;
 }
 
+const STANDALONE_OBSERVER_OPTS = {
+  childList: true,
+  subtree: true,
+  characterData: true,
+  attributes: true,
+  attributeFilter: ["placeholder", "title", "aria-label", "alt"],
+};
+let standaloneObserver = null;
+
+// The APS 3D viewer builds its own DOM (canvas + GUI) inside `.viewer-frame`.
+// It must never be "translated": rewriting its nodes both corrupts viewer
+// internals and \u2014 because the observer below watches the whole <body> \u2014 turns
+// the viewer's constant DOM churn into a self-retriggering mutation storm that
+// pegs the CPU. So the translation pass skips anything inside the viewer.
+function isInsideStandaloneViewer(node) {
+  const element = node && node.nodeType === Node.ELEMENT_NODE ? node : node && node.parentElement;
+  return Boolean(element && element.closest && element.closest(".viewer-frame, .adsk-viewing-viewer, canvas"));
+}
+
 function applyStandaloneTranslations(root = document.body) {
-  if (currentLanguage() !== "en" || !root) {
+  if (currentLanguage() !== "en" || !root || isInsideStandaloneViewer(root)) {
     return;
   }
-  const translateNode = (node) => {
-    if (node.nodeType === Node.TEXT_NODE && /[\u4e00-\u9fff]/.test(node.nodeValue || "")) {
-      node.nodeValue = localizeStandaloneText(node.nodeValue);
-      return;
-    }
-    if (node.nodeType !== Node.ELEMENT_NODE) {
-      return;
-    }
-    ["placeholder", "title", "aria-label", "alt"].forEach((attribute) => {
-      const value = node.getAttribute(attribute);
-      if (value && /[\u4e00-\u9fff]/.test(value)) {
-        node.setAttribute(attribute, localizeStandaloneText(value));
+  // Suspend the observer while we write, so our own nodeValue/attribute updates
+  // do not re-enter this callback. Without this the observer observes the very
+  // mutations it produces and loops forever (CPU 100%, model never loads).
+  if (standaloneObserver) {
+    standaloneObserver.disconnect();
+  }
+  try {
+    const translateNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const value = node.nodeValue || "";
+        if (/[\u4e00-\u9fff]/.test(value)) {
+          const next = localizeStandaloneText(value);
+          if (next !== value) {
+            node.nodeValue = next;
+          }
+        }
+        return;
       }
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return;
+      }
+      ["placeholder", "title", "aria-label", "alt"].forEach((attribute) => {
+        const value = node.getAttribute(attribute);
+        if (value && /[\u4e00-\u9fff]/.test(value)) {
+          const next = localizeStandaloneText(value);
+          if (next !== value) {
+            node.setAttribute(attribute, next);
+          }
+        }
+      });
+    };
+    translateNode(root);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ALL, {
+      acceptNode(node) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          if (["SCRIPT", "STYLE", "SVG", "PATH", "CANVAS"].includes(node.tagName)) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          if (node.classList && (node.classList.contains("viewer-frame") || node.classList.contains("adsk-viewing-viewer"))) {
+            return NodeFilter.FILTER_REJECT;
+          }
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      },
     });
-  };
-  translateNode(root);
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ALL, {
-    acceptNode(node) {
-      if (node.nodeType === Node.ELEMENT_NODE && ["SCRIPT", "STYLE", "SVG", "PATH"].includes(node.tagName)) {
-        return NodeFilter.FILTER_REJECT;
-      }
-      return NodeFilter.FILTER_ACCEPT;
-    },
-  });
-  while (walker.nextNode()) {
-    translateNode(walker.currentNode);
+    while (walker.nextNode()) {
+      translateNode(walker.currentNode);
+    }
+  } finally {
+    if (standaloneObserver) {
+      // Drop any records our own writes generated, then resume observing.
+      standaloneObserver.takeRecords();
+      standaloneObserver.observe(document.body, STANDALONE_OBSERVER_OPTS);
+    }
   }
 }
 
@@ -336,27 +383,24 @@ function startStandaloneTranslationObserver() {
   if (currentLanguage() !== "en" || !document.body || typeof MutationObserver === "undefined") {
     return;
   }
+  standaloneObserver = new MutationObserver((records) => {
+    for (const record of records) {
+      if (isInsideStandaloneViewer(record.target)) {
+        continue;
+      }
+      if (record.type === "characterData" || record.type === "attributes") {
+        applyStandaloneTranslations(record.target);
+        continue;
+      }
+      record.addedNodes.forEach((node) => {
+        if (!isInsideStandaloneViewer(node)) {
+          applyStandaloneTranslations(node);
+        }
+      });
+    }
+  });
+  standaloneObserver.observe(document.body, STANDALONE_OBSERVER_OPTS);
   applyStandaloneTranslations();
-  const observer = new MutationObserver((records) => {
-    records.forEach((record) => {
-      if (record.type === "characterData") {
-        applyStandaloneTranslations(record.target);
-        return;
-      }
-      if (record.type === "attributes") {
-        applyStandaloneTranslations(record.target);
-        return;
-      }
-      record.addedNodes.forEach((node) => applyStandaloneTranslations(node));
-    });
-  });
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-    attributes: true,
-    attributeFilter: ["placeholder", "title", "aria-label", "alt"],
-  });
 }
 
 startStandaloneTranslationObserver();

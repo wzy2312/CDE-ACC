@@ -231,7 +231,6 @@ function restoreWorkspaceScrollPosition() {
 function handleWorkspaceScrollState() {
   syncBackToTopButton();
   persistWorkspaceRestoreState();
-  positionOpenRowActionMenu();
 }
 
 function createLocalizedLookup(valuesByLanguage) {
@@ -2204,6 +2203,7 @@ const elements = {
   openReviewButton: document.querySelector("#openReviewButton"),
   uploadButton: document.querySelector("#uploadButton"),
   uploadFolderButton: document.querySelector("#uploadFolderButton"),
+  importAccButton: document.querySelector("#importAccButton"),
   createFolderButton: document.querySelector("#createFolderButton"),
   libraryDropOverlay: document.querySelector("#libraryDropOverlay"),
   folderBrowserBar: document.querySelector("#folderBrowserBar"),
@@ -4085,6 +4085,8 @@ function applyStaticTranslations() {
     ["roles", text("角色定义", "Role Definitions")],
     ["matrix", text("权限矩阵", "Permission Matrix")],
     ["guest_policy", text("访客策略", "Guest Policy")],
+    ["acc_integration", text("ACC 文件接入", "ACC File Access")],
+    ["acc_custom_integration", text("ACC Custom Integration", "ACC Custom Integration")],
     ["email_channel", text("邮件通道", "Mail Channel")],
     ["project_notifications", text("项目通知", "Project Notifications")],
     ["aps_configuration", text("APS 配置", "APS Configuration")],
@@ -4134,6 +4136,10 @@ function applyStaticTranslations() {
   setSelectorText("#accessGuestPolicyView h3", text("访客策略", "Guest Policy"));
   setSelectorText("#accessEmailNotificationsView .panel-kicker", text("邮件通道", "Mail Channel"));
   setSelectorText("#accessEmailNotificationsView h3", text("邮件通道", "Mail Channel"));
+  setSelectorText("#accessAccIntegrationView .panel-kicker", text("ACC 文件接入", "ACC File Access"));
+  setSelectorText("#accessAccIntegrationView h3", text("ACC 文件接入", "ACC File Access"));
+  setSelectorText("#accessAccCustomIntegrationView .panel-kicker", text("ACC Custom Integration", "ACC Custom Integration"));
+  setSelectorText("#accessAccCustomIntegrationView h3", text("ACC Custom Integration", "ACC Custom Integration"));
   setSelectorText("#accessApsConfigurationView .panel-kicker", text("APS 配置", "APS Configuration"));
   setSelectorText("#accessApsConfigurationView h3", text("APS 配置", "APS Configuration"));
   setSelectorText("#accessAiConfigurationView .panel-kicker", text("AI 配置", "AI Configuration"));
@@ -4540,6 +4546,10 @@ function bindEvents() {
   elements.fileInput.addEventListener("change", handleUpload);
   elements.uploadFolderButton.addEventListener("click", () => {
     elements.folderInput.click();
+  });
+  elements.importAccButton?.addEventListener("click", () => {
+    state.accessMenu = "acc_integration";
+    openProjectSettingsView();
   });
   elements.folderInput.addEventListener("change", handleFolderUploadSelection);
   elements.closeUploadDrawingMetadataButton?.addEventListener("click", () => {
@@ -5924,7 +5934,10 @@ function bindEvents() {
       closeLibraryToolbarPopovers();
       return;
     }
-    if (state.openRowActionMenuKey && !target.closest(".row-menu-shell")) {
+    if (routeRowActionPortalClick(event, target)) {
+      return;
+    }
+    if (state.openRowActionMenuKey && !target.closest(".row-menu-shell") && !target.closest(".row-action-menu-portal")) {
       closeRowActionMenu();
     }
     if (state.inlineRenameId && !target.closest(".inline-rename-shell")) {
@@ -6649,6 +6662,7 @@ function render() {
   renderFilesPanel();
   renderLibraryBatchBar();
   renderWorkflowBoard();
+  renderRowActionMenuPortal();
   renderLibraryManagers();
   renderFileManagerModal();
   renderVersionManagerModal();
@@ -6682,7 +6696,6 @@ function render() {
   ensureVersionStatusPolling();
   applyAuthStaticTranslations();
   applyStaticTranslations();
-  positionOpenRowActionMenu();
   const scrollRestoreScheduled = restoreWorkspaceScrollPosition();
   if (!scrollRestoreScheduled) {
     persistWorkspaceRestoreState();
@@ -6950,6 +6963,8 @@ function accessMenuTitle(menu = state.accessMenu) {
     roles: text("角色定义", "Role Definitions"),
     matrix: text("权限矩阵", "Permission Matrix"),
     guest_policy: text("访客策略", "Guest Policy"),
+    acc_integration: text("ACC 文件接入", "ACC File Access"),
+    acc_custom_integration: text("ACC Custom Integration", "ACC Custom Integration"),
     email_channel: text("邮件通道", "Mail Channel"),
     project_notifications: text("项目通知", "Project Notifications"),
     aps_configuration: text("APS 配置", "APS Configuration"),
@@ -7313,6 +7328,8 @@ function normalizeAccessMenu(value) {
   return [
     "overview",
     "project_management",
+    "acc_integration",
+    "acc_custom_integration",
     "hierarchy",
     "roles",
     "matrix",
@@ -7334,7 +7351,7 @@ function systemAccessMenus() {
 }
 
 function projectAccessMenus() {
-  return new Set(["overview", "guest_policy", "project_notifications", "members", "folder_permissions", "audit"]);
+  return new Set(["overview", "acc_integration", "acc_custom_integration", "ai_configuration", "guest_policy", "project_notifications", "members", "folder_permissions", "audit"]);
 }
 
 function normalizeAccessMenuForView(menu, view = state.currentView) {
@@ -7352,6 +7369,8 @@ function accessMenuSectionId(menu) {
   return {
     overview: "accessOverviewView",
     project_management: "accessProjectManagementView",
+    acc_integration: "accessAccIntegrationView",
+    acc_custom_integration: "accessAccCustomIntegrationView",
     hierarchy: "accessHierarchyView",
     roles: "accessRolesView",
     matrix: "accessMatrixView",
@@ -22965,48 +22984,6 @@ function isInlineRenaming(type, id) {
   return state.inlineRenameType === type && state.inlineRenameId === id;
 }
 
-function findOpenRowActionMenuElements() {
-  const key = state.openRowActionMenuKey;
-  if (!key || typeof document === "undefined") {
-    return null;
-  }
-  const button = Array.from(document.querySelectorAll("[data-open-row-menu]")).find((item) => item.dataset.openRowMenu === key);
-  if (!(button instanceof HTMLElement)) {
-    return null;
-  }
-  const menu = button.closest(".row-menu-shell")?.querySelector(".row-action-menu-floating");
-  if (!(menu instanceof HTMLElement)) {
-    return null;
-  }
-  return { button, menu };
-}
-
-function positionOpenRowActionMenu() {
-  const menuElements = findOpenRowActionMenuElements();
-  if (!menuElements) {
-    return;
-  }
-
-  const { button, menu } = menuElements;
-  const viewportMargin = 12;
-  const menuGap = 6;
-  const buttonRect = button.getBoundingClientRect();
-  const menuRect = menu.getBoundingClientRect();
-  const availableBelow = window.innerHeight - buttonRect.bottom;
-  const availableAbove = buttonRect.top;
-  const placeAbove = availableBelow < menuRect.height + menuGap && availableAbove > availableBelow;
-  const maxLeft = Math.max(viewportMargin, window.innerWidth - menuRect.width - viewportMargin);
-  const maxTop = Math.max(viewportMargin, window.innerHeight - menuRect.height - viewportMargin);
-  const left = Math.min(Math.max(viewportMargin, buttonRect.right - menuRect.width), maxLeft);
-  const top = placeAbove
-    ? Math.max(viewportMargin, buttonRect.top - menuRect.height - menuGap)
-    : Math.min(Math.max(viewportMargin, buttonRect.bottom + menuGap), maxTop);
-
-  menu.dataset.placement = placeAbove ? "top" : "bottom";
-  menu.style.left = `${Math.round(left)}px`;
-  menu.style.top = `${Math.round(top)}px`;
-}
-
 function renderRowActionButton({ tone = "", attr, value, label, icon, active = false, className = "", disabled = false }) {
   const toneClass = tone ? ` ${tone}` : "";
   const activeClass = active ? " active" : "";
@@ -23191,10 +23168,10 @@ function renderFolderMoreMenu(folder) {
 }
 
 function renderOverflowMenuShell(entityType, entityId, menuHtml) {
+  void menuHtml;
   return `
     <div class="row-menu-shell row-menu-shell-inline">
       ${renderRowActionButton({ attr: "data-open-row-menu", value: rowActionMenuKey(entityType, entityId), label: text("更多操作", "More Actions"), icon: "more", className: "row-action-button-more" })}
-      ${menuHtml}
     </div>
   `;
 }
@@ -23595,8 +23572,81 @@ function openFolder(folderId, options = {}) {
   render();
 }
 
+function removeRowActionMenuPortals() {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.querySelectorAll(".row-action-menu-portal").forEach((menu) => menu.remove());
+}
+
+function renderRowActionMenuPortal() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.requestAnimationFrame(() => {
+    removeRowActionMenuPortals();
+    if (!state.openRowActionMenuKey) {
+      return;
+    }
+    const button = Array.from(document.querySelectorAll("[data-open-row-menu]"))
+      .find((candidate) => candidate instanceof HTMLElement && candidate.dataset.openRowMenu === state.openRowActionMenuKey);
+    if (!(button instanceof HTMLElement)) {
+      state.openRowActionMenuKey = "";
+      return;
+    }
+    const [type, id] = state.openRowActionMenuKey.split(":");
+    const entity = type === "folder" ? folderById(id) : type === "document" ? documentById(id) : null;
+    if (!entity) {
+      return;
+    }
+    const html = type === "folder" ? renderFolderMoreMenu(entity) : renderDocumentMoreMenu(entity);
+    const template = document.createElement("template");
+    template.innerHTML = String(html || "").trim();
+    const menu = template.content.firstElementChild;
+    if (!(menu instanceof HTMLElement)) {
+      return;
+    }
+    menu.classList.add("row-action-menu-portal");
+    menu.dataset.rowMenuKey = state.openRowActionMenuKey;
+    menu.style.position = "fixed";
+    menu.style.zIndex = "2147483000";
+    menu.style.maxHeight = "calc(100vh - 24px)";
+    menu.style.overflowY = "auto";
+    menu.style.width = "260px";
+    menu.style.minWidth = "260px";
+    menu.style.visibility = "hidden";
+    document.body.appendChild(menu);
+    const rect = button.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth || 260;
+    const menuHeight = menu.offsetHeight || 240;
+    const margin = 12;
+    const left = Math.min(Math.max(rect.right - menuWidth, margin), Math.max(window.innerWidth - menuWidth - margin, margin));
+    const top = Math.min(Math.max(rect.bottom + 8, margin), Math.max(window.innerHeight - menuHeight - margin, margin));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.style.visibility = "visible";
+  });
+}
+
+function routeRowActionPortalClick(event, target) {
+  const portal = target.closest(".row-action-menu-portal");
+  if (!portal) {
+    return false;
+  }
+  const actionButton = target.closest("[data-row-menu-action]");
+  if (!actionButton) {
+    event.stopPropagation();
+    return true;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  void handleRowMenuAction(actionButton.dataset.rowMenuAction, actionButton.dataset.rowMenuType, actionButton.dataset.rowMenuId);
+  return true;
+}
+
 function closeRowActionMenu(options = {}) {
   state.openRowActionMenuKey = "";
+  removeRowActionMenuPortals();
   if (options.render !== false) {
     render();
   } else {
@@ -23847,6 +23897,58 @@ function ensureActionDialog() {
   return dialog;
 }
 
+function normalizeActionDialogFolderChoice(value) {
+  const textValue = String(value || "").trim();
+  return textValue.toLowerCase() === "root" ? "" : textValue;
+}
+
+function renderActionFolderPicker(request) {
+  const selectedId = normalizeActionDialogFolderChoice(request.folderPickerSelectedId);
+  const options = Array.isArray(request.folderPickerOptions) ? request.folderPickerOptions : documentFolderOptions();
+  const previewItems = Array.isArray(request.folderPickerPreviewItems) ? request.folderPickerPreviewItems.filter(Boolean).slice(0, 4) : [];
+  const overflowCount = Math.max(0, (request.folderPickerPreviewItems || []).length - previewItems.length);
+  const rows = options.map((option) => {
+    const value = normalizeActionDialogFolderChoice(option.value);
+    const selected = value === selectedId;
+    const depth = Math.max(0, String(option.label || "").split("/").length - 1);
+    return `
+      <button class="workflow-picker-row folder action-folder-picker-row${selected ? " selected" : ""}" data-action-folder-row="${escapeHtml(value)}" type="button" style="--depth:${depth}">
+        <span class="tree-branch"></span>
+        <span class="folder-glyph" aria-hidden="true"></span>
+        <span>${escapeHtml(option.label || text("根目录", "Root"))}</span>
+        ${selected ? '<small>' + escapeHtml(text("已选择", "Selected")) + '</small>' : ""}
+      </button>`;
+  }).join("");
+  const preview = previewItems.length
+    ? `<ul class="action-folder-picker-preview">${previewItems.map((label) => `<li>${escapeHtml(label)}</li>`).join("")}${overflowCount ? `<li>${escapeHtml(text(`另有 ${overflowCount} 项`, `${overflowCount} more items`))}</li>` : ""}</ul>`
+    : "";
+  return `
+    <div class="action-folder-picker" data-action-folder-picker>
+      <div class="action-folder-picker-summary">
+        <strong>${escapeHtml(text("目标目录", "Target Folder"))}</strong>
+        <span>${escapeHtml((options.find((option) => normalizeActionDialogFolderChoice(option.value) === selectedId)?.label) || text("根目录", "Root"))}</span>
+      </div>
+      ${preview}
+      <div class="action-folder-picker-tree" role="radiogroup" aria-label="${escapeHtml(text("目标目录", "Target Folder"))}">
+        ${rows}
+      </div>
+    </div>`;
+}
+
+function folderPickerAction(message, options = {}) {
+  return requestActionDialog({
+    type: "folderPicker",
+    message,
+    title: options.title || text("选择目标文件夹", "Select Target Folder"),
+    kicker: options.kicker || text("批量移动", "Batch Move"),
+    confirmLabel: options.confirmLabel || text("移动到此处", "Move Here"),
+    cancelLabel: options.cancelLabel || text("取消", "Cancel"),
+    folderPickerSelectedId: normalizeActionDialogFolderChoice(options.selectedId || ""),
+    folderPickerOptions: Array.isArray(options.folderOptions) ? options.folderOptions : documentFolderOptions(),
+    folderPickerPreviewItems: Array.isArray(options.previewItems) ? options.previewItems : []
+  });
+}
+
 function resolveActionDialog(value) {
   const request = state.dialogRequest;
   state.dialogRequest = null;
@@ -23856,122 +23958,6 @@ function resolveActionDialog(value) {
   if (request?.resolve) {
     request.resolve(value);
   }
-}
-
-function actionFolderPickerPath(folderId) {
-  return folderId ? folderPathLabel(folderId) : text("根目录", "Root");
-}
-
-function actionFolderPickerExpandedFolders(selectedFolderId) {
-  const expanded = new Set(state.folders.filter((folder) => folder.parentId === null).map((folder) => folder.id));
-  let cursor = selectedFolderId ? folderById(selectedFolderId)?.parentId || null : null;
-  while (cursor) {
-    expanded.add(cursor);
-    cursor = folderById(cursor)?.parentId || null;
-  }
-  return [...expanded];
-}
-
-function renderActionFolderPickerNodes(request, parentId = null, depth = 0) {
-  const expandedFolderIds = Array.isArray(request.expandedFolderIds) ? request.expandedFolderIds : [];
-  return state.folders
-    .filter((folder) => folder.parentId === parentId)
-    .sort((left, right) => left.name.localeCompare(right.name, "zh-CN"))
-    .map((folder) => {
-      const expanded = expandedFolderIds.includes(folder.id);
-      const selected = String(request.selectedFolderId || "") === folder.id;
-      const childCount = state.folders.filter((item) => item.parentId === folder.id).length;
-      const childSummary = childCount ? text(`${childCount} 个子目录`, `${childCount} subfolders`) : text("无子目录", "No subfolders");
-      return `
-        <div class="workflow-picker-node">
-          <div class="workflow-picker-row folder action-folder-picker-row${selected ? " selected" : ""}" data-action-folder-row="${escapeHtml(folder.id)}" style="--depth:${depth}">
-            <button class="workflow-picker-toggle${expanded ? " open" : ""}" data-action-folder-toggle="${escapeHtml(folder.id)}" type="button" aria-label="${escapeHtml(expanded ? text("折叠文件夹", "Collapse Folder") : text("展开文件夹", "Expand Folder"))}">
-              <svg viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M4 2.5 8 6 4 9.5" />
-              </svg>
-            </button>
-            <input data-action-folder-choice="${escapeHtml(folder.id)}" name="action-folder-choice" type="radio" ${selected ? "checked" : ""} />
-            <span class="workflow-picker-name">${escapeHtml(folder.name)}</span>
-            <span class="workflow-picker-meta">${escapeHtml(`${actionFolderPickerPath(folder.id)} · ${childSummary}`)}</span>
-          </div>
-          ${expanded
-            ? `
-              <div class="workflow-picker-children">
-                ${renderActionFolderPickerNodes(request, folder.id, depth + 1)}
-              </div>
-            `
-            : ""}
-        </div>
-      `;
-    })
-    .join("");
-}
-
-function renderActionFolderPicker(request) {
-  const selectedFolderId = String(request.selectedFolderId || "");
-  const selectedPath = actionFolderPickerPath(selectedFolderId);
-  const className = request.className ? ` ${escapeHtml(request.className)}` : "";
-  const itemLabels = Array.isArray(request.itemLabels) ? request.itemLabels : [];
-  const previewItems = itemLabels.slice(0, 5);
-  const overflowCount = Math.max(0, itemLabels.length - previewItems.length);
-  const previewHtml = previewItems.length
-    ? `<ul class="action-folder-picker-preview">${previewItems.map((label) => `<li>${escapeHtml(label)}</li>`).join("")}${overflowCount ? `<li>${escapeHtml(text(`另有 ${overflowCount} 项`, `${overflowCount} more items`))}</li>` : ""}</ul>`
-    : "";
-  return `
-    <div class="action-folder-picker${className}" data-action-folder-picker>
-      <div class="action-folder-picker-summary">
-        <span>${escapeHtml(text("将移动", "Moving"))}</span>
-        <strong>${escapeHtml(text(`${Number(request.itemCount || itemLabels.length || 0)} 份文件`, `${Number(request.itemCount || itemLabels.length || 0)} files`))}</strong>
-        <p>${escapeHtml(text(`目标目录：${selectedPath}`, `Target: ${selectedPath}`))}</p>
-      </div>
-      ${previewHtml}
-      <div class="action-folder-picker-tree" role="radiogroup" aria-label="${escapeHtml(text("目标目录", "Target Folder"))}">
-        <label class="workflow-picker-row file action-folder-picker-row action-folder-picker-root${selectedFolderId === "" ? " selected" : ""}" style="--depth:0">
-          <span class="workflow-picker-spacer" aria-hidden="true"></span>
-          <input data-action-folder-choice="" name="action-folder-choice" type="radio" ${selectedFolderId === "" ? "checked" : ""} />
-          <span class="workflow-picker-name">${escapeHtml(text("根目录", "Root"))}</span>
-          <span class="workflow-picker-meta">${escapeHtml(text("项目根目录", "Project Root"))}</span>
-        </label>
-        ${renderActionFolderPickerNodes(request, null, 0)}
-      </div>
-    </div>
-  `;
-}
-
-function bindActionFolderPickerDialog(dialog, request) {
-  dialog.querySelectorAll("[data-action-folder-toggle]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const folderId = button.getAttribute("data-action-folder-toggle") || "";
-      if (!folderId) {
-        return;
-      }
-      const expanded = new Set(Array.isArray(request.expandedFolderIds) ? request.expandedFolderIds : []);
-      if (expanded.has(folderId)) {
-        expanded.delete(folderId);
-      } else {
-        expanded.add(folderId);
-      }
-      request.expandedFolderIds = [...expanded];
-      renderActionDialog();
-    });
-  });
-  dialog.querySelectorAll("[data-action-folder-choice]").forEach((input) => {
-    input.addEventListener("change", () => {
-      request.selectedFolderId = input.getAttribute("data-action-folder-choice") || "";
-      renderActionDialog();
-    });
-  });
-  dialog.querySelectorAll("[data-action-folder-row]").forEach((row) => {
-    row.addEventListener("click", (event) => {
-      const target = event.target;
-      if (target instanceof Element && target.closest("[data-action-folder-toggle]")) {
-        return;
-      }
-      request.selectedFolderId = row.getAttribute("data-action-folder-row") || "";
-      renderActionDialog();
-    });
-  });
 }
 
 function renderActionDialog() {
@@ -23987,7 +23973,9 @@ function renderActionDialog() {
   const isPrompt = request.type === "prompt";
   const isForm = request.type === "form";
   const isFolderPicker = request.type === "folderPicker";
-  const fieldHtml = isPrompt
+  const fieldHtml = isFolderPicker
+    ? renderActionFolderPicker(request)
+    : isPrompt
     ? '<label class="action-dialog-field"><span>' + escapeHtml(request.label || text("请输入内容", "Enter a value")) + '</span>' +
       (request.multiline
         ? '<textarea data-action-dialog-input rows="' + escapeHtml(String(request.rows || 6)) + '">' + escapeHtml(request.defaultValue || "") + '</textarea>'
@@ -24053,9 +24041,19 @@ function renderActionDialog() {
   dialog.querySelectorAll("[data-action-dialog-cancel]").forEach((element) => {
     element.addEventListener("click", () => resolveActionDialog(isPrompt || isForm || isFolderPicker ? null : false));
   });
+  dialog.querySelectorAll("[data-action-folder-row]").forEach((element) => {
+    element.addEventListener("click", () => {
+      state.dialogRequest.folderPickerSelectedId = normalizeActionDialogFolderChoice(element.getAttribute("data-action-folder-row"));
+      renderActionDialog();
+    });
+  });
   dialog.querySelector("[data-action-dialog-confirm]")?.addEventListener("click", () => {
     if (isPrompt) {
       resolveActionDialog(String(input?.value || ""));
+      return;
+    }
+    if (isFolderPicker) {
+      resolveActionDialog(normalizeActionDialogFolderChoice(state.dialogRequest?.folderPickerSelectedId));
       return;
     }
     if (isForm) {
@@ -24077,12 +24075,9 @@ function renderActionDialog() {
     }
     resolveActionDialog(true);
   });
-  if (isFolderPicker) {
-    bindActionFolderPickerDialog(dialog, request);
-  }
   dialog.onkeydown = handleActionDialogKeydown;
   window.setTimeout(() => {
-    const focusTarget = input || firstFormField || dialog.querySelector("[data-action-folder-choice]:checked") || dialog.querySelector("[data-action-dialog-confirm]");
+    const focusTarget = input || firstFormField || dialog.querySelector(".action-folder-picker-row.selected") || dialog.querySelector("[data-action-dialog-confirm]");
     if (focusTarget instanceof HTMLElement) {
       focusTarget.focus();
       if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
@@ -24171,23 +24166,6 @@ function formAction(message, fields = [], options = {}) {
     kicker: options.kicker || text("需要输入", "Input Required"),
     confirmLabel: options.confirmLabel || text("保存", "Save"),
     cancelLabel: options.cancelLabel || text("取消", "Cancel"),
-  });
-}
-
-function folderPickerAction(message, options = {}) {
-  const defaultFolderId = options.defaultFolderId || "";
-  return requestActionDialog({
-    type: "folderPicker",
-    message,
-    title: options.title || text("选择目标目录", "Choose Target Folder"),
-    kicker: options.kicker || text("批量移动", "Batch Move"),
-    confirmLabel: options.confirmLabel || text("移动到此目录", "Move Here"),
-    cancelLabel: options.cancelLabel || text("取消", "Cancel"),
-    selectedFolderId: defaultFolderId,
-    expandedFolderIds: actionFolderPickerExpandedFolders(defaultFolderId),
-    itemCount: options.itemCount || 0,
-    itemLabels: Array.isArray(options.itemLabels) ? options.itemLabels : [],
-    className: options.className || "",
   });
 }
 
@@ -24616,14 +24594,41 @@ async function batchMoveSelectedDocuments() {
     return;
   }
 
-  const targetParentId = await chooseBatchMoveTargetFolder(docs);
-  if (targetParentId === null) {
+  const options = documentFolderOptions();
+  const commonParentId = docs.every((doc) => (doc.parentId || "") === (docs[0].parentId || "")) ? (docs[0].parentId || "") : "";
+  const selectedFolderId = await folderPickerAction(
+    text(`将移动 ${docs.length} 份文件。请选择目标目录。`, `Move ${docs.length} file(s). Select the target folder.`),
+    {
+      selectedId: commonParentId,
+      folderOptions: options,
+      previewItems: docs.map((doc) => doc.name),
+      confirmLabel: text("移动到此处", "Move Here")
+    }
+  );
+  if (selectedFolderId === null) {
+    return;
+  }
+
+  const normalized = normalizeActionDialogFolderChoice(selectedFolderId);
+  const matchedOption = options.find((item) => (item.value || "") === normalized);
+  if (normalized && !matchedOption) {
+    showAlert(text("目标目录不存在。", "Target folder does not exist."));
+    return;
+  }
+  const targetParentId = normalized || null;
+  const movableDocs = docs.filter((doc) => (doc.parentId || "") !== (targetParentId || ""));
+  if (!movableDocs.length) {
+    showAlert(text("选中文件已经在目标目录中。", "The selected files are already in the target folder."));
+    return;
+  }
+  const targetLabel = matchedOption?.label || text("根目录", "Root");
+  if (!await confirmAction(text(`确认移动 ${movableDocs.length} 份文件到 ${targetLabel}？`, `Move ${movableDocs.length} file(s) to ${targetLabel}?`))) {
     return;
   }
 
   try {
     await Promise.all(
-      docs.map((doc) =>
+      movableDocs.map((doc) =>
         patchJson(`/api/documents/${doc.id}`, {
           actor: currentActorLabel(),
           parentId: targetParentId,
@@ -24637,26 +24642,6 @@ async function batchMoveSelectedDocuments() {
   } catch (error) {
     notifyError(error, text("批量移动失败，请稍后重试。", "Batch move failed. Please try again later."));
   }
-}
-
-async function chooseBatchMoveTargetFolder(docs) {
-  const defaultFolderId = state.currentFolderId || "";
-  const targetFolderId = await folderPickerAction(
-    text(
-      "从项目目录树中选择目标位置。不会暴露内部目录 ID，确认后会移动当前可移动的已选文件。",
-      "Choose the target location from the project folder tree. Internal folder IDs are hidden; confirming moves the selected movable files.",
-    ),
-    {
-      title: text("批量移动文件", "Move Selected Files"),
-      kicker: text("目标目录", "Target Folder"),
-      confirmLabel: text("移动到此目录", "Move Here"),
-      defaultFolderId,
-      itemCount: docs.length,
-      itemLabels: docs.map((doc) => doc.name),
-      className: "batch-move-folder",
-    },
-  );
-  return targetFolderId === null ? null : targetFolderId || null;
 }
 
 async function batchDeleteSelectedDocuments() {
@@ -35814,6 +35799,5 @@ window.addEventListener(
     if (state.pdfDoc && currentDocument()) {
       renderCurrentPdfPage();
     }
-    positionOpenRowActionMenu();
   }, 150),
 );
