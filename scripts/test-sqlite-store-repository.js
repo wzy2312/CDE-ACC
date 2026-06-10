@@ -248,6 +248,8 @@ const seedStore = {
       detail: { name: "demo.pdf" },
       ip: "127.0.0.1",
       createdAt: "2026-04-25T00:00:00.000Z",
+      previousHash: "previous-audit-hash",
+      hash: "current-audit-hash",
     },
   ],
   jobs: [],
@@ -904,6 +906,27 @@ const seedStore = {
   ],
 };
 
+const largeQuantityProperties = Object.fromEntries(
+  Array.from({ length: 80 }, (_, index) => [`Large Property ${index}`, "x".repeat(240)]),
+);
+for (let index = 0; index < 80; index += 1) {
+  seedStore.quantityPropertySnapshots.push({
+    id: `quantity-snapshot-large-${index}`,
+    taskId: "quantity-task-1",
+    dbId: 9000 + index,
+    name: `大型构件 ${index}`,
+    elementType: "大型构件",
+    properties: largeQuantityProperties,
+    floor: "泵房",
+    discipline: "工艺设备",
+    material: "SS316L",
+    area: index,
+    length: index,
+    volume: index,
+  });
+}
+seedStore.quantityTakeoffTasks[0].snapshotCount = seedStore.quantityPropertySnapshots.length;
+
 try {
   const repository = createSQLiteStoreRepository({
     dbPath,
@@ -920,6 +943,8 @@ try {
   assert(initial.documents[0].drawingMetadata?.drawingNumber === "P-001-001", "drawing metadata should round-trip");
   assert(initial.workflows[0].fileRefs[0].docId === "doc-1", "workflow file refs should round-trip");
   assert(initial.workflows[0].healthGateOverrides?.[0]?.reason === "生产联调测试强制放行", "workflow health gate overrides should round-trip");
+  assert(initial.auditLogs?.[0]?.previousHash === "previous-audit-hash", "audit log previous hash should round-trip");
+  assert(initial.auditLogs?.[0]?.hash === "current-audit-hash", "audit log hash should round-trip");
   assert(initial.modelGeometryExtractionTasks?.[0]?.meshCount === 1, "model geometry extraction tasks should round-trip");
   assert(initial.modelHealthRulesets?.[0]?.rules?.requiredFields?.结构梁?.[0] === "截面尺寸", "model health rulesets should round-trip");
   assert(initial.modelHealthTasks?.[0]?.summary?.errorCount === 1, "model health tasks should round-trip");
@@ -928,6 +953,7 @@ try {
   assert(initial.modelHealthFalsePositiveRecords?.[0]?.reason === "该构件为本项目特殊规格", "model health false positive records should round-trip");
   assert(initial.quantityTakeoffTasks?.[0]?.config?.filters?.discipline?.[0] === "工艺设备", "quantity takeoff tasks should round-trip");
   assert(initial.quantityPropertySnapshots?.[0]?.properties?.["Tag Number"] === "P-101", "quantity property snapshots should round-trip");
+  assert(initial.quantityPropertySnapshots?.length === 81, "large quantity property snapshot tables should round-trip");
   assert(initial.quantitySummaries?.[0]?.dimensions?.system === "RO", "quantity summaries should round-trip");
   assert(initial.quantityTemplates?.[0]?.config?.elementTypes?.[1] === "管道", "quantity templates should round-trip");
   assert(initial.modelDiffTasks?.[0]?.summary?.modified === 1, "model diff tasks should round-trip");

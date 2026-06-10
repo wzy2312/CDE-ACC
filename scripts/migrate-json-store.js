@@ -443,6 +443,8 @@ function migrateAuditLogs(store, lines) {
       detail_json: json(log.detail, {}),
       ip: text(log.ip),
       created_at: text(log.createdAt, new Date().toISOString()),
+      previous_hash: text(log.previousHash),
+      hash: text(log.hash),
     }));
   }
 }
@@ -465,10 +467,15 @@ function migrateJobs(store, lines) {
 }
 
 function migrateModelGeometryExtractionTasks(store, lines) {
+  const documentIds = new Set(arrayOf(store.documents).map((doc) => text(doc.id)).filter(Boolean));
   for (const task of arrayOf(store.modelGeometryExtractionTasks)) {
+    const documentId = text(task.documentId);
+    if (!documentId || !documentIds.has(documentId)) {
+      continue;
+    }
     lines.push(insert("model_geometry_extraction_tasks", {
       id: text(task.id),
-      document_id: text(task.documentId),
+      document_id: documentId,
       project_id: text(task.projectId),
       version_id: text(task.versionId),
       model_urn: text(task.modelUrn),

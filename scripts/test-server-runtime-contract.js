@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const source = fs.readFileSync(path.join(process.cwd(), "server.js"), "utf8");
+const dockerfile = fs.readFileSync(path.join(process.cwd(), "Dockerfile"), "utf8");
 const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
 const pythonResolverSource = source.match(/function resolvePythonBin\(\) \{[\s\S]*?\n\}/)?.[0] || "";
 
@@ -18,6 +19,34 @@ assert(
 assert(
   source.includes('if (pathname === "/auth-bootstrap.js") {'),
   "server.js must serve /auth-bootstrap.js",
+);
+assert(
+  source.indexOf("servePublicAssetRequest(pathname, req, res)") > 0 &&
+    source.indexOf("servePublicAssetRequest(pathname, req, res)") < source.indexOf("await settleDocumentParsingStates();"),
+  "server.js must serve public shell assets before document parsing settlement",
+);
+assert(
+  source.indexOf('if (pathname === "/api/session" && req.method === "GET")') > 0 &&
+    source.indexOf('if (pathname === "/api/session" && req.method === "GET")') < source.indexOf("await settleDocumentParsingStates();"),
+  "server.js must answer GET /api/session before document parsing settlement",
+);
+assert(
+  source.includes("function parseCookieValues(") &&
+    source.includes("const sessionIds = parseCookieValues(req, SESSION_COOKIE_NAME)") &&
+    source.includes("for (const candidateSessionId of sessionIds)"),
+  "server.js must scan duplicate cde_session cookies and select a valid active session",
+);
+assert(
+  source.includes("const compressedFileCache = new Map();") &&
+    source.includes("function compressedFileCacheKey(") &&
+    source.includes("compressedFileCache.set(cacheKey"),
+  "server.js must cache compressed static files instead of recompressing app.js on every refresh",
+);
+assert(
+  source.includes("function cacheControlForFileRequest(") &&
+    source.includes('url.searchParams.has("v")') &&
+    source.includes('"public, max-age=31536000, immutable"'),
+  "server.js must allow immutable browser caching for versioned JS/CSS assets",
 );
 assert(
   source.includes('if (pathname === "/styles-critical.css") {'),
@@ -56,6 +85,10 @@ assert(
     source.includes("storageBucketHealthOk(data.exportsDir)") &&
     source.includes("storageBucketHealthOk(data.attachmentsDir)"),
   "server.js health summary must use storageBucketHealthOk() for all storage buckets",
+);
+assert(
+  /apk add --no-cache[^\n]*\bsqlite\b/.test(dockerfile),
+  "Dockerfile must install sqlite so CDE_STORE_ADAPTER=sqlite works in production",
 );
 assert(
   source.includes('pathname.match(/^\\/api\\/workflows\\/([^/]+)\\/report-export$/)'),

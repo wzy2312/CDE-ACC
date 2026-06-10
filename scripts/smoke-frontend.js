@@ -303,9 +303,56 @@ async function runFrontendScenario() {
     ],
     "file row hover quick actions",
   );
+  assertIncludes(
+    styles.body,
+    [
+      ".row-action-menu.row-action-menu-floating",
+      "position: fixed !important;",
+      "z-index: 4200 !important;",
+    ],
+    "row action menu floating layer styles",
+  );
+  assertIncludes(
+    styles.body,
+    [
+      ".action-dialog-card.is-folder-picker-dialog",
+      ".action-folder-picker-summary",
+      ".action-folder-picker-preview",
+      ".action-folder-picker-row.selected",
+    ],
+    "batch move folder picker styles",
+  );
 
   const app = assertStatus(await request("GET", "/app.js"), 200, "app.js");
   assertIncludes(app.body, ["/api/session/login", "/api/notifications", "/api/model-apps/clash/run", "/api/model-apps/health", "/api/model-apps/health/run", "renderModelHealthTemplateSummary", "modelHealthTemplateProfile", "/api/model-apps/quantity/compare", "property-dictionary", "scanQuantityPropertyDictionary", "data-quantity-task-action", "/api/model-apps/diff", "/api/model-apps/diff/run", "renderModelDiffWorkbench", "runModelDiffFromSelection", "modelDiffVersionReadiness", "createIssueFromModelDiff", "createBulkIssuesFromModelDiff", "modelDiffOnlyDifferences", "modelDiffViewerMode", "modelDiffViewMode", "/api/model-apps/schedule", "renderConstructionScheduleWorkbench", "readConstructionScheduleXerFile", "previewConstructionScheduleXer", "autoMapConstructionSchedule", "openConstructionScheduleViewer", "createIssueFromConstructionScheduleAlert", "/api/drawing-apps/register", "/api/drawing-apps/register/export", "/api/drawing-apps/register/expected", "/consistency/confirm", "/api/drawing-apps/packages", "/publish", "/recipients/", "/ack", "/api/drawing-apps/spec-check", "/api/drawing-apps/spec-check/specs", "/api/drawing-apps/spec-check/compare", "/api/drawing-apps/redline", "/api/drawing-apps/redline/run", "renderDrawingRedlineWorkbench", "runDrawingRedlineComparison", "createDrawingRedlineIssue", "exportDrawingRedlineReport", "data-drawing-redline-action=\"export-report\"", "差异图层透明度", "只看差异区域", "红线对比任务", "renderDrawingSpecCheckWorkbench", "refreshDrawingSpecCheckData", "createDrawingSpecCheckIssue", "data-drawing-spec-action=\"compare\"", "/api/system/aps-settings", "renderModelAppsPanel", "modelClashDocuments", "runModelClashDetectionFromSelection", "refreshModelHealthData", "runModelHealthCheckFromSelection", "renderModelHealthWorkbench", "modelHealthActiveTask", "apsConfiguration", "saveSystemApsConfigurationAction", "quantityApsConfigurationReady", "renderQuantityTakeoffPanel", "quantityDocumentSelect", "QUANTITY_FILTER_DEFINITIONS", "renderQuantityFilterBuilder", "data-quantity-filter-action", "取水泵房", "RO膜壳", "inferDrawingMetadataFromFileName", "drawingMetadata", "precheckGate", "drawingSmartReviewGateMeta", "existingDrawingRelationOptions", "data-upload-drawing-related-select", "renderDrawingAppsPanel", "renderDrawingRegisterWorkbench", "refreshDrawingRegisterData", "editDrawingExpectedList", "confirmDrawingRegisterConsistency", "renderDrawingRegisterSourceCell", "drawingRegisterAutoAggregationCount", "publishDrawingPackage", "ackDrawingPackageRecipient", "createDrawingPackageFromRegister", "data-drawing-register-action=\"confirm-consistency\"", "data-drawing-register-action=\"publish-package\"", "data-drawing-register-action=\"ack-package\"", "自动归集", "归集来源", "文件名识别", "导出目录", "创建打印包", "格式一致性", "预检查", "签收完成", "refreshDocuments", "renderWorkflow", "exportReviewedFile", "预审工作台", "预审运行记录", "报告归档", "Issue 联动", "手动生成 Issue", "导出预审报告", "data-drawing-smart-action=\"open-issue\"", "data-drawing-smart-action=\"create-issue\"", "data-drawing-smart-action=\"export-report\"", "drawingSmartReviewActiveTaskId", "promptAction(text(\"请输入处理说明"], "app.js");
+  assertIncludes(
+    app.body,
+    [
+      "row-action-menu-floating",
+      "function positionOpenRowActionMenu",
+      "positionOpenRowActionMenu();",
+    ],
+    "row action menu floating layer contract",
+  );
+  assertIncludes(
+    app.body,
+    [
+      "function chooseBatchMoveTargetFolder",
+      'type: "folderPicker"',
+      "batch-move-folder",
+      "data-action-folder-choice",
+    ],
+    "batch move folder picker contract",
+  );
+  assertExcludes(
+    app.body,
+    [
+      "请输入目标目录值",
+      "Enter target folder value",
+      "optionText",
+    ],
+    "batch move must not expose internal folder ids",
+  );
   assertIncludes(
     app.body,
     [

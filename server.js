@@ -505,6 +505,27 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (servePublicAssetRequest(pathname, req, res)) {
+      return;
+    }
+
+    if (pathname === "/api/session" && req.method === "GET") {
+      const authState = requestAuthState(req, url);
+      const userContext = authState.userContext;
+      if (!userContext) {
+        sendJson(res, 200, {
+          authenticated: false,
+        });
+        return;
+      }
+      sendJson(res, 200, {
+        authenticated: true,
+        currentUser: userSummaryRecord(userContext),
+        access: accessPayload(userContext),
+      });
+      return;
+    }
+
     await settleDocumentParsingStates();
     const authState = requestAuthState(req, url);
     const userContext = authState.userContext;
@@ -5043,9 +5064,33 @@ function parseCookies(req) {
     if (!key) {
       return cookies;
     }
-    cookies[key] = decodeURIComponent(rest.join("=").trim());
+    cookies[key] = decodeCookieValue(rest.join("=").trim());
     return cookies;
   }, {});
+}
+
+function decodeCookieValue(value) {
+  try {
+    return decodeURIComponent(String(value || ""));
+  } catch {
+    return String(value || "");
+  }
+}
+
+function parseCookieValues(req, cookieName) {
+  const raw = safeText(req.headers?.cookie, "");
+  const targetName = safeText(cookieName, "");
+  if (!raw || !targetName) {
+    return [];
+  }
+  return raw.split(";").reduce((values, chunk) => {
+    const [name, ...rest] = chunk.split("=");
+    const key = String(name || "").trim();
+    if (key === targetName) {
+      values.push(decodeCookieValue(rest.join("=").trim()));
+    }
+    return values;
+  }, []);
 }
 
 function serializeSessionCookie(sessionId) {
@@ -5197,9 +5242,10 @@ function requestAuthState(req) {
   }
 
   pruneExpiredSessions();
-  const cookies = parseCookies(req);
-  const sessionId = safeText(cookies[SESSION_COOKIE_NAME], "");
-  if (!sessionId) {
+  const sessionIds = parseCookieValues(req, SESSION_COOKIE_NAME)
+    .map((value) => safeText(value, ""))
+    .filter(Boolean);
+  if (!sessionIds.length) {
     req.__authState = {
       sessionId: "",
       session: null,
@@ -5208,9 +5254,24 @@ function requestAuthState(req) {
     return req.__authState;
   }
 
-  const session = activeSessions.get(sessionId);
-  if (!session || Number(session.expiresAt || 0) <= Date.now()) {
-    destroySession(sessionId);
+  let sessionId = "";
+  let session = null;
+  const now = Date.now();
+  for (const candidateSessionId of sessionIds) {
+    const candidateSession = activeSessions.get(candidateSessionId);
+    if (!candidateSession) {
+      continue;
+    }
+    if (Number(candidateSession.expiresAt || 0) <= now) {
+      destroySession(candidateSessionId);
+      continue;
+    }
+    sessionId = candidateSessionId;
+    session = candidateSession;
+    break;
+  }
+
+  if (!session) {
     req.__authState = {
       sessionId: "",
       session: null,
@@ -24633,7 +24694,10 @@ function normalizeShare(share) {
 
 function defaultShareExpiryDate() {
   const date = new Date();
-  date.setDate(date.getDate() + 1);
+  // Default share-link validity. A 1-day default caused links to "expire"
+  // almost immediately; allow override via env, default to 30 days.
+  const days = Math.max(1, Number(process.env.CDE_SHARE_DEFAULT_EXPIRY_DAYS || 30) || 30);
+  date.setDate(date.getDate() + days);
   return date.toISOString().slice(0, 10);
 }
 
@@ -27019,6 +27083,21 @@ function cacheControlForFileName(fileName) {
       : "public, max-age=0";
 }
 
+function cacheControlForFileRequest(fileName, req) {
+  const ext = path.extname(fileName).toLowerCase();
+  if ([".css", ".js", ".mjs", ".map", ".wasm"].includes(ext)) {
+    try {
+      const url = new URL(req?.url || "", "http://127.0.0.1");
+      if (url.searchParams.has("v")) {
+        return "public, max-age=31536000, immutable";
+      }
+    } catch {
+      // Fall back to the filename-based policy below.
+    }
+  }
+  return cacheControlForFileName(fileName);
+}
+
 async function serveStorageObject(res, bucket, fileName) {
   if (!(await bucket.exists(fileName))) {
     sendJson(res, 404, { error: "File not found" });
@@ -27034,6 +27113,52 @@ async function serveStorageObject(res, bucket, fileName) {
 }
 
 const COMPRESSIBLE_EXTENSIONS = new Set([".html", ".css", ".js", ".mjs", ".json", ".svg", ".csv", ".txt", ".map"]);
+const compressedFileCache = new Map();
+
+function compressedFileCacheKey(filePath, stat, encoding) {
+  return `${encoding}:${filePath}:${stat.size}:${Math.round(stat.mtimeMs)}`;
+}
+
+function servePublicAssetRequest(pathname, req, res) {
+  if (!["GET", "HEAD"].includes(String(req.method || "").toUpperCase())) {
+    return false;
+  }
+  if (pathname === "/favicon.ico") {
+    res.writeHead(204);
+    res.end();
+    return true;
+  }
+  if (pathname.startsWith("/vendor/pdfjs/")) {
+    serveFile(res, path.join(PDFJS_DIR, path.basename(pathname)), req);
+    return true;
+  }
+  if (pathname.startsWith("/vendor/embedpdf/")) {
+    serveFile(res, path.join(EMBEDPDF_DIST_DIR, path.basename(pathname)), req);
+    return true;
+  }
+
+  const publicFiles = new Map([
+    ["/", "index.html"],
+    ["/index.html", "index.html"],
+    ["/invite.html", "invite.html"],
+    ["/onlyoffice.html", "onlyoffice.html"],
+    ["/apsviewer.html", "apsviewer.html"],
+    ["/drawingviewer.html", "drawingviewer.html"],
+    ["/pdf.html", "pdf.html"],
+    ["/app.js", "app.js"],
+    ["/auth-bootstrap.js", "auth-bootstrap.js"],
+    ["/apsviewer.js", "apsviewer.js"],
+    ["/pdf-runtime.js", "pdf-runtime.js"],
+    ["/styles.css", "styles.css"],
+    ["/styles-critical.css", "styles-critical.css"],
+  ]);
+  const fileName = publicFiles.get(pathname);
+  if (!fileName) {
+    return false;
+  }
+  serveFile(res, path.join(ROOT, fileName), req);
+  return true;
+}
 
 function negotiateEncoding(req, ext, size) {
   if (!req || size < 1024 || !COMPRESSIBLE_EXTENSIONS.has(ext)) {
@@ -27065,7 +27190,7 @@ function serveFile(res, filePath, req) {
   const etag = `W/"${stat.size.toString(16)}-${Math.round(stat.mtimeMs).toString(16)}"`;
   const headers = {
     "Content-Type": contentTypeForFileName(filePath),
-    "Cache-Control": cacheControlForFileName(filePath),
+    "Cache-Control": cacheControlForFileRequest(filePath, req),
     "Last-Modified": stat.mtime.toUTCString(),
     ETag: etag,
   };
@@ -27083,13 +27208,20 @@ function serveFile(res, filePath, req) {
 
   const encoding = negotiateEncoding(req, path.extname(filePath).toLowerCase(), stat.size);
   if (encoding) {
+    const cacheKey = compressedFileCacheKey(filePath, stat, encoding);
+    let compressed = compressedFileCache.get(cacheKey);
+    if (!compressed) {
+      const raw = fs.readFileSync(filePath);
+      compressed = encoding === "br"
+        ? zlib.brotliCompressSync(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 6 } })
+        : zlib.gzipSync(raw);
+      compressedFileCache.set(cacheKey, compressed);
+    }
     headers["Content-Encoding"] = encoding;
     headers.Vary = "Accept-Encoding";
+    headers["Content-Length"] = compressed.length;
     res.writeHead(200, headers);
-    const compressor = encoding === "br"
-      ? zlib.createBrotliCompress({ params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 6 } })
-      : zlib.createGzip();
-    fs.createReadStream(filePath).pipe(compressor).pipe(res);
+    res.end(compressed);
     return;
   }
 
@@ -27969,33 +28101,129 @@ async function createBatchDownloadArchive(ids, userContext = SYSTEM_USER_CONTEXT
       createdBy: safeText(userContext?.user?.id, ""),
       createdAt: new Date().toISOString(),
     });
-    return `/exports/${archiveName}`;
+    return signedExportUrl(archiveName);
   } finally {
     fs.rmSync(stagingDir, { recursive: true, force: true });
   }
 }
 
+// Pure-Node ZIP writer (no external `zip` binary dependency, so it works in
+// minimal containers that don't ship /usr/bin/zip). Stores each file in the
+// (flat) staging dir with DEFLATE compression and UTF-8 file names.
 function zipDirectory(sourceDir, archivePath) {
   return new Promise((resolve, reject) => {
-    const child = spawn("/usr/bin/zip", ["-rq", archivePath, "."], {
-      cwd: sourceDir,
-    });
+    try {
+      const zlib = require("zlib");
+      const CRC_TABLE = (() => {
+        const t = new Int32Array(256);
+        for (let n = 0; n < 256; n++) {
+          let c = n;
+          for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+          t[n] = c;
+        }
+        return t;
+      })();
+      const crc32 = (buf) => {
+        let c = ~0;
+        for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+        return (~c) >>> 0;
+      };
 
-    let stderr = "";
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString("utf8");
-    });
+      const names = fs
+        .readdirSync(sourceDir, { withFileTypes: true })
+        .filter((d) => d.isFile())
+        .map((d) => d.name);
 
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
+      const now = new Date();
+      const dosTime =
+        ((now.getHours() & 31) << 11) | ((now.getMinutes() & 63) << 5) | ((Math.floor(now.getSeconds() / 2)) & 31);
+      const dosDate =
+        (((now.getFullYear() - 1980) & 127) << 9) | (((now.getMonth() + 1) & 15) << 5) | (now.getDate() & 31);
+
+      const fd = fs.openSync(archivePath, "w");
+      let offset = 0;
+      const central = [];
+      const writeBuf = (buf) => {
+        fs.writeSync(fd, buf, 0, buf.length, offset);
+        offset += buf.length;
+      };
+
+      try {
+        names.forEach((name) => {
+          const data = fs.readFileSync(path.join(sourceDir, name));
+          const crc = crc32(data);
+          const comp = zlib.deflateRawSync(data);
+          const nameBuf = Buffer.from(name, "utf8");
+          const localOffset = offset;
+
+          const lh = Buffer.alloc(30);
+          lh.writeUInt32LE(0x04034b50, 0);
+          lh.writeUInt16LE(20, 4);
+          lh.writeUInt16LE(0x0800, 6); // UTF-8 filename flag
+          lh.writeUInt16LE(8, 8); // method: deflate
+          lh.writeUInt16LE(dosTime, 10);
+          lh.writeUInt16LE(dosDate, 12);
+          lh.writeUInt32LE(crc, 14);
+          lh.writeUInt32LE(comp.length, 18);
+          lh.writeUInt32LE(data.length, 22);
+          lh.writeUInt16LE(nameBuf.length, 26);
+          lh.writeUInt16LE(0, 28);
+          writeBuf(lh);
+          writeBuf(nameBuf);
+          writeBuf(comp);
+
+          central.push({ name: nameBuf, crc, comp: comp.length, size: data.length, localOffset, dosTime, dosDate });
+        });
+
+        const cdStart = offset;
+        central.forEach((e) => {
+          const ch = Buffer.alloc(46);
+          ch.writeUInt32LE(0x02014b50, 0);
+          ch.writeUInt16LE(20, 4);
+          ch.writeUInt16LE(20, 6);
+          ch.writeUInt16LE(0x0800, 8);
+          ch.writeUInt16LE(8, 10);
+          ch.writeUInt16LE(e.dosTime, 12);
+          ch.writeUInt16LE(e.dosDate, 14);
+          ch.writeUInt32LE(e.crc, 16);
+          ch.writeUInt32LE(e.comp, 20);
+          ch.writeUInt32LE(e.size, 24);
+          ch.writeUInt16LE(e.name.length, 28);
+          ch.writeUInt16LE(0, 30);
+          ch.writeUInt16LE(0, 32);
+          ch.writeUInt16LE(0, 34);
+          ch.writeUInt16LE(0, 36);
+          ch.writeUInt32LE(0, 38);
+          ch.writeUInt32LE(e.localOffset, 42);
+          writeBuf(ch);
+          writeBuf(e.name);
+        });
+        const cdSize = offset - cdStart;
+
+        const eocd = Buffer.alloc(22);
+        eocd.writeUInt32LE(0x06054b50, 0);
+        eocd.writeUInt16LE(0, 4);
+        eocd.writeUInt16LE(0, 6);
+        eocd.writeUInt16LE(central.length, 8);
+        eocd.writeUInt16LE(central.length, 10);
+        eocd.writeUInt32LE(cdSize, 12);
+        eocd.writeUInt32LE(cdStart, 16);
+        eocd.writeUInt16LE(0, 20);
+        writeBuf(eocd);
+      } finally {
+        fs.closeSync(fd);
+      }
+
+      if (!central.length) {
+        const error = new Error("批量打包失败：没有可用文件");
+        error.statusCode = 500;
+        reject(error);
         return;
       }
-      const error = new Error(stderr.trim() || "批量打包失败");
-      error.statusCode = 500;
-      reject(error);
-    });
-
-    child.on("error", reject);
+      resolve();
+    } catch (err) {
+      if (!err.statusCode) err.statusCode = 500;
+      reject(err);
+    }
   });
 }

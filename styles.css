@@ -28228,6 +28228,10 @@ button,
   width: min(560px, calc(100vw - 40px)) !important;
 }
 
+.action-dialog-card.is-folder-picker-dialog {
+  width: min(760px, calc(100vw - 40px)) !important;
+}
+
 .action-dialog-field input,
 .action-dialog-field select,
 .action-dialog-field textarea,
@@ -28251,6 +28255,60 @@ button,
   color: var(--ds-ink-4, var(--muted));
   font-size: 11px;
   line-height: 1.45;
+}
+
+.action-folder-picker-summary {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-hairline-soft, var(--line));
+  background: color-mix(in srgb, var(--ds-paper) 82%, var(--ds-accent-bg) 18%);
+}
+
+.action-folder-picker-summary span {
+  color: var(--ds-ink-4, var(--muted));
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.action-folder-picker-summary strong {
+  color: var(--ds-ink, var(--ink));
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.action-folder-picker-summary p {
+  color: var(--ds-ink-3, var(--muted));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.action-folder-picker-preview {
+  max-height: 96px;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  overflow: auto;
+  list-style: none;
+}
+
+.action-folder-picker-preview li {
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--ds-hairline-soft, var(--line));
+  background: color-mix(in srgb, var(--ds-paper) 94%, transparent);
+  color: var(--ds-ink-3, var(--muted));
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.action-folder-picker-row.selected {
+  border-color: color-mix(in srgb, var(--ds-accent) 32%, var(--ds-hairline) 68%);
+  background: color-mix(in srgb, var(--ds-accent-bg) 34%, var(--ds-paper) 66%);
 }
 
 .content-grid.files-only .folder-tree-children {

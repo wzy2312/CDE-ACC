@@ -183,6 +183,38 @@ function pdfFixtureData() {
   };
 }
 
+function zipCentralDirectoryEntries(buffer) {
+  const eocdSignature = 0x06054b50;
+  let eocdOffset = -1;
+  for (let offset = buffer.length - 22; offset >= 0; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === eocdSignature) {
+      eocdOffset = offset;
+      break;
+    }
+  }
+  if (eocdOffset < 0) {
+    throw new Error("ZIP end-of-central-directory record was not found");
+  }
+  const totalEntries = buffer.readUInt16LE(eocdOffset + 10);
+  const centralOffset = buffer.readUInt32LE(eocdOffset + 16);
+  const entries = [];
+  let cursor = centralOffset;
+  for (let index = 0; index < totalEntries; index += 1) {
+    if (buffer.readUInt32LE(cursor) !== 0x02014b50) {
+      throw new Error(`ZIP central directory entry ${index} has an invalid signature`);
+    }
+    const flags = buffer.readUInt16LE(cursor + 8);
+    const method = buffer.readUInt16LE(cursor + 10);
+    const nameLength = buffer.readUInt16LE(cursor + 28);
+    const extraLength = buffer.readUInt16LE(cursor + 30);
+    const commentLength = buffer.readUInt16LE(cursor + 32);
+    const name = buffer.subarray(cursor + 46, cursor + 46 + nameLength).toString("utf8");
+    entries.push({ name, flags, method });
+    cursor += 46 + nameLength + extraLength + commentLength;
+  }
+  return entries;
+}
+
 function escapePdfText(value) {
   return String(value || "").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
@@ -2448,6 +2480,88 @@ async function runNotificationCenter(cookie, templateId) {
   console.log("notification smoke passed: todo feed and read state are real");
 }
 
+async function runBatchDownloadAndShareDefaults(cookie) {
+  const fixture = pdfFixtureData();
+  const sharedName = `批量下载-中文-${Date.now()}.pdf`;
+  const first = assertStatus(
+    await request("POST", "/api/documents", {
+      cookie,
+      body: {
+        name: sharedName,
+        mimeType: "application/pdf",
+        size: fixture.size,
+        dataBase64: fixture.dataBase64,
+        actor: "管理员",
+        conflictMode: "rename",
+      },
+    }),
+    201,
+    "create batch download UTF-8 document",
+  ).document;
+  const second = assertStatus(
+    await request("POST", "/api/documents", {
+      cookie,
+      body: {
+        name: sharedName,
+        mimeType: "application/pdf",
+        size: fixture.size,
+        dataBase64: fixture.dataBase64,
+        actor: "管理员",
+        conflictMode: "rename",
+      },
+    }),
+    201,
+    "create batch download duplicate document",
+  ).document;
+  const batchResult = assertStatus(
+    await request("POST", "/api/documents/batch-download", {
+      cookie,
+      body: { ids: [first.id, second.id] },
+    }),
+    200,
+    "batch download",
+  );
+  if (!/\/exports\/[^?]+\.zip\?expires=\d+&signature=[a-f0-9]+/.test(batchResult.downloadUrl || "")) {
+    throw new Error(`Batch download URL must be a signed ZIP export URL, received: ${batchResult.downloadUrl}`);
+  }
+  const archiveDownload = await request("GET", batchResult.downloadUrl, { cookie, binary: true });
+  if (archiveDownload.statusCode !== 200 || archiveDownload.body.readUInt32LE(0) !== 0x04034b50) {
+    throw new Error(`Batch ZIP download failed: ${archiveDownload.statusCode}`);
+  }
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cde-batch-download-zip-"));
+  const archivePath = path.join(tempDir, "batch.zip");
+  fs.writeFileSync(archivePath, archiveDownload.body);
+  const unzipResult = spawnSync("unzip", ["-t", archivePath], { encoding: "utf8" });
+  fs.rmSync(tempDir, { recursive: true, force: true });
+  if (unzipResult.status !== 0 || !unzipResult.stdout.includes("No errors detected")) {
+    throw new Error(`Batch ZIP failed unzip validation: ${unzipResult.stdout}${unzipResult.stderr}`);
+  }
+  const zipEntries = zipCentralDirectoryEntries(archiveDownload.body);
+  if (!zipEntries.some((entry) => entry.name.includes("批量下载-中文"))) {
+    throw new Error(`Batch ZIP should preserve UTF-8 filenames, received: ${JSON.stringify(zipEntries)}`);
+  }
+  if (!zipEntries.every((entry) => (entry.flags & 0x0800) !== 0 && entry.method === 8)) {
+    throw new Error(`Batch ZIP entries should use UTF-8 DEFLATE entries: ${JSON.stringify(zipEntries)}`);
+  }
+
+  const shared = assertStatus(
+    await request("PATCH", `/api/documents/${encodeURIComponent(first.id)}`, {
+      cookie,
+      body: { share: { enabled: true, permission: "view" }, actor: "管理员" },
+    }),
+    200,
+    "enable share with default expiry",
+  ).document;
+  const expiresAt = new Date(`${shared.share?.expiresAt}T00:00:00Z`).getTime();
+  const days = Math.round((expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
+  if (days < 29 || days > 31) {
+    throw new Error(`Default share expiry should be about 30 days, received ${shared.share?.expiresAt} (${days} days)`);
+  }
+
+  console.log("batch download and share defaults smoke passed: signed UTF-8 ZIP and 30-day default share links");
+}
+
 async function runApiScenario() {
   const loginResponse = await request("POST", "/api/session/login", {
     body: {
@@ -2476,6 +2590,7 @@ async function runApiScenario() {
   }
 
   await runNotificationCenter(cookie, template.id);
+  await runBatchDownloadAndShareDefaults(cookie);
   await runSystemApsSettings(cookie);
   await runSystemAiSettings(cookie);
   await runAuditLogDateFilter(cookie);

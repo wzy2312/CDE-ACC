@@ -31,6 +31,10 @@ const state = {
 const MAX_ATTACHMENT_COUNT = 10;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_DOCUMENT_BYTES = 50 * 1024 * 1024;
+// Bump when @embedpdf/snippet is upgraded so clients re-fetch the WASM; the
+// version query lets the server serve it immutable (skips the per-open revalidation
+// round-trip for the 4.6MB pdfium.wasm).
+const EMBEDPDF_ASSET_VERSION = "2.14.3";
 const EMBEDPDF_WASM_PATH = "/vendor/embedpdf/pdfium.wasm";
 const CDE_LEFT_SIDEBAR_ID = "sidebar-panel";
 const CDE_ANNOTATION_TAB_ID = "outline";
@@ -2458,7 +2462,9 @@ function appendCacheParam(url, value) {
 }
 
 function localEmbedPdfAssetUrl(pathname) {
-  return new URL(pathname, window.location.origin).toString();
+  const assetUrl = new URL(pathname, window.location.origin);
+  assetUrl.searchParams.set("v", EMBEDPDF_ASSET_VERSION);
+  return assetUrl.toString();
 }
 
 function isPdfDocument(doc) {

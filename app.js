@@ -1,7 +1,10 @@
 const LANGUAGE_STORAGE_KEY = "cde.language";
 const TASK_PANEL_COLLAPSED_STORAGE_KEY = "cde.taskPanelCollapsed";
 const RESUMABLE_UPLOAD_DRAFTS_STORAGE_KEY = "cde.resumableUploadDrafts.v1";
+const WORKSPACE_RESTORE_STORAGE_KEY = "cde.workspaceRestore.v1";
 const RESUMABLE_UPLOAD_CHUNK_SIZE = 4 * 1024 * 1024;
+const SESSION_CHECK_TIMEOUT_MS = 12000;
+const RESTORABLE_WORKSPACE_VIEWS = new Set(["files", "workflow", "drawing-apps", "model-apps", "access", "project-settings", "review"]);
 const LANGUAGE_META = {
   zh: {
     htmlLang: "zh-CN",
@@ -107,6 +110,128 @@ function persistTaskPanelCollapsed(nextCollapsed) {
   } catch {
     // Ignore storage access failures; the in-memory state still updates.
   }
+}
+
+function readWorkspaceRestoreState() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(WORKSPACE_RESTORE_STORAGE_KEY) || "null");
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function restoreStateText(value, fallback = "") {
+  const textValue = String(value ?? "").trim();
+  return textValue || String(fallback ?? "").trim();
+}
+
+function removeWorkspaceRestoreState() {
+  try {
+    window.sessionStorage.removeItem(WORKSPACE_RESTORE_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures; restore state is a convenience only.
+  }
+}
+
+function persistWorkspaceRestoreState() {
+  if (!state?.authenticated || typeof window === "undefined") {
+    return;
+  }
+  const payload = {
+    projectId: currentAccess().project?.id || "",
+    currentView: RESTORABLE_WORKSPACE_VIEWS.has(state.currentView) ? state.currentView : "files",
+    currentFolderId: state.currentFolderId || "",
+    selectedId: state.selectedId || "",
+    selectedWorkflowId: state.selectedWorkflowId || "",
+    currentPage: Math.max(1, Math.round(Number(state.currentPage || 1))),
+    drawingAppTool: state.drawingAppTool || "",
+    modelAppTool: state.modelAppTool || "",
+    accessMenu: state.accessMenu || "",
+    workspaceScrollTop: Math.max(0, Math.round(Number(elements.workspace?.scrollTop || 0))),
+    savedAt: Date.now(),
+  };
+  try {
+    window.sessionStorage.setItem(WORKSPACE_RESTORE_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage failures; refresh falls back to the default landing state.
+  }
+}
+
+function restoreWorkspaceStateAfterDataLoad() {
+  if (state.workspaceRestoreApplied) {
+    return;
+  }
+  state.workspaceRestoreApplied = true;
+  const saved = readWorkspaceRestoreState();
+  if (!saved) {
+    return;
+  }
+  const savedProjectId = restoreStateText(saved.projectId);
+  if (savedProjectId && savedProjectId !== restoreStateText(currentAccess().project?.id)) {
+    return;
+  }
+
+  const nextView = RESTORABLE_WORKSPACE_VIEWS.has(saved.currentView) ? saved.currentView : "files";
+  state.currentView = nextView;
+
+  const savedFolderId = restoreStateText(saved.currentFolderId);
+  state.currentFolderId = savedFolderId && folderById(savedFolderId) ? savedFolderId : null;
+
+  const savedDocumentId = restoreStateText(saved.selectedId);
+  const savedDocument = savedDocumentId ? documentById(savedDocumentId) : null;
+  if (savedDocument) {
+    state.selectedId = savedDocument.id;
+    if (!state.currentFolderId && nextView === "files") {
+      state.currentFolderId = savedDocument.parentId || null;
+    }
+  }
+
+  const savedWorkflowId = restoreStateText(saved.selectedWorkflowId);
+  if (savedWorkflowId && state.workflows.find((workflow) => workflow.id === savedWorkflowId)) {
+    state.selectedWorkflowId = savedWorkflowId;
+  }
+
+  const savedPage = Math.round(Number(saved.currentPage || 1));
+  if (Number.isFinite(savedPage) && savedPage > 0) {
+    state.currentPage = savedPage;
+  }
+
+  if (saved.drawingAppTool) {
+    state.drawingAppTool = restoreStateText(saved.drawingAppTool, state.drawingAppTool);
+  }
+  if (saved.modelAppTool) {
+    state.modelAppTool = normalizeModelAppTool(saved.modelAppTool);
+  }
+  if (saved.accessMenu) {
+    state.accessMenu = normalizeAccessMenuForView(saved.accessMenu, nextView);
+  }
+
+  const savedScrollTop = Math.round(Number(saved.workspaceScrollTop || 0));
+  state.pendingWorkspaceRestoreScrollTop = Number.isFinite(savedScrollTop) && savedScrollTop > 0 ? savedScrollTop : null;
+}
+
+function restoreWorkspaceScrollPosition() {
+  if (!state.authenticated || state.pendingWorkspaceRestoreScrollTop === null || !elements.workspace) {
+    return false;
+  }
+  const scrollTop = state.pendingWorkspaceRestoreScrollTop;
+  state.pendingWorkspaceRestoreScrollTop = null;
+  window.requestAnimationFrame(() => {
+    elements.workspace.scrollTop = scrollTop;
+    persistWorkspaceRestoreState();
+    syncBackToTopButton();
+  });
+  return true;
+}
+
+function handleWorkspaceScrollState() {
+  syncBackToTopButton();
+  persistWorkspaceRestoreState();
+  positionOpenRowActionMenu();
 }
 
 function createLocalizedLookup(valuesByLanguage) {
@@ -1594,6 +1719,8 @@ state = {
   authReady: false,
   authBusy: true,
   authMessage: text("正在检查登录状态…", "Checking session..."),
+  workspaceRestoreApplied: false,
+  pendingWorkspaceRestoreScrollTop: null,
   loginTab: "password",
   loginForm: {
     email: DEFAULT_LOGIN_EMAIL,
@@ -4559,7 +4686,7 @@ function bindEvents() {
   elements.languageToggleButton.addEventListener("click", () => {
     setLibraryLanguage(state.libraryLanguage === "zh" ? "en" : "zh");
   });
-  elements.workspace?.addEventListener("scroll", syncBackToTopButton, { passive: true });
+  elements.workspace?.addEventListener("scroll", handleWorkspaceScrollState, { passive: true });
   elements.backToTopButton?.addEventListener("click", scrollWorkspaceToTop);
   elements.librarySelectAllCheckbox.addEventListener("change", () => {
     toggleSelectAllLibraryDocuments(elements.librarySelectAllCheckbox.checked);
@@ -5966,11 +6093,34 @@ function bindEvents() {
 
 async function bootstrapApplication() {
   startupLarkRedirectResult = consumeLarkRedirectResult();
+  const bootstrapSession = consumeAuthBootstrapSession();
   render();
-  await restoreSession();
+  if (bootstrapSession) {
+    try {
+      await applyAuthenticatedSession(bootstrapSession.access);
+    } catch (error) {
+      applyLoggedOutState(text("登录服务暂不可用，请稍后重试。", "The sign-in service is temporarily unavailable. Please try again later."));
+      state.loginError = error.message || text("无法连接到登录服务。", "Unable to connect to the sign-in service.");
+    } finally {
+      state.authBusy = false;
+      state.authReady = true;
+    }
+  } else {
+    await restoreSession();
+  }
   applyStartupLarkRedirectResult(startupLarkRedirectResult);
   startupLarkRedirectResult = null;
   render();
+}
+
+function consumeAuthBootstrapSession() {
+  const payload = window.__CDE_AUTH_BOOTSTRAP_SESSION;
+  try {
+    delete window.__CDE_AUTH_BOOTSTRAP_SESSION;
+  } catch {
+    window.__CDE_AUTH_BOOTSTRAP_SESSION = null;
+  }
+  return payload?.authenticated && payload.access ? payload : null;
 }
 
 function normalizeLoginTab(value) {
@@ -6104,7 +6254,7 @@ async function fetchSessionState() {
   const timeoutId = controller
     ? window.setTimeout(() => {
       controller.abort();
-    }, 4000)
+    }, SESSION_CHECK_TIMEOUT_MS)
     : 0;
 
   try {
@@ -6164,6 +6314,8 @@ function applyLoggedOutState(message = loginTabIdleMessage()) {
   state.currentUserId = "";
   state.authMessage = message;
   state.currentView = "files";
+  state.workspaceRestoreApplied = false;
+  state.pendingWorkspaceRestoreScrollTop = null;
   state.documents = [];
   state.folders = [];
   state.workflowTemplates = [];
@@ -6268,6 +6420,7 @@ async function logoutSession() {
   } catch {
     // Ignore logout transport failures and clear local state anyway.
   } finally {
+    removeWorkspaceRestoreState();
     applyLoggedOutState(text("已退出登录。", "You have been signed out."));
     state.authBusy = false;
     state.authReady = true;
@@ -6325,6 +6478,8 @@ async function refreshDocuments(responseOverride = null) {
   state.notificationCenter = normalizeNotificationCenterPayload(response.notificationCenter);
   syncBackgroundTasksFromDocuments();
   state.currentUserId = state.access.currentUser?.id || state.currentUserId;
+
+  restoreWorkspaceStateAfterDataLoad();
 
   if (state.currentFolderId && !folderById(state.currentFolderId)) {
     state.currentFolderId = null;
@@ -6417,7 +6572,8 @@ function renderAuthShell() {
   const authenticated = state.authenticated;
   const activeLoginTab = normalizeLoginTab(state.loginTab);
   const isLarkTab = activeLoginTab === "lark";
-  elements.authShell.classList.toggle("hidden", authenticated);
+  const showAuthShell = !authenticated && (!state.authBusy || state.authReady);
+  elements.authShell.classList.toggle("hidden", !showAuthShell);
   elements.shell.classList.toggle("hidden", !authenticated);
 
   elements.authCardTitle.textContent = state.authBusy && !authenticated
@@ -6431,6 +6587,8 @@ function renderAuthShell() {
       ? state.authMessage || loginTabIdleMessage(activeLoginTab)
       : text("正在检查登录状态…", "Checking session...");
 
+  const showLoginPanels = !state.authBusy || state.authReady;
+  elements.loginForm?.classList.toggle("hidden", !showLoginPanels);
   elements.passwordLoginTab?.classList.toggle("active", !isLarkTab);
   elements.larkLoginTab?.classList.toggle("active", isLarkTab);
   if (elements.passwordLoginTab) {
@@ -6524,6 +6682,11 @@ function render() {
   ensureVersionStatusPolling();
   applyAuthStaticTranslations();
   applyStaticTranslations();
+  positionOpenRowActionMenu();
+  const scrollRestoreScheduled = restoreWorkspaceScrollPosition();
+  if (!scrollRestoreScheduled) {
+    persistWorkspaceRestoreState();
+  }
 }
 
 function renderLayout() {
@@ -20699,7 +20862,7 @@ function renderWorkflowMoreMenu(workflow) {
   const workspaceLabel = reviewableDoc ? documentWorkspaceActionLabel(reviewableDoc) : text("打开文件", "Open File");
   const commentReportEnabled = canExportWorkflowCommentReport(workflow);
   return `
-    <div class="row-action-menu" role="menu">
+    <div class="row-action-menu row-action-menu-floating" role="menu">
       ${renderWorkflowMenuItem({ workflowId: workflow.id, action: "flow", label: text("流程详情", "Workflow Details"), icon: "workflow" })}
       ${renderWorkflowMenuItem({ workflowId: workflow.id, action: "issues", label: text("Issue 列表", "Issue List"), icon: "issue" })}
       ${renderWorkflowMenuItem({ workflowId: workflow.id, action: "comment-report", label: text("导出评论意见", "Export Comments"), icon: "download", disabled: !commentReportEnabled })}
@@ -22802,6 +22965,48 @@ function isInlineRenaming(type, id) {
   return state.inlineRenameType === type && state.inlineRenameId === id;
 }
 
+function findOpenRowActionMenuElements() {
+  const key = state.openRowActionMenuKey;
+  if (!key || typeof document === "undefined") {
+    return null;
+  }
+  const button = Array.from(document.querySelectorAll("[data-open-row-menu]")).find((item) => item.dataset.openRowMenu === key);
+  if (!(button instanceof HTMLElement)) {
+    return null;
+  }
+  const menu = button.closest(".row-menu-shell")?.querySelector(".row-action-menu-floating");
+  if (!(menu instanceof HTMLElement)) {
+    return null;
+  }
+  return { button, menu };
+}
+
+function positionOpenRowActionMenu() {
+  const menuElements = findOpenRowActionMenuElements();
+  if (!menuElements) {
+    return;
+  }
+
+  const { button, menu } = menuElements;
+  const viewportMargin = 12;
+  const menuGap = 6;
+  const buttonRect = button.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const availableBelow = window.innerHeight - buttonRect.bottom;
+  const availableAbove = buttonRect.top;
+  const placeAbove = availableBelow < menuRect.height + menuGap && availableAbove > availableBelow;
+  const maxLeft = Math.max(viewportMargin, window.innerWidth - menuRect.width - viewportMargin);
+  const maxTop = Math.max(viewportMargin, window.innerHeight - menuRect.height - viewportMargin);
+  const left = Math.min(Math.max(viewportMargin, buttonRect.right - menuRect.width), maxLeft);
+  const top = placeAbove
+    ? Math.max(viewportMargin, buttonRect.top - menuRect.height - menuGap)
+    : Math.min(Math.max(viewportMargin, buttonRect.bottom + menuGap), maxTop);
+
+  menu.dataset.placement = placeAbove ? "top" : "bottom";
+  menu.style.left = `${Math.round(left)}px`;
+  menu.style.top = `${Math.round(top)}px`;
+}
+
 function renderRowActionButton({ tone = "", attr, value, label, icon, active = false, className = "", disabled = false }) {
   const toneClass = tone ? ` ${tone}` : "";
   const activeClass = active ? " active" : "";
@@ -22904,7 +23109,7 @@ function renderDocumentMoreMenu(doc) {
   const currentEntry = documentCurrentVersionEntry(doc);
   const parseFailed = (currentEntry?.parseStatus || doc.parseStatus) === "failed";
   return `
-    <div class="row-action-menu" role="menu">
+    <div class="row-action-menu row-action-menu-floating" role="menu">
       ${renderRowMenuItem({ entityType: "document", entityId: doc.id, action: "workflow", label: doc.activeWorkflowId ? text("查看流程", "View Workflow") : text("发起流程", "Start Workflow"), icon: "workflow", disabled: !canWorkflowEnter })}
       ${renderRowMenuItem({
         entityType: "document",
@@ -22974,7 +23179,7 @@ function renderFolderMoreMenu(folder) {
   const permissions = folderPermissionsMeta(folder);
 
   return `
-    <div class="row-action-menu" role="menu">
+    <div class="row-action-menu row-action-menu-floating" role="menu">
       ${renderRowMenuItem({ entityType: "folder", entityId: folder.id, action: "open", label: text("进入目录", "Open Folder"), icon: "enter" })}
       ${renderRowMenuItem({ entityType: "folder", entityId: folder.id, action: "create-child", label: text("新建子文件夹", "New Subfolder"), icon: "addFolder", disabled: !permissions.createFolder })}
       ${renderRowMenuItem({ entityType: "folder", entityId: folder.id, action: "rename", label: text("重命名", "Rename"), icon: "rename", disabled: !permissions.rename })}
@@ -23653,6 +23858,122 @@ function resolveActionDialog(value) {
   }
 }
 
+function actionFolderPickerPath(folderId) {
+  return folderId ? folderPathLabel(folderId) : text("根目录", "Root");
+}
+
+function actionFolderPickerExpandedFolders(selectedFolderId) {
+  const expanded = new Set(state.folders.filter((folder) => folder.parentId === null).map((folder) => folder.id));
+  let cursor = selectedFolderId ? folderById(selectedFolderId)?.parentId || null : null;
+  while (cursor) {
+    expanded.add(cursor);
+    cursor = folderById(cursor)?.parentId || null;
+  }
+  return [...expanded];
+}
+
+function renderActionFolderPickerNodes(request, parentId = null, depth = 0) {
+  const expandedFolderIds = Array.isArray(request.expandedFolderIds) ? request.expandedFolderIds : [];
+  return state.folders
+    .filter((folder) => folder.parentId === parentId)
+    .sort((left, right) => left.name.localeCompare(right.name, "zh-CN"))
+    .map((folder) => {
+      const expanded = expandedFolderIds.includes(folder.id);
+      const selected = String(request.selectedFolderId || "") === folder.id;
+      const childCount = state.folders.filter((item) => item.parentId === folder.id).length;
+      const childSummary = childCount ? text(`${childCount} 个子目录`, `${childCount} subfolders`) : text("无子目录", "No subfolders");
+      return `
+        <div class="workflow-picker-node">
+          <div class="workflow-picker-row folder action-folder-picker-row${selected ? " selected" : ""}" data-action-folder-row="${escapeHtml(folder.id)}" style="--depth:${depth}">
+            <button class="workflow-picker-toggle${expanded ? " open" : ""}" data-action-folder-toggle="${escapeHtml(folder.id)}" type="button" aria-label="${escapeHtml(expanded ? text("折叠文件夹", "Collapse Folder") : text("展开文件夹", "Expand Folder"))}">
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M4 2.5 8 6 4 9.5" />
+              </svg>
+            </button>
+            <input data-action-folder-choice="${escapeHtml(folder.id)}" name="action-folder-choice" type="radio" ${selected ? "checked" : ""} />
+            <span class="workflow-picker-name">${escapeHtml(folder.name)}</span>
+            <span class="workflow-picker-meta">${escapeHtml(`${actionFolderPickerPath(folder.id)} · ${childSummary}`)}</span>
+          </div>
+          ${expanded
+            ? `
+              <div class="workflow-picker-children">
+                ${renderActionFolderPickerNodes(request, folder.id, depth + 1)}
+              </div>
+            `
+            : ""}
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderActionFolderPicker(request) {
+  const selectedFolderId = String(request.selectedFolderId || "");
+  const selectedPath = actionFolderPickerPath(selectedFolderId);
+  const className = request.className ? ` ${escapeHtml(request.className)}` : "";
+  const itemLabels = Array.isArray(request.itemLabels) ? request.itemLabels : [];
+  const previewItems = itemLabels.slice(0, 5);
+  const overflowCount = Math.max(0, itemLabels.length - previewItems.length);
+  const previewHtml = previewItems.length
+    ? `<ul class="action-folder-picker-preview">${previewItems.map((label) => `<li>${escapeHtml(label)}</li>`).join("")}${overflowCount ? `<li>${escapeHtml(text(`另有 ${overflowCount} 项`, `${overflowCount} more items`))}</li>` : ""}</ul>`
+    : "";
+  return `
+    <div class="action-folder-picker${className}" data-action-folder-picker>
+      <div class="action-folder-picker-summary">
+        <span>${escapeHtml(text("将移动", "Moving"))}</span>
+        <strong>${escapeHtml(text(`${Number(request.itemCount || itemLabels.length || 0)} 份文件`, `${Number(request.itemCount || itemLabels.length || 0)} files`))}</strong>
+        <p>${escapeHtml(text(`目标目录：${selectedPath}`, `Target: ${selectedPath}`))}</p>
+      </div>
+      ${previewHtml}
+      <div class="action-folder-picker-tree" role="radiogroup" aria-label="${escapeHtml(text("目标目录", "Target Folder"))}">
+        <label class="workflow-picker-row file action-folder-picker-row action-folder-picker-root${selectedFolderId === "" ? " selected" : ""}" style="--depth:0">
+          <span class="workflow-picker-spacer" aria-hidden="true"></span>
+          <input data-action-folder-choice="" name="action-folder-choice" type="radio" ${selectedFolderId === "" ? "checked" : ""} />
+          <span class="workflow-picker-name">${escapeHtml(text("根目录", "Root"))}</span>
+          <span class="workflow-picker-meta">${escapeHtml(text("项目根目录", "Project Root"))}</span>
+        </label>
+        ${renderActionFolderPickerNodes(request, null, 0)}
+      </div>
+    </div>
+  `;
+}
+
+function bindActionFolderPickerDialog(dialog, request) {
+  dialog.querySelectorAll("[data-action-folder-toggle]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const folderId = button.getAttribute("data-action-folder-toggle") || "";
+      if (!folderId) {
+        return;
+      }
+      const expanded = new Set(Array.isArray(request.expandedFolderIds) ? request.expandedFolderIds : []);
+      if (expanded.has(folderId)) {
+        expanded.delete(folderId);
+      } else {
+        expanded.add(folderId);
+      }
+      request.expandedFolderIds = [...expanded];
+      renderActionDialog();
+    });
+  });
+  dialog.querySelectorAll("[data-action-folder-choice]").forEach((input) => {
+    input.addEventListener("change", () => {
+      request.selectedFolderId = input.getAttribute("data-action-folder-choice") || "";
+      renderActionDialog();
+    });
+  });
+  dialog.querySelectorAll("[data-action-folder-row]").forEach((row) => {
+    row.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-action-folder-toggle]")) {
+        return;
+      }
+      request.selectedFolderId = row.getAttribute("data-action-folder-row") || "";
+      renderActionDialog();
+    });
+  });
+}
+
 function renderActionDialog() {
   const dialog = ensureActionDialog();
   const request = state.dialogRequest;
@@ -23665,6 +23986,7 @@ function renderActionDialog() {
 
   const isPrompt = request.type === "prompt";
   const isForm = request.type === "form";
+  const isFolderPicker = request.type === "folderPicker";
   const fieldHtml = isPrompt
     ? '<label class="action-dialog-field"><span>' + escapeHtml(request.label || text("请输入内容", "Enter a value")) + '</span>' +
       (request.multiline
@@ -23696,6 +24018,8 @@ function renderActionDialog() {
           }
           return '<label class="action-dialog-field"><span>' + label + '</span><input data-action-dialog-field="' + key + '" type="' + escapeHtml(field.type || "text") + '" value="' + value + '" placeholder="' + placeholder + '" ' + required + ' />' + help + '</label>';
         }).join("")
+      : isFolderPicker
+        ? renderActionFolderPicker(request)
       : "";
   const localizedMessage = localizeMixedText(request.message || "");
   const isDangerAction = request.tone === "danger" || /删除|移除|不可撤销|delete|remove|discard/i.test(localizedMessage);
@@ -23706,9 +24030,14 @@ function renderActionDialog() {
     ? '<ul class="action-dialog-shortcuts">' + String(localizedMessage).split("\n").map((line) => '<li>' + escapeHtml(line) + '</li>').join("") + '</ul>'
     : '<p>' + escapeHtml(localizedMessage) + '</p>';
   dialog.classList.remove("hidden");
+  const dialogClass = [
+    "action-dialog-card",
+    isForm ? "is-form-dialog" : "",
+    isFolderPicker ? "is-folder-picker-dialog" : "",
+  ].filter(Boolean).join(" ");
   dialog.innerHTML =
     '<div class="action-dialog-backdrop" data-action-dialog-cancel></div>' +
-    '<section class="action-dialog-card' + (isForm ? " is-form-dialog" : "") + '" aria-labelledby="actionDialogTitle">' +
+    '<section class="' + dialogClass + '" aria-labelledby="actionDialogTitle">' +
       '<p class="action-dialog-kicker">' + escapeHtml(request.kicker || text("需要确认", "Confirmation Required")) + '</p>' +
       '<h2 id="actionDialogTitle">' + escapeHtml(request.title || text("确认操作", "Confirm Action")) + '</h2>' +
       messageHtml +
@@ -23722,7 +24051,7 @@ function renderActionDialog() {
   const input = dialog.querySelector("[data-action-dialog-input]");
   const firstFormField = dialog.querySelector("[data-action-dialog-field]");
   dialog.querySelectorAll("[data-action-dialog-cancel]").forEach((element) => {
-    element.addEventListener("click", () => resolveActionDialog(isPrompt || isForm ? null : false));
+    element.addEventListener("click", () => resolveActionDialog(isPrompt || isForm || isFolderPicker ? null : false));
   });
   dialog.querySelector("[data-action-dialog-confirm]")?.addEventListener("click", () => {
     if (isPrompt) {
@@ -23742,11 +24071,18 @@ function renderActionDialog() {
       resolveActionDialog(values);
       return;
     }
+    if (isFolderPicker) {
+      resolveActionDialog(request.selectedFolderId || "");
+      return;
+    }
     resolveActionDialog(true);
   });
+  if (isFolderPicker) {
+    bindActionFolderPickerDialog(dialog, request);
+  }
   dialog.onkeydown = handleActionDialogKeydown;
   window.setTimeout(() => {
-    const focusTarget = input || firstFormField || dialog.querySelector("[data-action-dialog-confirm]");
+    const focusTarget = input || firstFormField || dialog.querySelector("[data-action-folder-choice]:checked") || dialog.querySelector("[data-action-dialog-confirm]");
     if (focusTarget instanceof HTMLElement) {
       focusTarget.focus();
       if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
@@ -23759,7 +24095,7 @@ function renderActionDialog() {
 function handleActionDialogKeydown(event) {
   if (event.key === "Escape") {
     event.preventDefault();
-    resolveActionDialog(["prompt", "form"].includes(state.dialogRequest?.type) ? null : false);
+    resolveActionDialog(["prompt", "form", "folderPicker"].includes(state.dialogRequest?.type) ? null : false);
     return;
   }
   if (event.key === "Enter" && !event.shiftKey) {
@@ -23835,6 +24171,23 @@ function formAction(message, fields = [], options = {}) {
     kicker: options.kicker || text("需要输入", "Input Required"),
     confirmLabel: options.confirmLabel || text("保存", "Save"),
     cancelLabel: options.cancelLabel || text("取消", "Cancel"),
+  });
+}
+
+function folderPickerAction(message, options = {}) {
+  const defaultFolderId = options.defaultFolderId || "";
+  return requestActionDialog({
+    type: "folderPicker",
+    message,
+    title: options.title || text("选择目标目录", "Choose Target Folder"),
+    kicker: options.kicker || text("批量移动", "Batch Move"),
+    confirmLabel: options.confirmLabel || text("移动到此目录", "Move Here"),
+    cancelLabel: options.cancelLabel || text("取消", "Cancel"),
+    selectedFolderId: defaultFolderId,
+    expandedFolderIds: actionFolderPickerExpandedFolders(defaultFolderId),
+    itemCount: options.itemCount || 0,
+    itemLabels: Array.isArray(options.itemLabels) ? options.itemLabels : [],
+    className: options.className || "",
   });
 }
 
@@ -24263,17 +24616,10 @@ async function batchMoveSelectedDocuments() {
     return;
   }
 
-  const options = documentFolderOptions();
-  const optionText = options.map((item) => `${item.label || text("根目录", "Root")} => ${item.value || "root"}`).join("\n");
-  const answer = await promptAction(text(`请输入目标目录值（root 代表根目录）：\n${optionText}`, `Enter target folder value (root means Root):\n${optionText}`), "root", { label: text("目标目录", "Target folder") });
-  if (answer === null) {
+  const targetParentId = await chooseBatchMoveTargetFolder(docs);
+  if (targetParentId === null) {
     return;
   }
-
-  const normalized = answer.trim();
-  const matchedOption = options.find((item) => item.value === normalized || item.label === normalized);
-  const targetParentId =
-    normalized === "root" || !normalized ? null : matchedOption ? matchedOption.value || null : normalized;
 
   try {
     await Promise.all(
@@ -24291,6 +24637,26 @@ async function batchMoveSelectedDocuments() {
   } catch (error) {
     notifyError(error, text("批量移动失败，请稍后重试。", "Batch move failed. Please try again later."));
   }
+}
+
+async function chooseBatchMoveTargetFolder(docs) {
+  const defaultFolderId = state.currentFolderId || "";
+  const targetFolderId = await folderPickerAction(
+    text(
+      "从项目目录树中选择目标位置。不会暴露内部目录 ID，确认后会移动当前可移动的已选文件。",
+      "Choose the target location from the project folder tree. Internal folder IDs are hidden; confirming moves the selected movable files.",
+    ),
+    {
+      title: text("批量移动文件", "Move Selected Files"),
+      kicker: text("目标目录", "Target Folder"),
+      confirmLabel: text("移动到此目录", "Move Here"),
+      defaultFolderId,
+      itemCount: docs.length,
+      itemLabels: docs.map((doc) => doc.name),
+      className: "batch-move-folder",
+    },
+  );
+  return targetFolderId === null ? null : targetFolderId || null;
 }
 
 async function batchDeleteSelectedDocuments() {
@@ -35448,5 +35814,6 @@ window.addEventListener(
     if (state.pdfDoc && currentDocument()) {
       renderCurrentPdfPage();
     }
+    positionOpenRowActionMenu();
   }, 150),
 );
