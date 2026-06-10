@@ -54,8 +54,7 @@ CREATE TABLE IF NOT EXISTS project_members (
   joined_at TEXT NOT NULL DEFAULT '',
   removed_at TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(project_id, user_id, removed_at)
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS folders (
@@ -67,8 +66,7 @@ CREATE TABLE IF NOT EXISTS folders (
   owner TEXT NOT NULL DEFAULT '项目组',
   access_level TEXT NOT NULL DEFAULT 'edit',
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  UNIQUE(project_id, parent_id, name)
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS folder_permissions (
@@ -241,7 +239,9 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   resource_id TEXT NOT NULL DEFAULT '',
   detail_json TEXT NOT NULL DEFAULT '{}',
   ip TEXT NOT NULL DEFAULT '',
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  previous_hash TEXT NOT NULL DEFAULT '',
+  hash TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS jobs (

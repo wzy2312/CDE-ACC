@@ -4,7 +4,7 @@ ENV NODE_ENV=production \
     PORT=8080 \
     CDE_DATA_DIR=/data
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN apk add --no-cache sqlite && npm ci --omit=dev
 COPY . .
 RUN mkdir -p /data/uploads /data/exports /data/attachments
 EXPOSE 8080

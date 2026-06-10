@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CDE文件管理系统</title>
-    <link rel="stylesheet" href="./styles-critical.css?v=20260429-acc-custom-integration" />
-    <link rel="modulepreload" href="./auth-bootstrap.js?v=20260429-acc-custom-integration" />
+    <link rel="stylesheet" href="./styles-critical.css?v=20260605-settings-clicks" />
+    <link rel="modulepreload" href="./auth-bootstrap.js?v=20260605-settings-clicks" />
   </head>
   <body>
-    <div id="authShell" class="auth-shell">
+    <div id="authShell" class="auth-shell hidden">
       <div class="auth-shell-backdrop"></div>
       <section class="auth-card">
         <div class="auth-card-head">
@@ -22,7 +22,7 @@
           <p id="authStatusText" class="auth-status-text">正在检查登录状态…</p>
         </div>
 
-        <form id="loginForm" class="auth-form" autocomplete="on">
+        <form id="loginForm" class="auth-form hidden" autocomplete="on">
           <div class="auth-copy">
             <p class="panel-kicker">账号登录</p>
             <h2 id="authCardTitle" class="auth-card-title">登录系统</h2>
@@ -3415,6 +3415,6 @@
       </div>
     </div>
 
-    <script type="module" src="./auth-bootstrap.js?v=20260429-acc-custom-integration"></script>
+    <script type="module" src="./auth-bootstrap.js?v=20260605-settings-clicks"></script>
   </body>
 </html>

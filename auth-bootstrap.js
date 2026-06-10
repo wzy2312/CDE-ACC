@@ -1,4 +1,4 @@
-const APP_ASSET_VERSION = "20260429-acc-custom-integration";
+const APP_ASSET_VERSION = "20260605-settings-clicks";
 const LANGUAGE_STORAGE_KEY = "cde.language";
 const SESSION_CHECK_TIMEOUT_MS = 4500;
 const WORKSPACE_SESSION_CHECK_TIMEOUT_MS = 12000;
@@ -97,12 +97,14 @@ function setError(message = "") {
 }
 
 function renderAuthShell(message = "") {
+  const showAuthShell = !checkingSession && !mainAppLoading;
   if (elements.authShell) {
-    elements.authShell.classList.remove("hidden");
+    elements.authShell.classList.toggle("hidden", !showAuthShell);
   }
   if (elements.shell) {
     elements.shell.classList.add("hidden");
   }
+  elements.form?.classList.toggle("hidden", checkingSession || mainAppLoading);
   elements.passwordTab?.classList.toggle("active", activeTab !== "lark");
   elements.larkTab?.classList.toggle("active", activeTab === "lark");
   elements.passwordPanel?.classList.toggle("hidden", activeTab === "lark");
