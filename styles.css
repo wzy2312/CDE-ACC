@@ -31067,3 +31067,133 @@ button,
     animation: cde-menu-pop-in 0.16s cubic-bezier(0.2, 0.8, 0.25, 1) both;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Topbar / content column alignment: the content column is
+   min(100% - 112px, 1600px) centered, so its side gutter is
+   max(56px, (100% - 1600px) / 2). Drive the topbar padding from the same
+   formula so the breadcrumb, summary strip and panels share one left edge. */
+@media (min-width: 861px) {
+  .workspace:not(.review-immersive) > .topbar {
+    padding-left: max(56px, calc((100% - 1600px) / 2)) !important;
+    padding-right: max(56px, calc((100% - 1600px) / 2)) !important;
+  }
+}
+
+/* Folder tree caret column (collapse/expand affordance). */
+.folder-tree-node {
+  grid-template-columns: 14px 16px minmax(0, 1fr) auto;
+}
+
+.content-grid.files-only .folder-tree-node {
+  grid-template-columns: 14px 20px minmax(0, 1fr) auto !important;
+}
+
+.folder-tree-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 18px;
+  align-self: center;
+  border-radius: 5px;
+  color: var(--ds-ink-4, var(--muted));
+}
+
+.folder-tree-caret.is-leaf {
+  visibility: hidden;
+}
+
+.folder-tree-caret svg {
+  width: 10px;
+  height: 10px;
+}
+
+.folder-tree-caret.open svg {
+  transform: rotate(90deg);
+}
+
+.folder-tree-caret:hover {
+  color: var(--ds-ink, var(--ink));
+  background: color-mix(in srgb, var(--ds-accent-bg, #f3e7dd) 70%, transparent);
+}
+
+/* Library first-load skeleton. */
+.library-skeleton-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 72px 56px;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--ds-hairline-soft, var(--line));
+}
+
+.library-skeleton-row:last-child {
+  border-bottom: 0;
+}
+
+.cde-skeleton {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ds-ink, #1c1a17) 8%, transparent);
+}
+
+.library-skeleton-chip {
+  width: 38px;
+  height: 22px;
+  border-radius: 7px;
+}
+
+.library-skeleton-lines {
+  display: grid;
+  gap: 8px;
+}
+
+.library-skeleton-sub {
+  height: 9px;
+  opacity: 0.6;
+}
+
+.library-skeleton-pill {
+  height: 20px;
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes cde-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  .cde-skeleton {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ds-ink, #1c1a17) 8%, transparent) 25%,
+      color-mix(in srgb, var(--ds-ink, #1c1a17) 14%, transparent) 50%,
+      color-mix(in srgb, var(--ds-ink, #1c1a17) 8%, transparent) 75%
+    );
+    background-size: 200% 100%;
+    animation: cde-shimmer 1.4s ease-in-out infinite;
+  }
+
+  .folder-tree-caret svg {
+    transition: transform 0.15s ease;
+  }
+
+  @keyframes cde-tree-expand {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+
+  .folder-tree-children.is-just-expanded {
+    animation: cde-tree-expand 0.18s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  }
+}

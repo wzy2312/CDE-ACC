@@ -1696,6 +1696,9 @@ state = {
   selectedId: null,
   selectedWorkflowId: null,
   currentFolderId: null,
+  collapsedFolderIds: new Set(),
+  justExpandedFolderId: "",
+  initialDataLoaded: false,
   libraryInitialized: false,
   fileSearchQuery: "",
   libraryFilters: { ...DEFAULT_LIBRARY_FILTERS },
@@ -6314,6 +6317,9 @@ async function applyAuthenticatedSession(access) {
   state.projectManagementMessage = "";
   state.projectManagementSubmitting = false;
   state.projectManagementEditingId = "";
+  // Paint the workspace shell with the library skeleton immediately; the
+  // document payload fills in when refreshDocuments resolves.
+  render();
   await refreshDocuments();
   await hydrateResumableUploadSessions();
   ensureNotificationPolling();
@@ -6328,6 +6334,7 @@ function applyLoggedOutState(message = loginTabIdleMessage()) {
   state.authMessage = message;
   state.currentView = "files";
   state.workspaceRestoreApplied = false;
+  state.initialDataLoaded = false;
   state.pendingWorkspaceRestoreScrollTop = null;
   state.documents = [];
   state.folders = [];
@@ -6483,6 +6490,7 @@ async function refreshDocuments(responseOverride = null) {
     return;
   }
   const response = responseOverride || await fetchJson(`/api/documents${auditLogFilterQueryString()}`);
+  state.initialDataLoaded = true;
   state.documents = response.documents || [];
   state.folders = response.folders || [];
   state.workflowTemplates = response.workflowTemplates || [];
@@ -22719,45 +22727,85 @@ function renderManagerSummaryCards(items) {
   `;
 }
 
+function folderTreeCaretHtml(folderId, hasChildren, collapsed) {
+  if (!hasChildren) {
+    return '<span class="folder-tree-caret is-leaf" aria-hidden="true"></span>';
+  }
+  return `
+    <span class="folder-tree-caret ${collapsed ? "" : "open"}" data-folder-tree-toggle="${escapeHtml(folderId)}" role="button" tabindex="-1" aria-label="${escapeHtml(collapsed ? text("展开文件夹", "Expand folder") : text("折叠文件夹", "Collapse folder"))}">
+      <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.2 2.5 8 6l-3.8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    </span>
+  `;
+}
+
 function renderFolderTree() {
   const rootFolders = state.folders
     .filter((folder) => folder.parentId === null)
     .sort((left, right) => left.name.localeCompare(right.name, "zh-CN"));
+  const requiredOpenIds = new Set(
+    folderBreadcrumbs(state.currentFolderId)
+      .filter(Boolean)
+      .map((folder) => folder.id),
+  );
 
   elements.folderTree.innerHTML = [
     `
       <button class="folder-tree-node ${state.currentFolderId === null ? "active" : ""}" data-folder-tree-node="" type="button">
+        ${folderTreeCaretHtml("", false, false)}
         <span class="folder-tree-icon root" aria-hidden="true"></span>
         <span class="folder-tree-label">${escapeHtml(text("全部文档", "All Documents"))}</span>
         <span class="folder-tree-count ${rootFolders.length ? "" : "is-zero"}">${rootFolders.length}</span>
       </button>
     `,
-    ...rootFolders.map((folder) => renderFolderTreeNode(folder, 0)),
+    ...rootFolders.map((folder) => renderFolderTreeNode(folder, 0, requiredOpenIds)),
   ].join("");
 
   Array.from(elements.folderTree.querySelectorAll("[data-folder-tree-node]")).forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (event) => {
+      const toggle = event.target instanceof Element ? event.target.closest("[data-folder-tree-toggle]") : null;
+      if (toggle) {
+        toggleFolderTreeBranch(toggle.getAttribute("data-folder-tree-toggle"));
+        return;
+      }
       openFolder(button.dataset.folderTreeNode || null);
     });
   });
 }
 
-function renderFolderTreeNode(folder, depth) {
+function toggleFolderTreeBranch(folderId) {
+  if (!folderId) {
+    return;
+  }
+  if (state.collapsedFolderIds.has(folderId)) {
+    state.collapsedFolderIds.delete(folderId);
+    state.justExpandedFolderId = folderId;
+  } else {
+    state.collapsedFolderIds.add(folderId);
+    state.justExpandedFolderId = "";
+  }
+  render();
+  state.justExpandedFolderId = "";
+}
+
+function renderFolderTreeNode(folder, depth, requiredOpenIds = new Set()) {
   const children = state.folders
     .filter((item) => item.parentId === folder.id)
     .sort((left, right) => left.name.localeCompare(right.name, "zh-CN"));
   const docCount = documentCountForFolder(folder.id);
   const current = folder.id === state.currentFolderId ? "active" : "";
-  const childHtml = children.map((child) => renderFolderTreeNode(child, depth + 1)).join("");
+  const collapsed = children.length > 0 && state.collapsedFolderIds.has(folder.id) && !requiredOpenIds.has(folder.id);
+  const childHtml = collapsed ? "" : children.map((child) => renderFolderTreeNode(child, depth + 1, requiredOpenIds)).join("");
+  const childrenClass = state.justExpandedFolderId === folder.id ? "folder-tree-children is-just-expanded" : "folder-tree-children";
 
   return `
     <div class="folder-tree-branch">
       <button class="folder-tree-node ${current}" data-folder-tree-node="${folder.id}" type="button" style="--folder-depth:${depth};">
+        ${folderTreeCaretHtml(folder.id, children.length > 0, collapsed)}
         <span class="folder-tree-icon" aria-hidden="true"></span>
         <span class="folder-tree-label">${escapeHtml(folder.name)}</span>
         <span class="folder-tree-count ${docCount ? "" : "is-zero"}">${docCount}</span>
       </button>
-      ${childHtml ? `<div class="folder-tree-children">${childHtml}</div>` : ""}
+      ${childHtml ? `<div class="${childrenClass}">${childHtml}</div>` : ""}
     </div>
   `;
 }
@@ -22801,7 +22849,30 @@ function renderFolderBrowser() {
   });
 }
 
+function renderLibrarySkeleton() {
+  const widths = [46, 34, 52, 28, 40, 36];
+  return widths
+    .map(
+      (width) => `
+        <div class="library-skeleton-row" aria-hidden="true">
+          <span class="cde-skeleton library-skeleton-chip"></span>
+          <div class="library-skeleton-lines">
+            <span class="cde-skeleton" style="width: ${width}%;"></span>
+            <span class="cde-skeleton library-skeleton-sub" style="width: ${Math.round(width * 0.55)}%;"></span>
+          </div>
+          <span class="cde-skeleton library-skeleton-pill"></span>
+          <span class="cde-skeleton library-skeleton-pill"></span>
+        </div>
+      `,
+    )
+    .join("");
+}
+
 function renderLibraryDocumentList() {
+  if (!state.initialDataLoaded) {
+    elements.documentList.innerHTML = renderLibrarySkeleton();
+    return;
+  }
   const folders = currentLibraryFolders();
   const documents = currentLibraryDocuments();
 
