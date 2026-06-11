@@ -6633,7 +6633,30 @@ function renderAuthShell() {
   }
 }
 
+const reducedMotionQuery = typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+let lastRenderedTransitionView = null;
+
 function render() {
+  // Cross-fade top-level view switches via the View Transitions API; every
+  // other render path stays fully synchronous.
+  const nextView = state.authenticated ? state.currentView : "auth";
+  const viewChanged = lastRenderedTransitionView !== null && nextView !== lastRenderedTransitionView;
+  lastRenderedTransitionView = nextView;
+  if (
+    viewChanged &&
+    typeof document.startViewTransition === "function" &&
+    !(reducedMotionQuery && reducedMotionQuery.matches) &&
+    document.visibilityState === "visible"
+  ) {
+    document.startViewTransition(() => {
+      renderCore();
+    });
+    return;
+  }
+  renderCore();
+}
+
+function renderCore() {
   applyGlobalLanguage();
   renderAuthShell();
   renderUploadProgressPanel();

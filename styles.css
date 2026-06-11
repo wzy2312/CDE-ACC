@@ -31018,3 +31018,52 @@ button,
     min-height: 86px !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Motion layer — entry transitions for overlays, menus and view switches.
+   Gated on prefers-reduced-motion so users who opt out get the static UI. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 200ms;
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.25, 1);
+  }
+
+  @keyframes cde-overlay-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes cde-dialog-rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.985);
+    }
+  }
+
+  @keyframes cde-menu-pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.98);
+    }
+  }
+
+  .action-dialog:not(.hidden) .action-dialog-backdrop,
+  .file-manager-modal:not(.hidden) .file-manager-modal-backdrop {
+    animation: cde-overlay-fade-in 0.2s ease both;
+  }
+
+  .action-dialog:not(.hidden) .action-dialog-card,
+  .file-manager-modal:not(.hidden) .file-manager-modal-dialog {
+    animation: cde-dialog-rise-in 0.22s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  }
+
+  .notification-panel:not(.hidden),
+  .sidebar-user-menu:not(.hidden),
+  .library-toolbar-popover:not(.hidden),
+  .row-action-menu-portal {
+    transform-origin: top right;
+    animation: cde-menu-pop-in 0.16s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  }
+}
