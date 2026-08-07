@@ -1,0 +1,13 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.venv/
+.playwright-cli/
+__pycache__/
+node_modules/
+data/
+output/
+rendered-pages/
+manual-assets/
+*.log
