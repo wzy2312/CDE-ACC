@@ -3,6 +3,7 @@ import EmbedPDF, { PdfAnnotationBorderStyle, PdfAnnotationSubtype } from "/vendo
 const params = new URLSearchParams(window.location.search);
 const state = {
   docId: params.get("id") || params.get("docId") || "",
+  shareToken: params.get("share") || "",
   versionId: params.get("versionId") || "",
   mode: params.get("mode") === "view" ? "view" : "review",
   actor: "",
@@ -783,12 +784,23 @@ function bindEvents() {
 }
 
 async function init() {
-  if (!state.docId) {
+  if (!state.docId && !state.shareToken) {
     showState("缺少文件参数", "PDF 页面需要通过系统入口打开，当前 URL 中没有文件 ID。");
     return;
   }
   try {
     showProgress("正在加载 PDF", "正在读取当前会话、文件权限和 PDF 版本。", 0.12);
+    if (state.shareToken) {
+      state.mode = "view";
+      state.actor = "分享访客";
+      showProgress("正在加载 PDF", "正在校验分享链接。", 0.32);
+      await loadDocument();
+      renderShell();
+      showProgress("正在加载 PDF", "正在启动 EmbedPDF 原生浏览器。", 0.58);
+      await initEmbedPdfViewer();
+      hideProgress();
+      return;
+    }
     const session = await fetchJson("/api/session");
     if (!session.authenticated) {
       hideProgress();
@@ -814,7 +826,9 @@ async function init() {
 }
 
 async function loadDocument() {
-  const payload = await fetchJson(`/api/documents/${encodeURIComponent(state.docId)}`);
+  const payload = await fetchJson(state.shareToken
+    ? `/api/share/${encodeURIComponent(state.shareToken)}/document`
+    : `/api/documents/${encodeURIComponent(state.docId)}`);
   state.document = payload.document;
   if (!state.document) {
     throw new Error("未找到文件。");
@@ -829,6 +843,10 @@ async function loadDocument() {
 }
 
 async function loadWorkflowSnapshot() {
+  if (state.shareToken) {
+    state.workflows = [];
+    return;
+  }
   if (!state.document?.activeWorkflowId) {
     state.workflows = [];
     return;
@@ -2286,6 +2304,9 @@ async function exportCommentReport() {
 }
 
 async function loadWorkflowTemplates() {
+  if (state.shareToken) {
+    return;
+  }
   if (!elements.workflowTemplateSelect) {
     return;
   }
@@ -2438,7 +2459,7 @@ function annotationIndex(annotationId) {
 
 function currentPdfSource() {
   const doc = state.document;
-  if (!state.versionId) {
+  if (state.shareToken || !state.versionId) {
     return { url: doc.fileUrl, version: doc.version || "V1", updatedAt: doc.updatedAt, isCurrent: true };
   }
   const entry = (doc.versionHistory || []).find((item) => item.id === state.versionId);

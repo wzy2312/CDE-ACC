@@ -6136,19 +6136,25 @@ textarea:focus-visible,
 
 .workflow-template-save-feedback {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid rgba(22, 121, 91, 0.22);
-  border-left: 4px solid #16795b;
+  padding: 12px 14px;
+  border: 1px solid rgba(84, 120, 100, 0.35);
+  border-left: 3px solid var(--ds-ok-ink);
   border-radius: 0;
-  background:
-    linear-gradient(90deg, rgba(232, 248, 240, 0.96), rgba(247, 253, 250, 0.98)),
-    #f7fdfa;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
-  color: #153f32;
+  background: var(--ds-ok-bg);
+  box-shadow: none;
+  color: var(--ds-ok-ink);
   animation: workflowTemplateSaveReveal 220ms var(--ease-emphasized);
+}
+
+/* Deleting is a confirmation, not an achievement: same shape, neutral ink. */
+.workflow-template-save-feedback.is-removed {
+  border-color: var(--ds-hairline);
+  border-left-color: var(--ds-ink-3);
+  background: var(--ds-panel);
+  color: var(--ds-ink-2);
 }
 
 .workflow-template-save-feedback.hidden {
@@ -6156,22 +6162,22 @@ textarea:focus-visible,
 }
 
 .workflow-template-save-mark {
-  width: 34px;
-  height: 34px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(22, 121, 91, 0.25);
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.78);
-  color: #16795b;
+  border: 1px solid currentColor;
+  border-radius: 0;
+  background: var(--ds-paper);
+  color: inherit;
 }
 
 .workflow-template-save-mark svg {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -6179,20 +6185,21 @@ textarea:focus-visible,
 .workflow-template-save-copy {
   min-width: 0;
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .workflow-template-save-copy strong {
-  color: #123d31;
-  font-size: 14px;
-  letter-spacing: 0.02em;
+  color: inherit;
+  font-size: 13px;
+  letter-spacing: 0.01em;
 }
 
 .workflow-template-save-copy span,
 .workflow-template-save-meta {
-  color: #507266;
+  color: inherit;
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.5;
+  opacity: 0.78;
 }
 
 .workflow-template-save-meta {
@@ -6200,27 +6207,16 @@ textarea:focus-visible,
   max-width: 260px;
   min-width: 0;
   overflow: hidden;
+  font-family: var(--ds-mono);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.workflow-launch-footer .primary-button.is-success {
-  border-color: #16795b;
-  background: #16795b;
-  color: #fff;
-}
-
-.workflow-launch-footer .primary-button.is-success:hover:not(:disabled) {
-  border-color: #12684e;
-  background: #12684e;
-  color: #fff;
-}
-
 @keyframes workflowTemplateSaveReveal {
   from {
     opacity: 0;
-    transform: translate3d(0, 8px, 0);
+    transform: translate3d(0, 6px, 0);
   }
   to {
     opacity: 1;
@@ -31069,14 +31065,35 @@ button,
 }
 
 /* ---------------------------------------------------------------------------
-   Topbar / content column alignment: the content column is
-   min(100% - 112px, 1600px) centered, so its side gutter is
-   max(56px, (100% - 1600px) / 2). Drive the topbar padding from the same
-   formula so the breadcrumb, summary strip and panels share one left edge. */
+   Workspace gutter unification: the band above the summary strip and the
+   band between the sidebar and the content used to differ (22px vs 74px+,
+   growing on wide screens because the content column was capped at 1600px
+   and centered). Use one --workspace-gutter for the top spacing, the side
+   gutters and the topbar padding, and let the content fill the width. */
 @media (min-width: 861px) {
+  .workspace:not(.review-immersive) {
+    --workspace-gutter: 28px;
+  }
+
   .workspace:not(.review-immersive) > .topbar {
-    padding-left: max(56px, calc((100% - 1600px) / 2)) !important;
-    padding-right: max(56px, calc((100% - 1600px) / 2)) !important;
+    padding-left: var(--workspace-gutter) !important;
+    padding-right: var(--workspace-gutter) !important;
+  }
+
+  .workspace:not(.review-immersive) > .summary-strip,
+  .workspace:not(.review-immersive) > .content-grid {
+    width: calc(100% - var(--workspace-gutter) * 2) !important;
+    max-width: none !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .workspace:not(.review-immersive) > .summary-strip {
+    margin-top: var(--workspace-gutter) !important;
+  }
+
+  .workspace:not(.review-immersive) > .content-grid {
+    margin-top: 24px !important;
   }
 }
 
@@ -31196,4 +31213,860 @@ button,
   .folder-tree-children.is-just-expanded {
     animation: cde-tree-expand 0.18s cubic-bezier(0.2, 0.8, 0.25, 1) both;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Workflow dialogs: CDE Design System alignment
+
+   #launchFlowModal, #workflowTemplateManagerModal and the pickers they open
+   live outside <main class="workspace">, so the lock layer above never reached
+   them: they kept the legacy blue/rounded SaaS surfaces while the rest of the
+   app moved to the flat paper skin. This block restates the shell, the
+   scrolling model, and every accent that was still hard-coded blue.
+   -------------------------------------------------------------------------- */
+
+/* ---- Shell -------------------------------------------------------------- */
+
+.workflow-launch-modal,
+.workflow-file-picker-modal,
+.workflow-template-manager-modal {
+  padding: 32px 24px;
+}
+
+.workflow-launch-modal .workflow-detail-backdrop,
+.workflow-file-picker-modal .workflow-detail-backdrop,
+.workflow-template-manager-modal .workflow-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--modal-backdrop);
+}
+
+.workflow-launch-dialog,
+.workflow-file-picker-dialog,
+.workflow-template-manager-dialog {
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-paper);
+  box-shadow: 0 24px 56px rgba(46, 45, 42, 0.16);
+  display: flex;
+  flex-direction: column;
+}
+
+.workflow-launch-dialog {
+  width: min(920px, calc(100vw - 48px));
+}
+
+.workflow-template-manager-dialog {
+  width: min(1180px, calc(100vw - 48px));
+}
+
+/* Header stays put while the body scrolls, so the close button never leaves. */
+.workflow-launch-dialog > .workflow-detail-head,
+.workflow-file-picker-dialog > .workflow-detail-head,
+.workflow-template-manager-dialog > .workflow-detail-head {
+  flex: none;
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid var(--ds-hairline);
+  background: var(--ds-paper);
+}
+
+.workflow-launch-dialog > .workflow-detail-head h3,
+.workflow-file-picker-dialog > .workflow-detail-head h3,
+.workflow-template-manager-dialog > .workflow-detail-head h3 {
+  margin: 6px 0 0;
+}
+
+.workflow-launch-dialog .file-manager-modal-meta,
+.workflow-file-picker-dialog .file-manager-modal-meta,
+.workflow-template-manager-dialog .file-manager-modal-meta {
+  margin: 6px 0 0;
+  max-width: 72ch;
+}
+
+/* ---- Launch workflow ---------------------------------------------------- */
+
+.workflow-launch-dialog > .workflow-launch-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 22px 26px;
+  overflow: auto;
+  gap: 20px;
+}
+
+.workflow-launch-dialog > .workflow-launch-footer,
+.workflow-file-picker-dialog > .workflow-launch-footer {
+  flex: none;
+  margin: 0;
+  padding: 14px 26px;
+  border-top: 1px solid var(--ds-hairline);
+  background: var(--ds-panel);
+}
+
+/* Only the picker footer has a second child (the count pill) to space against. */
+.workflow-launch-dialog > .workflow-launch-footer {
+  justify-content: flex-end;
+}
+
+.workflow-file-picker-dialog > .workflow-file-picker-tree,
+.workflow-file-picker-dialog > .workflow-folder-picker-tree {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 18px 26px;
+  overflow: auto;
+}
+
+.workflow-file-picker-dialog > .workflow-folder-picker-summary {
+  flex: none;
+  margin: 0;
+  padding: 14px 26px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-panel);
+}
+
+/* Fields sat in a stretch grid, so a short input next to the tall role picker
+   was inflated into an empty slab. */
+.workflow-launch-grid {
+  align-items: start;
+  gap: 14px 18px;
+}
+
+/* Match the plain input to the two-line template trigger so the first row of
+   the launch form sits on one baseline. */
+.workflow-launch-dialog .workflow-launch-grid .text-input {
+  min-height: 52px;
+}
+
+.field-required {
+  margin-right: 4px;
+  color: var(--ds-accent-ink);
+}
+
+.workflow-template-summary-card {
+  padding: 14px 16px;
+  border: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-panel);
+}
+
+.workflow-template-summary-card span {
+  font-family: var(--ds-mono);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-ink-3);
+}
+
+.workflow-template-summary-card strong {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.workflow-template-summary-card p {
+  font-size: 13px;
+  color: var(--ds-ink-2);
+}
+
+.workflow-template-trigger,
+.workflow-folder-target-trigger {
+  min-height: 52px;
+  border-radius: 0;
+  border-color: var(--ds-hairline);
+  background: var(--ds-paper);
+}
+
+.workflow-template-trigger {
+  padding: 8px 14px;
+}
+
+.workflow-template-trigger:hover:not(:disabled),
+.workflow-folder-target-trigger:hover:not(:disabled) {
+  border-color: var(--ds-ink-3);
+}
+
+.workflow-template-trigger-copy strong {
+  font-size: 13.5px;
+}
+
+.workflow-template-trigger-path {
+  font-size: 11.5px;
+}
+
+.workflow-template-menu {
+  padding: 8px;
+  border-radius: 0;
+  border-color: var(--ds-hairline);
+  background: var(--ds-paper);
+  box-shadow: 0 18px 32px rgba(46, 45, 42, 0.14);
+  backdrop-filter: none;
+}
+
+.workflow-template-group-toggle {
+  border-radius: 0;
+  border-color: var(--ds-hairline);
+  background: var(--ds-panel);
+}
+
+.workflow-template-option {
+  border-radius: 0;
+  border-color: var(--ds-hairline-soft);
+  background: var(--ds-paper);
+}
+
+.workflow-template-option:hover {
+  border-color: var(--ds-ink-4);
+  background: var(--ds-panel);
+}
+
+.workflow-template-option.selected {
+  border-color: var(--ds-ink);
+  background: var(--ds-panel);
+}
+
+.workflow-template-group-meta,
+.workflow-template-option-check {
+  color: var(--ds-accent-ink);
+}
+
+/* Step strip: inactive nodes were pale blue against a terracotta accent. */
+.workflow-step-node {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-panel);
+  color: var(--ds-ink-3);
+  box-shadow: none;
+}
+
+.workflow-step-node.current {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+  color: var(--ds-paper);
+}
+
+/* .workflow-step-item span paints every child grey, including the index that
+   sits on the filled current node. */
+.workflow-step-node .workflow-step-index {
+  color: inherit;
+  font-family: var(--ds-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workflow-step-node:hover::after {
+  border-radius: 0;
+  background: var(--ds-ink);
+  box-shadow: none;
+}
+
+.workflow-step-node:hover::before {
+  border-top-color: var(--ds-ink);
+}
+
+.workflow-autoexport-line {
+  color: var(--ds-ink-2);
+  font-size: 12px;
+}
+
+.workflow-autoexport-help-button {
+  border: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-panel);
+  color: var(--ds-ink-3);
+}
+
+.workflow-autoexport-tooltip {
+  border-radius: 0;
+  background: var(--ds-ink);
+  box-shadow: none;
+}
+
+.workflow-launch-file-card {
+  padding: 16px 18px;
+  border-radius: 0;
+  border-color: var(--ds-hairline);
+  background: var(--ds-panel);
+}
+
+.workflow-launch-file-head h4 {
+  margin: 6px 0 0;
+}
+
+.workflow-launch-file-picker {
+  min-height: 58px;
+  border-radius: 0;
+  border-color: var(--ds-ink-4);
+  background: var(--ds-paper);
+}
+
+.workflow-launch-file-picker:hover {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent-bg);
+}
+
+.workflow-launch-file-picker-plus {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-paper);
+  color: var(--ds-accent-ink);
+  font-size: 17px;
+}
+
+.workflow-launch-file-item,
+.workflow-template-list-item {
+  border-radius: 0;
+  border-color: var(--ds-hairline);
+  background: var(--ds-paper);
+}
+
+.workflow-launch-file-item {
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+}
+
+.workflow-launch-file-icon {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-panel);
+  color: var(--ds-ink-2);
+  font-family: var(--ds-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.workflow-launch-file-remove {
+  width: 26px;
+  height: 26px;
+  border-radius: 0;
+  border-color: var(--ds-hairline);
+  background: var(--ds-paper);
+  color: var(--ds-ink-3);
+  font-size: 16px;
+}
+
+.workflow-launch-file-remove:hover {
+  border-color: var(--ds-accent);
+  color: var(--ds-accent-ink);
+}
+
+.workflow-launch-desc-count {
+  margin-top: 6px;
+  font-family: var(--ds-mono);
+  letter-spacing: 0.06em;
+}
+
+.launch-submit-error {
+  border-radius: 0;
+  border-color: var(--ds-red-ink);
+  background: var(--ds-red-bg);
+  color: var(--ds-red-ink);
+}
+
+/* ---- Template manager --------------------------------------------------- */
+
+.workflow-template-manager-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  gap: 0;
+  grid-template-columns: 272px minmax(0, 1fr);
+}
+
+.workflow-template-manager-side {
+  min-height: 0;
+  padding: 18px 20px;
+  overflow: auto;
+  border-right: 1px solid var(--ds-hairline);
+  background: var(--ds-panel);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.workflow-template-manager-side-head {
+  position: sticky;
+  top: -18px;
+  z-index: 1;
+  margin: -18px -20px 0;
+  padding: 18px 20px 12px;
+  background: var(--ds-panel);
+}
+
+/* The side column stretches its single grid row, which inflated every template
+   card to fill the leftover height. */
+.workflow-template-manager-list {
+  align-content: start;
+  gap: 8px;
+}
+
+.workflow-template-list-item {
+  padding: 12px 14px;
+  gap: 4px;
+}
+
+.workflow-template-list-item strong {
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+.workflow-template-list-item span {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.workflow-template-list-item:hover {
+  border-color: var(--ds-ink-4);
+  background: var(--ds-paper);
+}
+
+.workflow-template-list-item.active {
+  border-color: var(--ds-ink);
+  background: var(--ds-paper);
+}
+
+.workflow-template-editor {
+  min-height: 0;
+  margin: 0;
+  padding: 20px 26px 0;
+  overflow: auto;
+  gap: 16px;
+  align-content: start;
+}
+
+.workflow-template-editor > .workflow-launch-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 4px -26px 0;
+  padding: 14px 26px;
+  border-top: 1px solid var(--ds-hairline);
+  background: var(--ds-panel);
+}
+
+.workflow-template-step-section {
+  border-top-color: var(--ds-hairline);
+}
+
+.workflow-template-step-head h4 {
+  margin: 6px 0 0;
+}
+
+/* Auto-export: the toggle spanned both grid rows, so it floated in the middle
+   of an empty column beside the stacked summary and config. */
+.workflow-template-autoexport {
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+}
+
+.workflow-template-autoexport .toggle-card {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+}
+
+.workflow-template-autoexport-summary {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.workflow-template-autoexport-config {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  padding-top: 4px;
+}
+
+/* Rule the whole row rather than just the toggle column, and stop the shared
+   toggle-card from pushing its label to the far edge. */
+.workflow-template-editor .workflow-template-autoexport {
+  padding-top: 14px;
+  border-top: 1px solid var(--ds-hairline);
+}
+
+.workflow-template-editor .workflow-template-autoexport .toggle-card {
+  padding: 0;
+  border: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.workflow-template-editor .workflow-template-autoexport .toggle-card span {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.workflow-template-editor .workflow-template-autoexport-summary {
+  padding: 0 0 0 16px;
+  border: 0;
+  border-left: 1px solid var(--ds-hairline);
+  background: transparent;
+}
+
+.workflow-template-autoexport-summary strong {
+  font-size: 13px;
+}
+
+.workflow-template-autoexport-summary p {
+  font-size: 12px;
+}
+
+.workflow-template-editor .workflow-template-export-options {
+  border-color: var(--ds-hairline);
+}
+
+.toggle-card input {
+  accent-color: var(--ds-accent);
+}
+
+.workflow-template-editor .workflow-selector-shell {
+  border-top-color: var(--ds-hairline);
+}
+
+/* Selection controls: the check chip and the selected state were still blue.
+   Mirrors the selected treatment the lock layer already gives
+   .workflow-choice-card, so both card types read the same. */
+.workflow-template-editor .workflow-option-button,
+.workflow-option-button {
+  min-height: 38px;
+  padding: 8px 10px;
+  gap: 8px;
+  border-radius: 2px;
+  border-color: var(--ds-hairline);
+  background: var(--ds-paper);
+}
+
+.workflow-option-button:hover:not(:disabled),
+.workflow-option-button.selected {
+  border-color: var(--ds-ink);
+  background: var(--ds-panel);
+  color: var(--ds-ink);
+}
+
+.workflow-option-copy strong {
+  font-size: 12.5px;
+}
+
+.workflow-option-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border-color: var(--ds-hairline);
+  background: var(--ds-paper);
+  color: var(--ds-ink-3);
+  font-family: var(--ds-mono);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.workflow-option-button.selected .workflow-option-check {
+  border-color: var(--ds-ink);
+  background: var(--ds-ink);
+  color: var(--ds-paper);
+}
+
+/* A full project roster made the step body several screens tall. */
+.workflow-option-grid {
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 6px;
+  max-height: 188px;
+  overflow: auto;
+}
+
+.workflow-template-editor .compact-selector .workflow-option-grid {
+  max-height: none;
+  overflow: visible;
+}
+
+.workflow-selector-pill {
+  border: 1px solid var(--ds-hairline);
+  border-radius: 2px;
+  background: var(--ds-panel);
+  color: var(--ds-ink);
+  font-family: var(--ds-mono);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.workflow-selector-empty {
+  border: 1px dashed var(--ds-hairline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ds-ink-3);
+  font-size: 11px;
+}
+
+.workflow-selector-head strong {
+  font-family: var(--ds-mono);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-ink-3);
+}
+
+.workflow-selector-note {
+  margin: 8px 0 0;
+  color: var(--ds-ink-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* The mode switch is inline-flex, but a grid cell still stretched it edge to
+   edge so it read as a full-width input. */
+.workflow-mode-tabs {
+  justify-self: start;
+  width: max-content;
+  padding: 3px;
+  border: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-panel);
+}
+
+.workflow-template-editor .workflow-mode-tabs,
+.workflow-template-editor .workflow-mode-tab {
+  border-radius: 0;
+}
+
+.workflow-mode-tab {
+  min-height: 30px;
+  border-radius: 0;
+  color: var(--ds-ink-3);
+  font-size: 12px;
+}
+
+.workflow-mode-tab.active {
+  border-color: var(--ds-hairline);
+  background: var(--ds-paper);
+  color: var(--ds-accent-ink);
+  box-shadow: none;
+}
+
+/* ---- Step cards --------------------------------------------------------- */
+
+.workflow-template-step-editor,
+.workflow-template-step-editor.is-confirmed {
+  border-top-color: var(--ds-hairline);
+  gap: 12px;
+  background: none;
+}
+
+.workflow-template-step-title-copy strong {
+  font-size: 14px;
+}
+
+.workflow-template-step-status {
+  min-height: 22px;
+  padding: 3px 7px;
+  border: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-paper);
+  color: var(--ds-ink-3);
+  font-family: var(--ds-mono);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.workflow-template-step-status.is-confirmed {
+  border-color: rgba(84, 120, 100, 0.35);
+  background: var(--ds-ok-bg);
+  color: var(--ds-ok-ink);
+}
+
+.workflow-template-step-actions .primary-button,
+.workflow-template-step-actions .ghost-button {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.workflow-template-step-bar-side {
+  flex-wrap: nowrap;
+}
+
+.workflow-template-step-hint.alert {
+  color: var(--ds-red-ink);
+}
+
+/* ---- Picker tree -------------------------------------------------------- */
+
+.workflow-folder-picker-summary {
+  border-radius: 0;
+  border-color: var(--ds-hairline);
+  background: var(--ds-panel);
+}
+
+.workflow-picker-node,
+.workflow-picker-children {
+  gap: 4px;
+}
+
+.workflow-picker-row {
+  border-radius: 0;
+  border-color: var(--ds-hairline);
+  background: var(--ds-paper);
+}
+
+.workflow-picker-row:hover {
+  border-color: var(--ds-ink-4);
+  background: var(--ds-panel);
+}
+
+.workflow-picker-row.folder {
+  background: var(--ds-panel);
+  font-weight: 650;
+}
+
+.workflow-picker-row input {
+  accent-color: var(--ds-accent);
+}
+
+.workflow-picker-toggle {
+  color: var(--ds-ink-3);
+}
+
+.workflow-folder-picker-row.selected,
+.workflow-folder-picker-root.selected {
+  border-color: var(--ds-ink);
+  background: var(--ds-panel);
+}
+
+/* ---- Validation --------------------------------------------------------- */
+
+/* Error states were legacy red plus a 3px glow, in a skin that has no shadows. */
+.workflow-launch-dialog .detail-field.has-error .text-input,
+.workflow-launch-dialog .detail-field.has-error .text-area,
+.workflow-launch-dialog .detail-field.has-error .workflow-template-trigger,
+.workflow-launch-dialog .detail-field.has-error .workflow-launch-file-picker,
+.workflow-launch-dialog .workflow-launch-file-card.has-error {
+  border-color: var(--ds-red-ink) !important;
+  box-shadow: none;
+}
+
+/* .field-error is still a 12px pink pill from the pre-DS skin. Flatten it here
+   to an inline note; the global rule is left alone so other forms are untouched. */
+.workflow-launch-dialog .field-error,
+.workflow-template-manager-dialog .field-error {
+  margin-top: 6px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ds-red-ink);
+  font-size: 12px;
+}
+
+/* ---- Chinese typography ------------------------------------------------- */
+
+/* The mono + uppercase + 0.1em label treatment is tuned for Latin; on Chinese it
+   just spaces the glyphs apart. Scoped to these dialogs only. */
+html[lang^="zh"] .workflow-launch-dialog .mini-pill,
+html[lang^="zh"] .workflow-launch-dialog .field-label,
+html[lang^="zh"] .workflow-launch-dialog .panel-kicker,
+html[lang^="zh"] .workflow-launch-dialog .workflow-template-summary-card span,
+html[lang^="zh"] .workflow-template-manager-dialog .mini-pill,
+html[lang^="zh"] .workflow-template-manager-dialog .field-label,
+html[lang^="zh"] .workflow-template-manager-dialog .panel-kicker,
+html[lang^="zh"] .workflow-template-manager-dialog .workflow-template-step-status,
+html[lang^="zh"] .workflow-template-manager-dialog .workflow-selector-head strong,
+html[lang^="zh"] .workflow-file-picker-dialog .mini-pill,
+html[lang^="zh"] .workflow-file-picker-dialog .field-label,
+html[lang^="zh"] .workflow-file-picker-dialog .panel-kicker {
+  font-family: var(--ds-sans) !important;
+  font-size: 11px;
+  font-weight: 650 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none;
+}
+
+/* ---- Narrow viewports --------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .workflow-template-manager-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .workflow-template-manager-side {
+    max-height: 220px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ds-hairline);
+  }
+}
+
+/* ---- Toasts ------------------------------------------------------------- */
+
+/* The toast region is appended to <body>, so it is outside .workspace and the
+   lock layer never squared it either. */
+.toast-card {
+  padding: 11px 12px 11px 13px;
+  border-radius: 0;
+  border-color: var(--ds-hairline);
+  background: var(--ds-paper);
+  box-shadow: 0 14px 30px rgba(46, 45, 42, 0.14);
+  color: var(--ds-ink);
+  backdrop-filter: none;
+}
+
+.toast-card span {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.toast-card button {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--ds-hairline);
+  border-radius: 0;
+  background: var(--ds-paper);
+  color: var(--ds-ink-3);
+}
+
+.toast-card button:hover {
+  border-color: var(--ds-ink-3);
+  color: var(--ds-ink);
+}
+
+.toast-card.success {
+  border-color: rgba(84, 120, 100, 0.35);
+  border-left: 3px solid var(--ds-ok-ink);
+  background: var(--ds-ok-bg);
+  color: var(--ds-ok-ink);
+}
+
+.toast-card.alert {
+  border-color: var(--ds-red-ink);
+  border-left: 3px solid var(--ds-red-ink);
+  background: var(--ds-red-bg);
+  color: var(--ds-red-ink);
+}
+
+.toast-card.success button,
+.toast-card.alert button {
+  border-color: currentColor;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* The save/delete confirmation sits directly above the sticky footer, so it
+   has to stick too — otherwise it lands underneath it on a scrolled form. */
+.workflow-template-editor > .workflow-template-save-feedback:not(.hidden) {
+  position: sticky;
+  bottom: 70px; /* height of the sticky footer below it */
+  z-index: 2;
+  margin: 0 -26px;
+  padding-inline: 26px;
+  border-right: 0;
+  border-left-width: 3px;
 }

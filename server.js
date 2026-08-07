@@ -505,6 +505,13 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    const shareBrowseMatch = pathname.match(/^\/share\/([^/]+)$/);
+    if (shareBrowseMatch && ["GET", "HEAD"].includes(req.method)) {
+      const payload = buildPublicSharePayload(shareBrowseMatch[1]);
+      redirectTo(res, payload.viewerUrl || "/", {}, 302);
+      return;
+    }
+
     if (servePublicAssetRequest(pathname, req, res)) {
       return;
     }
@@ -764,6 +771,40 @@ const server = http.createServer(async (req, res) => {
       if (!isPublicApiRequest(pathname, req.method) && !userContext) {
         throw unauthenticatedError();
       }
+    }
+
+    const publicShareMatch = pathname.match(/^\/api\/share\/([^/]+)$/);
+    if (publicShareMatch && req.method === "GET") {
+      sendJson(res, 200, buildPublicSharePayload(publicShareMatch[1]));
+      return;
+    }
+
+    const publicShareDocumentMatch = pathname.match(/^\/api\/share\/([^/]+)\/document$/);
+    if (publicShareDocumentMatch && req.method === "GET") {
+      sendJson(res, 200, { document: buildPublicSharePayload(publicShareDocumentMatch[1]).document });
+      return;
+    }
+
+    const publicOnlyOfficeShareMatch = pathname.match(/^\/api\/onlyoffice\/share\/([^/]+)\/config$/);
+    if (publicOnlyOfficeShareMatch && req.method === "GET") {
+      sendJson(res, 200, buildPublicOnlyOfficeSharePayload(req, publicOnlyOfficeShareMatch[1]));
+      return;
+    }
+
+    const publicApsShareConfigMatch = pathname.match(/^\/api\/aps\/share\/([^/]+)\/config$/);
+    if (publicApsShareConfigMatch && req.method === "GET") {
+      sendJson(res, 200, buildPublicApsSharePayload(req, publicApsShareConfigMatch[1]));
+      return;
+    }
+
+    const publicApsShareTokenMatch = pathname.match(/^\/api\/aps\/share\/([^/]+)\/auth\/token$/);
+    if (publicApsShareTokenMatch && req.method === "GET") {
+      const { doc, entry } = resolveActiveShare(publicApsShareTokenMatch[1]);
+      if (shareViewerKind(doc, entry) !== "aps") {
+        throw permissionDeniedError("当前分享链接不是 APS 浏览文件。");
+      }
+      sendJson(res, 200, await getApsViewerToken());
+      return;
     }
 
     if (pathname === "/api/documents" && req.method === "GET") {
@@ -5362,6 +5403,21 @@ function isPublicApiRequest(pathname, method) {
   if (/^\/api\/member-invites\/[^/]+\/accept$/.test(pathname) && method === "POST") {
     return true;
   }
+  if (/^\/api\/share\/[^/]+$/.test(pathname) && method === "GET") {
+    return true;
+  }
+  if (/^\/api\/share\/[^/]+\/document$/.test(pathname) && method === "GET") {
+    return true;
+  }
+  if (/^\/api\/onlyoffice\/share\/[^/]+\/config$/.test(pathname) && method === "GET") {
+    return true;
+  }
+  if (/^\/api\/aps\/share\/[^/]+\/config$/.test(pathname) && method === "GET") {
+    return true;
+  }
+  if (/^\/api\/aps\/share\/[^/]+\/auth\/token$/.test(pathname) && method === "GET") {
+    return true;
+  }
   return isOriginGuardExemptApiRequest(pathname, method);
 }
 
@@ -5915,6 +5971,225 @@ function hasValidStoredUploadShare(doc, versionEntry, requestUrl) {
     return [safeText(doc.currentVersionId, ""), safeText(versionEntry?.id, ""), safeText(doc.version, "current"), "current"].includes(requestedVersion);
   }
   return false;
+}
+
+function shareBrowseUrl(token) {
+  const normalizedToken = safeText(token, "");
+  return normalizedToken ? `/share/${encodeURIComponent(normalizedToken)}` : "";
+}
+
+function documentExtensionForViewer(doc, entry = null) {
+  return path.extname(String(entry?.name || doc?.name || "")).toLowerCase();
+}
+
+function shareViewerKind(doc, entry = null) {
+  const mimeType = inferDocumentMimeType(entry?.name || doc?.name, entry?.mimeType || doc?.mimeType);
+  const ext = documentExtensionForViewer(doc, entry);
+  if (mimeType === "application/pdf" || ext === ".pdf") {
+    return "pdf";
+  }
+  if (isOnlyOfficeSupportedDocument(entry?.name || doc?.name)) {
+    return "onlyoffice";
+  }
+  if (isApsModelDocument(entry?.name || doc?.name)) {
+    return "aps";
+  }
+  return "file";
+}
+
+function shareViewerUrl(token, doc, entry = null) {
+  const normalizedToken = safeText(token, "");
+  if (!normalizedToken) {
+    return "";
+  }
+  const params = new URLSearchParams({ share: normalizedToken, mode: "view" });
+  const versionId = safeText(entry?.id, "");
+  if (versionId) {
+    params.set("versionId", versionId);
+  }
+  const kind = shareViewerKind(doc, entry);
+  if (kind === "pdf") {
+    return `/pdf.html?${params.toString()}`;
+  }
+  if (kind === "onlyoffice") {
+    return `/onlyoffice.html?${params.toString()}`;
+  }
+  if (kind === "aps") {
+    params.set("workspace", apsDocumentWorkspaceKind(entry?.name || doc?.name));
+    return `/apsviewer.html?${params.toString()}`;
+  }
+  return storedUploadShareUrl(entry?.storedFileName || doc?.storedFileName, normalizedToken, versionId);
+}
+
+function storedUploadShareUrl(storedFileName, token, versionId) {
+  const normalizedFileName = safeText(storedFileName, "");
+  const normalizedToken = safeText(token, "");
+  if (!normalizedFileName || !normalizedToken) {
+    return "";
+  }
+  const params = new URLSearchParams({ share: normalizedToken });
+  const normalizedVersionId = safeText(versionId, "");
+  if (normalizedVersionId) {
+    params.set("version", normalizedVersionId);
+  }
+  return `/uploads/${encodeURIComponent(normalizedFileName)}?${params.toString()}`;
+}
+
+function resolveActiveShare(token) {
+  const normalizedToken = safeText(token, "");
+  if (!normalizedToken) {
+    const error = new Error("Share link not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  for (const doc of documents) {
+    const currentEntry = resolveCurrentVersionEntry(doc.versionHistory || [], doc.currentVersionId) || currentVersionSnapshot(doc);
+    if (shareRecordActive(doc.share) && doc.share.token === normalizedToken) {
+      return { doc, entry: currentEntry, share: doc.share };
+    }
+
+    const versionEntry = (doc.versionHistory || []).find(
+      (entry) => !entry.deletedAt && shareRecordActive(entry.share) && entry.share.token === normalizedToken,
+    );
+    if (versionEntry) {
+      return { doc, entry: versionEntry, share: versionEntry.share };
+    }
+  }
+
+  const error = new Error("Share link not found");
+  error.statusCode = 404;
+  throw error;
+}
+
+function shareDocumentPermissions(shareRecord) {
+  const canDownload = normalizeSharePermission(shareRecord?.permission, "view") === "download";
+  return {
+    visible: true,
+    fileLevel: "viewer",
+    preview: true,
+    download: canDownload,
+    uploadVersion: false,
+    rename: false,
+    move: false,
+    share: false,
+    onlyOfficeEdit: false,
+    delete: false,
+    checkout: false,
+    forceUnlock: false,
+    approvalLocked: false,
+    publishLocked: false,
+    annotations: {
+      create: false,
+      updateOwn: false,
+      deleteOwn: false,
+      reply: false,
+      changeStatus: false,
+      changeStatusAny: false,
+      deleteOthers: false,
+      export: false,
+    },
+    workflow: {
+      visible: false,
+      start: false,
+      run: false,
+      assignedReviewer: false,
+      assignedApprover: false,
+      export: false,
+      withdraw: false,
+    },
+  };
+}
+
+function toPublicShareDocument(doc, entry, shareRecord) {
+  const resolvedEntry = entry || resolveCurrentVersionEntry(doc.versionHistory || [], doc.currentVersionId) || currentVersionSnapshot(doc);
+  const token = safeText(shareRecord?.token, "");
+  const versionId = safeText(resolvedEntry.id, safeText(doc.currentVersionId, ""));
+  const fileUrl = storedUploadShareUrl(resolvedEntry.storedFileName || doc.storedFileName, token, versionId);
+  const permissions = shareDocumentPermissions(shareRecord);
+  const publicEntry = {
+    ...resolvedEntry,
+    isCurrent: true,
+    fileUrl,
+    previewUrl: fileUrl,
+    shareUrl: shareBrowseUrl(token),
+    viewerUrl: shareViewerUrl(token, doc, resolvedEntry),
+  };
+  return {
+    id: doc.id,
+    projectId: doc.projectId,
+    name: safeText(doc.name, resolvedEntry.name || "未命名文件"),
+    parentId: doc.parentId,
+    currentVersionId: versionId,
+    storedFileName: safeText(resolvedEntry.storedFileName, doc.storedFileName),
+    size: Number(resolvedEntry.size || doc.size || 0),
+    version: safeText(resolvedEntry.version, doc.version || "V1"),
+    status: doc.status,
+    workflowName: safeText(doc.workflowName, ""),
+    owner: safeText(doc.owner, ""),
+    mimeType: inferDocumentMimeType(resolvedEntry.name || doc.name, resolvedEntry.mimeType || doc.mimeType),
+    isPdf: inferDocumentMimeType(resolvedEntry.name || doc.name, resolvedEntry.mimeType || doc.mimeType) === "application/pdf",
+    uploadedAt: resolvedEntry.uploadedAt || doc.uploadedAt,
+    updatedAt: resolvedEntry.uploadedAt || doc.updatedAt,
+    permissions,
+    checkedOut: false,
+    locked: false,
+    activeWorkflowId: "",
+    workflowIds: [],
+    fileUrl,
+    previewUrl: fileUrl,
+    shareUrl: shareBrowseUrl(token),
+    viewerUrl: shareViewerUrl(token, doc, resolvedEntry),
+    viewerKind: shareViewerKind(doc, resolvedEntry),
+    share: {
+      enabled: true,
+      permission: normalizeSharePermission(shareRecord?.permission, "view"),
+      expiresAt: safeText(shareRecord?.expiresAt, ""),
+      token,
+    },
+    versionHistory: [publicEntry],
+    exportUrl: "",
+    annotations: [],
+  };
+}
+
+function buildPublicSharePayload(token) {
+  const { doc, entry, share } = resolveActiveShare(token);
+  const document = toPublicShareDocument(doc, entry, share);
+  return {
+    document,
+    viewerUrl: document.viewerUrl,
+    viewerKind: document.viewerKind,
+  };
+}
+
+function buildPublicOnlyOfficeSharePayload(req, token) {
+  const { doc, entry, share } = resolveActiveShare(token);
+  if (shareViewerKind(doc, entry) !== "onlyoffice") {
+    throw permissionDeniedError("当前分享链接不是 Office 文档。");
+  }
+  const payload = buildOnlyOfficePayload(req, doc, entry, "view", "分享访客", SYSTEM_USER_CONTEXT);
+  const canDownload = normalizeSharePermission(share?.permission, "view") === "download";
+  if (payload.config?.document?.permissions) {
+    payload.config.document.permissions.download = canDownload;
+    payload.config.document.permissions.print = canDownload;
+  }
+  return payload;
+}
+
+function buildPublicApsSharePayload(req, token) {
+  const { doc, entry } = resolveActiveShare(token);
+  if (shareViewerKind(doc, entry) !== "aps") {
+    throw permissionDeniedError("当前分享链接不是 APS 浏览文件。");
+  }
+  const payload = buildApsViewerPayload(req, doc, "分享访客", { versionEntry: entry });
+  return {
+    ...payload,
+    tokenUrl: `/api/aps/share/${encodeURIComponent(safeText(token, ""))}/auth/token`,
+    reviewApiUrl: "",
+    issues: [],
+    publicShare: true,
+  };
 }
 
 function assertStoredUploadAccess(fileName, requestUrl, userContext) {
@@ -21005,7 +21280,7 @@ function toPublicDocument(doc, userContext = SYSTEM_USER_CONTEXT) {
   const currentVersionId = safeText(doc.currentVersionId, "");
   const shareUrl =
     doc.share?.enabled && doc.share?.token
-      ? `/uploads/${doc.storedFileName}?share=${encodeURIComponent(doc.share.token)}&version=${encodeURIComponent(currentVersionId || doc.version || "current")}`
+      ? shareBrowseUrl(doc.share.token)
       : "";
   const annotations = Array.isArray(doc.annotations)
     ? doc.annotations
@@ -21033,7 +21308,7 @@ function toPublicDocument(doc, userContext = SYSTEM_USER_CONTEXT) {
               entry.isCurrent && shareUrl
                 ? shareUrl
                 : entry.share?.enabled && entry.share?.token
-                  ? `/uploads/${entry.storedFileName}?share=${encodeURIComponent(entry.share.token)}&version=${encodeURIComponent(entry.id)}`
+                  ? shareBrowseUrl(entry.share.token)
                   : "",
           }))
       : [],
@@ -27134,7 +27409,6 @@ function servePublicAssetRequest(pathname, req, res) {
     serveFile(res, path.join(EMBEDPDF_DIST_DIR, path.basename(pathname)), req);
     return true;
   }
-
   const publicFiles = new Map([
     ["/", "index.html"],
     ["/index.html", "index.html"],

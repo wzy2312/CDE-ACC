@@ -500,10 +500,11 @@
       window.alert = (message) => originalAlert(localizeUserMessage(message, t("操作失败，请稍后重试。", "Operation failed. Please try again.")));
 
       const params = new URLSearchParams(window.location.search);
+      const shareToken = params.get("share") || "";
       const docId = params.get("docId") || "";
       const versionId = params.get("versionId") || "";
-      const mode = params.get("mode") || "edit";
-      const actor = params.get("actor") || "";
+      const mode = shareToken ? "view" : (params.get("mode") || "edit");
+      const actor = shareToken ? "分享访客" : (params.get("actor") || "");
 
       const modeChip = document.querySelector("#modeChip");
       const stateWrap = document.querySelector("#stateWrap");
@@ -534,6 +535,10 @@
       }
 
       async function exportCommentReport() {
+        if (shareToken) {
+          window.alert(t("分享浏览不支持导出评论。", "Comment export is unavailable in shared view."));
+          return;
+        }
         if (!docId) {
           return;
         }
@@ -632,7 +637,7 @@
       }
 
       async function boot() {
-        if (!docId) {
+        if (!docId && !shareToken) {
           document.title = t("缺少文档参数", "Missing Document Parameter");
           updateState(t("缺少文档参数", "Missing Document Parameter"), t("当前页面没有拿到 docId，无法打开 OnlyOffice。", "This page did not receive docId and cannot open OnlyOffice."));
           modeChip.textContent = t("参数错误", "Invalid Parameter");
@@ -644,7 +649,10 @@
           if (versionId) query.set("versionId", versionId);
           if (mode) query.set("mode", mode);
           if (actor) query.set("actor", actor);
-          const response = await fetch(`/api/onlyoffice/documents/${encodeURIComponent(docId)}/config?${query.toString()}`, {
+          const configPath = shareToken
+            ? `/api/onlyoffice/share/${encodeURIComponent(shareToken)}/config?${query.toString()}`
+            : `/api/onlyoffice/documents/${encodeURIComponent(docId)}/config?${query.toString()}`;
+          const response = await fetch(configPath, {
             credentials: "same-origin",
           });
           const payload = await response.json();

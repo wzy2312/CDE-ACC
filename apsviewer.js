@@ -410,10 +410,11 @@ window.alert = (message) => originalAlert(localizeUserMessage(message, t("操作
 document.title = localizeStandaloneText(document.title);
 
 const params = new URLSearchParams(window.location.search);
+const shareToken = params.get("share") || "";
 const docId = params.get("docId") || "";
 const versionId = params.get("versionId") || "";
-const mode = params.get("mode") || "review";
-const actor = params.get("actor") || t("系统", "System");
+const mode = shareToken ? "view" : (params.get("mode") || "review");
+const actor = shareToken ? "分享访客" : (params.get("actor") || t("系统", "System"));
 const workspace = params.get("workspace") === "drawing" ? "drawing" : "model";
 const initialIssueId = params.get("issueId") || params.get("annotationId") || "";
 const initialDbIdsParam = params.get("dbIds") || "";
@@ -1138,6 +1139,9 @@ async function fetchJson(url, options = {}) {
 }
 
 async function hydrateInitialHeatmap() {
+  if (shareToken) {
+    return;
+  }
   if (!initialHeatmapId || workspace !== "model" || !initialHeatmapVisible) {
     return;
   }
@@ -1158,6 +1162,9 @@ async function hydrateInitialHeatmap() {
 }
 
 async function hydrateInitialModelDiff() {
+  if (shareToken) {
+    return;
+  }
   if (!initialModelDiffTaskId || workspace !== "model") {
     return;
   }
@@ -1173,6 +1180,9 @@ async function hydrateInitialModelDiff() {
 }
 
 async function patchAps(partialAps) {
+  if (shareToken) {
+    throw new Error("分享浏览不支持保存 APS 标注或视点。");
+  }
   const payload = await fetchJson(state.payload.reviewApiUrl, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -3644,6 +3654,9 @@ async function buildIssuePayloadFromCurrentView() {
 }
 
 async function createIssueAtCurrentView() {
+  if (shareToken) {
+    throw new Error("分享浏览不支持创建 Issue。");
+  }
   const payload = await buildIssuePayloadFromCurrentView();
   const response = await fetchJson(`/api/documents/${encodeURIComponent(docId)}/annotations`, {
     method: "POST",
@@ -3662,6 +3675,9 @@ async function createIssueAtCurrentView() {
 }
 
 async function rebindActiveIssueToSelection() {
+  if (shareToken) {
+    throw new Error("分享浏览不支持重新绑定 Issue。");
+  }
   const issue = state.issues.find((item) => item.id === state.activeIssueId);
   if (!issue) {
     throw new Error("请先选择一条需要重新绑定的 Issue。");
@@ -3771,12 +3787,18 @@ async function focusInitialDbIds() {
 }
 
 async function saveSceneState() {
+  if (shareToken) {
+    throw new Error("分享浏览不支持保存视点。");
+  }
   await patchAps(buildScenePatch());
   setComponentStatus("savedViews", "success", "已持久化当前 scene state，可用于 reopen restoreState");
   pulseButton(dom.saveSceneButton, "场景已保存");
 }
 
 async function saveNamedView() {
+  if (shareToken) {
+    throw new Error("分享浏览不支持保存视点。");
+  }
   if (!state.slots.primary.viewer || !state.slots.primary.current) {
     throw new Error("主视图尚未完成加载");
   }
@@ -3895,6 +3917,9 @@ async function enterMarkups() {
 }
 
 async function saveMarkups() {
+  if (shareToken) {
+    throw new Error("分享浏览不支持保存标注。");
+  }
   const slot = activeSlotForRole("2d");
   if (!slot || !slot.current) {
     throw new Error("当前没有打开 2D 图纸视图");
@@ -3920,6 +3945,9 @@ async function saveMarkups() {
 }
 
 async function clearMarkups() {
+  if (shareToken) {
+    throw new Error("分享浏览不支持清空标注。");
+  }
   const slot = activeSlotForRole("2d");
   if (!slot || !slot.current) {
     throw new Error("当前没有打开 2D 图纸视图");
@@ -4017,6 +4045,21 @@ function showSetup(payload) {
 function bindActions() {
   dom.backButton.addEventListener("click", leaveWorkspace);
   window.addEventListener("resize", scheduleIssueMarkerRender);
+  if (shareToken) {
+    [
+      dom.saveSceneButton,
+      dom.saveViewButton,
+      dom.createIssueButton,
+      dom.rebindIssueButton,
+      dom.saveMarkupsButton,
+      dom.clearMarkupsButton,
+    ].forEach((button) => {
+      if (button) {
+        button.disabled = true;
+        button.title = "分享浏览为只读模式";
+      }
+    });
+  }
   dom.layoutModeLinkedButton.addEventListener("click", () => {
     void switchLayoutMode("linked");
   });
@@ -4087,7 +4130,7 @@ async function boot() {
   syncWorkspaceChrome();
   bindActions();
 
-  if (!docId) {
+  if (!docId && !shareToken) {
     updateOverlay("缺少文档参数", `当前页面没有拿到 docId，无法打开 APS ${labels.workspace}。`);
     return;
   }
@@ -4103,7 +4146,10 @@ async function boot() {
     if (initialScheduleId) query.set("scheduleId", initialScheduleId);
     if (initialScheduleDate) query.set("scheduleDate", initialScheduleDate);
 
-    const response = await fetch(`/api/aps/documents/${encodeURIComponent(docId)}/config?${query.toString()}`, {
+    const configPath = shareToken
+      ? `/api/aps/share/${encodeURIComponent(shareToken)}/config?${query.toString()}`
+      : `/api/aps/documents/${encodeURIComponent(docId)}/config?${query.toString()}`;
+    const response = await fetch(configPath, {
       credentials: "same-origin",
     });
     const payload = await readJson(response);

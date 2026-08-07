@@ -304,6 +304,10 @@ const dynamicDisplayLabels = createLocalizedLookup({
     "系统级流程": "系统级流程",
     "项目级流程": "项目级流程",
     "验证流程": "验证流程",
+    "文档审阅": "文档审阅",
+    "专业会签": "专业会签",
+    "发布审批": "发布审批",
+    "归档流程": "归档流程",
     "项目总监": "项目总监",
     "总工": "总工",
     "项目总监 / 总工": "项目总监 / 总工",
@@ -388,6 +392,10 @@ const dynamicDisplayLabels = createLocalizedLookup({
     "系统级流程": "System Workflow",
     "项目级流程": "Project Workflow",
     "验证流程": "Validation Workflow",
+    "文档审阅": "Document Review",
+    "专业会签": "Discipline Sign-off",
+    "发布审批": "Publish Approval",
+    "归档流程": "Archive Workflow",
     "项目总监": "Project Director",
     "总工": "Chief Engineer",
     "项目总监 / 总工": "Project Director / Chief Engineer",
@@ -1190,17 +1198,14 @@ function workflowTemplateCategoryOptions() {
     });
   };
 
-  [
-    { value: "项目级流程", label: text("项目级流程", "Project-level Flow") },
-    { value: "文档审阅", label: text("文档审阅", "Document Review") },
-    { value: "专业会签", label: text("专业会签", "Discipline Sign-off") },
-    { value: "发布审批", label: text("发布审批", "Publish Approval") },
-    { value: "归档流程", label: text("归档流程", "Archive Flow") },
-    { value: "系统级流程", label: text("系统级流程", "System Flow") },
-  ].forEach((option) => appendOption(option.value, option.label));
+  // Category labels come from dynamicDisplayLabels so the dropdown, the template
+  // list, and the launch picker never disagree on the same value.
+  ["项目级流程", "文档审阅", "专业会签", "发布审批", "归档流程", "系统级流程"].forEach((value) =>
+    appendOption(value, localizedDisplayName(value)),
+  );
 
-  state.workflowTemplates.forEach((template) => appendOption(template.category, template.category));
-  appendOption(state.workflowTemplateDraft?.category, state.workflowTemplateDraft?.category);
+  state.workflowTemplates.forEach((template) => appendOption(template.category, localizedDisplayName(template.category)));
+  appendOption(state.workflowTemplateDraft?.category, localizedDisplayName(state.workflowTemplateDraft?.category));
 
   return [...optionMap.values()];
 }
@@ -1834,6 +1839,7 @@ state = {
   workflowTemplateManagerModalOpen: false,
   workflowTemplateEditingId: null,
   workflowTemplateDraft: createEmptyWorkflowTemplateDraft(),
+  workflowTemplateFeedback: null,
   workflowTemplateFolderPickerModalOpen: false,
   workflowTemplateFolderPickerExpandedFolderIds: [],
   workflowTemplateFolderPickerTargetId: "",
@@ -2410,6 +2416,7 @@ const elements = {
   workflowTemplateExportContentSelector: document.querySelector("#workflowTemplateExportContentSelector"),
   addWorkflowTemplateStepButton: document.querySelector("#addWorkflowTemplateStepButton"),
   workflowTemplateStepsEditor: document.querySelector("#workflowTemplateStepsEditor"),
+  workflowTemplateSaveFeedback: document.querySelector("#workflowTemplateSaveFeedback"),
   deleteWorkflowTemplateButton: document.querySelector("#deleteWorkflowTemplateButton"),
   saveWorkflowTemplateButton: document.querySelector("#saveWorkflowTemplateButton"),
   workflowTemplateFolderPickerModal: document.querySelector("#workflowTemplateFolderPickerModal"),
@@ -3208,6 +3215,14 @@ const STATIC_EN_TEXT = {
   "导出内容": "Export Contents",
   "审批步骤": "Approval Steps",
   "新增步骤": "Add Step",
+  "步骤名称": "Step Name",
+  "步骤说明": "Step Description",
+  "成员选择器": "Members",
+  "角色选择器": "Roles",
+  "当前还没有选择成员": "No members selected yet",
+  "当前还没有选择角色": "No roles selected yet",
+  "未限制角色": "No role restriction",
+  "全部角色": "All roles",
   "删除模板": "Delete Template",
   "保存模板": "Save Template",
   "导出目录": "Export Folder",
@@ -23941,7 +23956,11 @@ function notify(message, tone = "info", options = {}) {
   const item = {
     id,
     tone,
-    message: localizeUserMessage(message || "", text("操作失败，请稍后重试。", "Operation failed. Please try again.")),
+    // localizeUserMessage() degrades to a generic failure string whenever the
+    // result still contains CJK, which is wrong for a success toast that
+    // interpolates a user-entered name. Such callers pass { fallback } so the
+    // degraded case still reads as success.
+    message: localizeUserMessage(message || "", options.fallback || text("操作失败，请稍后重试。", "Operation failed. Please try again.")),
   };
   state.toastItems = [...state.toastItems, item].slice(-4);
   renderToasts();
@@ -24891,7 +24910,12 @@ function selectLaunchTemplate(templateId) {
 function renderLaunchFlowTemplateMenuMarkup() {
   const groups = groupedLaunchTemplates();
   if (!groups.length) {
-    return '<div class="empty-card">当前项目没有可用流程模板，请先在“流程模板”中配置。</div>';
+    return `<div class="empty-card">${escapeHtml(
+      text(
+        "当前项目没有可用流程模板，请先在“流程模板”中配置。",
+        "This project has no workflow templates. Configure them in Workflow Templates first.",
+      ),
+    )}</div>`;
   }
 
   return groups
@@ -24901,10 +24925,12 @@ function renderLaunchFlowTemplateMenuMarkup() {
         <section class="workflow-template-group">
           <button class="workflow-template-group-toggle${open ? " open" : ""}" data-launch-template-group="${escapeHtml(group.key)}" type="button">
             <span class="workflow-template-group-copy">
-              <strong>${escapeHtml(group.category)}</strong>
+              <strong>${escapeHtml(localizedDisplayName(group.category))}</strong>
               <span>${escapeHtml(group.projectName)}</span>
             </span>
-            <span class="workflow-template-group-meta">${escapeHtml(`${group.templates.length} 个模板`)}</span>
+            <span class="workflow-template-group-meta">${escapeHtml(
+              text(`${group.templates.length} 个模板`, `${group.templates.length} template${group.templates.length === 1 ? "" : "s"}`),
+            )}</span>
           </button>
           ${open
             ? `
@@ -24923,7 +24949,7 @@ function renderLaunchFlowTemplateMenuMarkup() {
                             <span>${escapeHtml(
                               template.steps
                                 .map((step, index) => `${index + 1}.${step.name}`)
-                                .join(" / ") || "未配置步骤",
+                                .join(" / ") || text("未配置步骤", "No steps configured"),
                             )}</span>
                           </span>
                           <span class="workflow-template-option-check" aria-hidden="true">${selected ? "✓" : ""}</span>
@@ -25006,8 +25032,14 @@ function renderLaunchFlowModal() {
 
   elements.launchFlowMeta.textContent =
     state.launchFlowSource === "files"
-      ? "当前来自文件页发起，已带入所选文件；你也可以继续追加其他文件。"
-      : "当前来自流程页发起，可先选择流程模板，再从目录树中添加一个或多个文件。";
+      ? text(
+          "当前来自文件页发起，已带入所选文件；你也可以继续追加其他文件。",
+          "Started from the file page with your selection carried over. You can keep adding files.",
+        )
+      : text(
+          "当前来自流程页发起，可先选择流程模板，再从目录树中添加一个或多个文件。",
+          "Started from the workflow page. Pick a template first, then add one or more files from the folder tree.",
+        );
 
   syncInputValue(elements.launchFlowNameInput, state.launchFlowDraft.workflowName);
   elements.launchFlowTemplateSelect.innerHTML = renderLaunchFlowTemplateOptions(templates);
@@ -25291,6 +25323,23 @@ async function submitLaunchFlow() {
     state.selectedWorkflowId = response.workflow?.id || state.selectedWorkflowId;
     closeLaunchFlowModal({ render: false });
     render();
+    // The dialog is gone by now and the view has switched to the workflow page,
+    // so this confirmation has to live outside it.
+    const fileCount = selectedDocs.length;
+    const firstStepName = template.steps?.[0]?.name || "";
+    notify(
+      text(
+        `流程「${workflowName}」已发起 · ${fileCount} 个文件${firstStepName ? ` · 待「${firstStepName}」审批` : ""}`,
+        `Workflow “${workflowName}” started · ${fileCount} file${fileCount === 1 ? "" : "s"}${firstStepName ? ` · pending “${firstStepName}”` : ""}`,
+      ),
+      "success",
+      {
+        timeout: 5200,
+        // A Chinese workflow name in the English UI would otherwise trip the
+        // CJK guard and turn this into a generic failure message.
+        fallback: text(`流程已发起 · ${fileCount} 个文件`, `Workflow started · ${fileCount} file${fileCount === 1 ? "" : "s"}`),
+      },
+    );
   } catch (error) {
     state.launchFlowSubmitting = false;
     state.launchFlowValidation.submit = error.message || "服务异常，请稍后重试。";
@@ -25319,6 +25368,7 @@ function openWorkflowTemplateManagerModal() {
 function closeWorkflowTemplateManagerModal(options = {}) {
   state.workflowTemplateManagerModalOpen = false;
   state.overlayFocusedKey = "";
+  clearWorkflowTemplateFeedback();
   state.workflowTemplateFolderPickerModalOpen = false;
   state.workflowTemplateFolderPickerExpandedFolderIds = [];
   state.workflowTemplateFolderPickerTargetId = "";
@@ -25378,17 +25428,31 @@ function workflowTemplateStepDraftAssigneeSummary(step) {
   const assigneeMode = normalizeWorkflowTemplateAssigneeMode(step?.assigneeMode);
   const labels = workflowTemplateStepDraftResolvedLabels(step);
   if (assigneeMode === "role" && step.selectedRoles.length && !labels.length) {
-    return "所选角色当前没有可用项目成员，请先分配成员或改为按人员。";
+    return text(
+      "所选角色当前没有可用项目成员，请先分配成员或改为按人员。",
+      "The selected roles have no project members yet. Assign members or switch to by-person.",
+    );
   }
   if (!labels.length) {
-    return assigneeMode === "role" ? "当前还没有配置审批角色。" : "当前还没有配置审批人员。";
+    return assigneeMode === "role"
+      ? text("当前还没有配置审批角色。", "No approval role has been configured yet.")
+      : text("当前还没有配置审批人员。", "No approver has been configured yet.");
   }
   if (workflowTemplateStepSingleModeInvalid(step)) {
-    return "单签步骤当前会解析出多名审批人，请改为并联节点或减少角色/人员。";
+    return text(
+      "单签步骤当前会解析出多名审批人，请改为并联节点或减少角色/人员。",
+      "This single sign-off step resolves to several approvers. Switch to a parallel mode or remove roles/people.",
+    );
   }
   return assigneeMode === "role"
-    ? `当前会按角色解析为 ${labels.length} 名审批人：${labels.join(" / ")}`
-    : `当前已指定 ${labels.length} 名审批人：${labels.join(" / ")}`;
+    ? text(
+        `当前会按角色解析为 ${labels.length} 名审批人：${labels.join(" / ")}`,
+        `Resolves by role to ${labels.length} approver${labels.length === 1 ? "" : "s"}: ${labels.join(" / ")}`,
+      )
+    : text(
+        `当前已指定 ${labels.length} 名审批人：${labels.join(" / ")}`,
+        `${labels.length} approver${labels.length === 1 ? "" : "s"} assigned: ${labels.join(" / ")}`,
+      );
 }
 
 function workflowTemplateStepModeLabel(mode) {
@@ -25467,6 +25531,7 @@ function markWorkflowTemplateStepDirty(index, options = {}) {
   if (!step) {
     return;
   }
+  clearWorkflowTemplateFeedback({ render: true });
   step.confirmed = false;
   if (options.expand) {
     step.collapsed = false;
@@ -25569,6 +25634,66 @@ function workflowTemplatePayloadFromDraft() {
   };
 }
 
+const WORKFLOW_TEMPLATE_FEEDBACK_TIMEOUT_MS = 6000;
+let workflowTemplateFeedbackTimer = 0;
+
+// The dialog stays open after saving or deleting, so the confirmation belongs
+// next to the action buttons rather than in a toast that covers the workspace.
+function showWorkflowTemplateFeedback(tone, title, detail) {
+  window.clearTimeout(workflowTemplateFeedbackTimer);
+  state.workflowTemplateFeedback = {
+    tone,
+    title,
+    detail,
+    at: new Date(),
+  };
+  workflowTemplateFeedbackTimer = window.setTimeout(() => {
+    clearWorkflowTemplateFeedback({ render: true });
+  }, WORKFLOW_TEMPLATE_FEEDBACK_TIMEOUT_MS);
+}
+
+function clearWorkflowTemplateFeedback(options = {}) {
+  window.clearTimeout(workflowTemplateFeedbackTimer);
+  workflowTemplateFeedbackTimer = 0;
+  if (!state.workflowTemplateFeedback) {
+    return;
+  }
+  state.workflowTemplateFeedback = null;
+  if (options.render && state.workflowTemplateManagerModalOpen) {
+    renderWorkflowTemplateFeedback();
+  }
+}
+
+function renderWorkflowTemplateFeedback() {
+  const target = elements.workflowTemplateSaveFeedback;
+  if (!target) {
+    return;
+  }
+  const feedback = state.workflowTemplateFeedback;
+  target.classList.toggle("hidden", !feedback);
+  target.classList.toggle("is-removed", feedback?.tone === "removed");
+  if (!feedback) {
+    target.innerHTML = "";
+    return;
+  }
+  const mark =
+    feedback.tone === "removed"
+      ? '<path d="M4 5h12M8 5V3.5h4V5M6.5 5l.7 10h5.6l.7-10" />'
+      : '<path d="M4.5 10.5l3.4 3.4 7.6-7.8" />';
+  target.innerHTML = `
+    <span class="workflow-template-save-mark" aria-hidden="true">
+      <svg viewBox="0 0 20 20">${mark}</svg>
+    </span>
+    <span class="workflow-template-save-copy">
+      <strong>${escapeHtml(feedback.title)}</strong>
+      <span>${escapeHtml(feedback.detail)}</span>
+    </span>
+    <span class="workflow-template-save-meta">${escapeHtml(
+      feedback.at.toLocaleTimeString(currentDateLocale(), { hour: "2-digit", minute: "2-digit", hour12: false }),
+    )}</span>
+  `;
+}
+
 function renderWorkflowTemplateManagerModal() {
   const visible = state.workflowTemplateManagerModalOpen;
   const canManage = Boolean(currentCapabilities().manageWorkflowTemplates);
@@ -25591,7 +25716,9 @@ function renderWorkflowTemplateManagerModal() {
           (template) => `
             <button class="workflow-template-list-item${template.id === activeTemplateId ? " active" : ""}" data-workflow-template-item="${template.id}" type="button">
               <strong>${escapeHtml(template.name)}</strong>
-              <span>${escapeHtml(`${template.category || "项目级流程"} · ${template.projectName || "当前项目"}`)}</span>
+              <span>${escapeHtml(
+                `${localizedDisplayName(template.category || "项目级流程")} · ${template.projectName || text("当前项目", "Current Project")}`,
+              )}</span>
             </button>
           `,
         )
@@ -25613,15 +25740,9 @@ function renderWorkflowTemplateManagerModal() {
   Array.from(elements.workflowTemplateRolesSelect.options).forEach((option) => {
     option.selected = state.workflowTemplateDraft.allowedRoles.includes(option.value);
   });
+  // The field label already names this control and every option is visible, so
+  // the old head + selected-pill summary above the grid was pure duplication.
   elements.workflowTemplateRolesSelector.innerHTML = `
-    <div class="workflow-selector-head">
-      <strong>发起角色</strong>
-      <span class="mini-pill">${state.workflowTemplateDraft.allowedRoles.length ? `${state.workflowTemplateDraft.allowedRoles.length} 项` : "全部角色"}</span>
-    </div>
-    <div class="workflow-selector-pills">${renderWorkflowSelectorPills(
-      workflowSelectedOptionLabels(allowedRoleOptions, state.workflowTemplateDraft.allowedRoles),
-      "未限制角色",
-    )}</div>
     <div class="workflow-option-grid">
       ${renderWorkflowSelectorOptionButtons(
         allowedRoleOptions,
@@ -25629,6 +25750,11 @@ function renderWorkflowTemplateManagerModal() {
         (option) => `data-workflow-template-role-toggle="${escapeHtml(option.value)}" ${canManage ? "" : "disabled"}`,
       )}
     </div>
+    <p class="workflow-selector-note">${
+      state.workflowTemplateDraft.allowedRoles.length
+        ? escapeHtml(text(`${state.workflowTemplateDraft.allowedRoles.length} 个角色可发起该流程`, `${state.workflowTemplateDraft.allowedRoles.length} roles can launch this workflow`))
+        : escapeHtml(text("未限制角色，所有有权限的成员都可发起", "No role restriction — any permitted member can launch"))
+    }</p>
   `;
   elements.workflowTemplateAutoExportToggle.checked = Boolean(state.workflowTemplateDraft.autoExport.enabled);
   setSelectOptions(
@@ -25700,7 +25826,7 @@ function renderWorkflowTemplateManagerModal() {
       const roleOptions = workflowAssignableRoleOptions();
       const selectedUserLabels = workflowSelectedOptionLabels(userOptions, step.selectedUserIds);
       const selectedRoleLabels = workflowSelectedOptionLabels(roleOptions, step.selectedRoles);
-      const selectorTitle = assigneeMode === "role" ? "角色选择器" : "成员选择器";
+      const selectorTitle = assigneeMode === "role" ? text("角色选择器", "Roles") : text("成员选择器", "Members");
       const selectorLabels = assigneeMode === "role" ? selectedRoleLabels : selectedUserLabels;
       const selectorOptions = assigneeMode === "role" ? roleOptions : userOptions;
       const toggleAttrName = assigneeMode === "role" ? "data-workflow-step-role-toggle" : "data-workflow-step-user-toggle";
@@ -25766,7 +25892,7 @@ function renderWorkflowTemplateManagerModal() {
                   <section class="workflow-selector-shell workflow-field-span">
                     <div class="workflow-selector-head">
                       <strong>${selectorTitle}</strong>
-                      <span class="mini-pill">${selectorLabels.length} 项</span>
+                      <span class="mini-pill">${text(`已选 ${selectorLabels.length} 项`, `${selectorLabels.length} selected`)}</span>
                     </div>
                     <div class="workflow-selector-pills">${renderWorkflowSelectorPills(selectorLabels, assigneeMode === "role" ? "当前还没有选择角色" : "当前还没有选择成员")}</div>
                     <div class="workflow-option-grid">
@@ -25788,6 +25914,7 @@ function renderWorkflowTemplateManagerModal() {
       `;
     })
     .join("");
+  renderWorkflowTemplateFeedback();
   elements.createWorkflowTemplateButton.disabled = !canManage;
   elements.addWorkflowTemplateStepButton.disabled = !canManage;
   elements.deleteWorkflowTemplateButton.disabled = !canManage || !state.workflowTemplateEditingId;
@@ -25801,6 +25928,7 @@ function renderWorkflowTemplateManagerModal() {
       }
       state.workflowTemplateEditingId = template.id;
       state.workflowTemplateDraft = templateDraftFromTemplate(template);
+      clearWorkflowTemplateFeedback();
       renderWorkflowTemplateManagerModal();
     });
   });
@@ -26113,6 +26241,7 @@ async function submitWorkflowTemplateDraft() {
     return;
   }
 
+  const wasNewTemplate = !state.workflowTemplateEditingId;
   try {
     let savedTemplateId = state.workflowTemplateEditingId;
     if (state.workflowTemplateEditingId) {
@@ -26130,6 +26259,15 @@ async function submitWorkflowTemplateDraft() {
         state.workflowTemplateDraft = templateDraftFromTemplate(template);
       }
     }
+    const stepCount = payload.steps.length;
+    showWorkflowTemplateFeedback(
+      "success",
+      wasNewTemplate ? text("模板已创建", "Template created") : text("模板已保存", "Template saved"),
+      text(
+        `${payload.name} · ${stepCount} 个审批步骤${payload.autoExport.enabled ? " · 已开启自动导出" : ""}`,
+        `${payload.name} · ${stepCount} approval step${stepCount === 1 ? "" : "s"}${payload.autoExport.enabled ? " · auto-export on" : ""}`,
+      ),
+    );
     renderWorkflowTemplateManagerModal();
     renderLaunchFlowModal();
   } catch (error) {
@@ -26146,11 +26284,22 @@ async function deleteCurrentWorkflowTemplateDraft() {
   if (!await confirmAction(text("确认删除当前流程模板吗？已运行中的流程不会受影响。", "Delete the current workflow template? Running workflows will not be affected."))) {
     return;
   }
+  const deletedName =
+    state.workflowTemplates.find((item) => item.id === state.workflowTemplateEditingId)?.name ||
+    state.workflowTemplateDraft.name;
   try {
     await deleteJson(`/api/workflow-templates/${state.workflowTemplateEditingId}`);
     state.workflowTemplateEditingId = null;
     state.workflowTemplateDraft = createEmptyWorkflowTemplateDraft();
     await refreshDocuments();
+    showWorkflowTemplateFeedback(
+      "removed",
+      text("模板已删除", "Template deleted"),
+      text(
+        `${deletedName || "该模板"} 已移除，运行中的流程不受影响`,
+        `${deletedName || "The template"} was removed. Running workflows are unaffected.`,
+      ),
+    );
     renderWorkflowTemplateManagerModal();
     renderLaunchFlowModal();
   } catch (error) {
@@ -28239,7 +28388,7 @@ function documentShareUrl(doc) {
 
 function defaultShareExpiryInputValue() {
   const date = new Date();
-  date.setDate(date.getDate() + 1);
+  date.setDate(date.getDate() + 30);
   return date.toISOString().slice(0, 10);
 }
 
@@ -32417,6 +32566,7 @@ function resetWorkspaceContext(options = {}) {
   state.workflowTemplateFolderPickerModalOpen = false;
   state.workflowTemplateEditingId = null;
   state.workflowTemplateDraft = createEmptyWorkflowTemplateDraft();
+  clearWorkflowTemplateFeedback();
   state.launchFlowModalOpen = false;
   state.launchFlowSubmitting = false;
   state.launchFlowSelectedIds = [];

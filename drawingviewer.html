@@ -574,6 +574,8 @@
       document.title = localizeStandaloneText(document.title);
 
       const params = new URLSearchParams(window.location.search);
+      const sharePathMatch = window.location.pathname.match(/^\/share\/([^/]+)$/);
+      const shareToken = params.get("share") || (sharePathMatch ? decodeURIComponent(sharePathMatch[1]) : "");
       const docId = params.get("docId") || "";
       const versionId = params.get("versionId") || "";
       const mode = params.get("mode") === "review" ? "review" : "view";
@@ -623,6 +625,17 @@
         return String(doc?.mimeType || "").toLowerCase() === "application/pdf" || fileExtension(doc?.name) === "pdf";
       }
 
+      function urlWithParams(url, nextParams) {
+        const nextUrl = new URL(url, window.location.origin);
+        Object.entries(nextParams || {}).forEach(([key, value]) => {
+          const normalized = String(value || "").trim();
+          if (normalized) {
+            nextUrl.searchParams.set(key, normalized);
+          }
+        });
+        return nextUrl.toString();
+      }
+
       function workspaceProfile(doc, entry) {
         const pdf = isPdfDocument(doc);
         const assetLabel = pdf ? "PDF" : t("图纸", "Drawing");
@@ -668,12 +681,17 @@
           doc.owner ? `Owner: ${doc.owner}` : "",
         ].filter(Boolean).join(" · ");
         modeChip.textContent = isCurrent ? profile.modeLabel : t("历史版本", "Historical Version");
-        downloadButton.href = new URL(
-          `${fileUrl}?download=${encodeURIComponent(downloadName)}&t=${encodeURIComponent(entry.uploadedAt || doc.updatedAt || "")}`,
-          window.location.origin,
-        ).toString();
-        downloadButton.textContent = profile.downloadLabel;
-        downloadButton.classList.remove("hidden");
+        if (doc.permissions?.download) {
+          downloadButton.href = urlWithParams(fileUrl, {
+            download: downloadName,
+            t: entry.uploadedAt || doc.updatedAt || "",
+          });
+          downloadButton.textContent = profile.downloadLabel;
+          downloadButton.classList.remove("hidden");
+        } else {
+          downloadButton.removeAttribute("href");
+          downloadButton.classList.add("hidden");
+        }
         drawingFrame.title = profile.modeLabel;
         drawingFrame.src = frameUrl;
         stateWrap.classList.add("hidden");
@@ -681,7 +699,7 @@
       }
 
       async function loadDrawingViewer() {
-        if (!docId) {
+        if (!docId && !shareToken) {
           updateState(t("缺少文件参数", "Missing File Parameter"), t("请从文件列表或流程页重新打开工作台。", "Reopen the workspace from the file list or workflow page."));
           return;
         }
@@ -689,7 +707,7 @@
         updateState(mode === "review" ? t("正在连接图纸审阅页", "Connecting to Drawing Review Page") : t("正在连接图纸浏览页", "Connecting to Drawing View Page"), t("稍等一下，我们会拉取文件信息并加载图纸内容。", "Please wait while file information and drawing content are loaded."));
 
         try {
-          const response = await fetch("/api/documents", {
+          const response = await fetch(shareToken ? `/api/share/${encodeURIComponent(shareToken)}` : "/api/documents", {
             credentials: "same-origin",
             headers: {
               "Cache-Control": "no-store",
@@ -701,7 +719,7 @@
             throw new Error(localizeUserMessage(serverMessage, `${t("获取图纸信息失败，状态码", "Failed to get drawing information, status")} ${response.status}`));
           }
           const documents = Array.isArray(payload.documents) ? payload.documents : [];
-          const doc = documents.find((item) => item.id === docId);
+          const doc = shareToken ? payload.document : documents.find((item) => item.id === docId);
           const profile = workspaceProfile(doc || {}, {});
           if (!doc) {
             updateState(profile.notFoundTitle, profile.notFoundMessage);
@@ -726,10 +744,7 @@
             return;
           }
 
-          const frameUrl = new URL(
-            `${previewPath}?t=${encodeURIComponent(entry.uploadedAt || doc.updatedAt || "")}`,
-            window.location.origin,
-          ).toString();
+          const frameUrl = urlWithParams(previewPath, { t: entry.uploadedAt || doc.updatedAt || "" });
           showDrawingViewer({ doc, entry, frameUrl });
         } catch (error) {
           const fallbackLabel = mode === "review" ? t("图纸审阅页", "Drawing Review Page") : t("图纸浏览页", "Drawing View Page");

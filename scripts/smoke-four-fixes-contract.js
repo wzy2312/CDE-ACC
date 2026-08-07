@@ -10,6 +10,7 @@ const checks = [
   ["batch move uses folder picker instead of prompt", /function folderPickerAction/.test(app) && /folderPickerAction/.test(batchMove) && !/promptAction/.test(batchMove)],
   ["batch download zip has no external /usr/bin/zip", !server.includes('spawn("/usr/bin/zip"') && /async function zipDirectory/.test(server) && /ZIP_CRC32_TABLE/.test(server)],
   ["share expiry defaults to env-adjustable 30 days", /CDE_SHARE_DEFAULT_EXPIRY_DAYS/.test(server) && /30/.test(server.match(/function defaultShareExpiryDate\(\)[\s\S]{0,500}/)?.[0] || "")],
+  ["frontend share expiry picker defaults to 30 days", /function defaultShareExpiryInputValue\(\)[\s\S]{0,200}setDate\(date\.getDate\(\) \+ 30\)/.test(app)],
 ];
 let failed = 0;
 for (const [name, ok] of checks) {
